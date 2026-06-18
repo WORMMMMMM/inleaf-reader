@@ -14,21 +14,26 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - Do not rebuild a custom PDF renderer unless there is no alternative. PDF rendering, text selection, text layer behavior, scrolling, zooming, and highlight positioning should stay delegated to `react-pdf-highlighter-plus`.
 - The extension host owns file access, clipboard access, local translation process calls, and sidecar persistence.
 - The Webview owns reader UI, PDF interaction, annotation editing controls, wordbook controls, and `postMessage` events back to the extension host.
+- Selection actions are unified around `Translate`: a single English word returns dictionary details and a `Save to Wordbook` action; multi-word text returns sentence translation. Do not add a separate `Word` selection entry point.
+- Extension-host errors from message handlers must be surfaced to both the Webview (via `stateError` messages) and the VS Code notification API (`vscode.window.showErrorMessage`).
 - Runtime user data belongs in `.reading-extension/` next to the PDF, not in VS Code global storage.
 - Preserve backward compatibility for existing annotation JSON whenever possible.
 
 ## Important Files
 
 - `src/extension.ts`: Registers commands and opens the reader.
-- `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config, handles Webview messages, calls local translation, and delegates storage.
+- `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config on first open, handles Webview messages, calls local translation, and delegates storage. When switching PDFs, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML. All message handlers are wrapped in try/catch so filesystem errors surface to both the Webview status bar and a VS Code error notification. Translation runs through a long-lived daemon process for speed; single English words trigger dictionary lookup via ECDICT.
 - `src/readerStorage.ts`: Reads/writes annotations, wordbook, progress, Markdown export, and annotated PDF export.
 - `src/annotationTypes.ts`: Shared persisted data types. Update this carefully when changing the annotation schema.
 - `src/annotationExports.ts`: Markdown and annotated PDF export logic.
 - `src/wordReview.ts`: Vocabulary review scheduling helpers.
-- `webview/src/main.tsx`: React reader UI and PDF/highlight integration.
-- `webview/src/styles.css`: Reader layout and visual styling.
+- `webview/src/main.tsx`: React reader UI and PDF/highlight integration. Handles `navigateTo` messages for in-place PDF switching, `stateError` messages for surfaced extension-host errors, and `wordDetails` in translation results for dictionary display.
+- `webview/src/styles.css`: Reader layout and visual styling, including dictionary result block.
 - `webview/src/vscodeApi.ts`: Webview access to VS Code API and injected config.
-- `scripts/argos_translate.py`: Local Argos Translate helper. It reads JSON from stdin and writes JSON to stdout.
+- `scripts/argos_translate.py`: One-shot Argos Translate helper. Reads JSON from stdin and writes JSON to stdout. Kept as a fallback.
+- `scripts/argos_translate_daemon.py`: Long-lived translation daemon with dictionary support. Loads Argos Translate model and ECDICT dictionary once at startup, then serves requests as JSON lines over stdin/stdout. Supports `mode: "translate"` and `mode: "dict"`.
+- `scripts/ecdict_compact.json`: Optional uncompressed ECDICT output used only for inspection; do not commit it.
+- `scripts/ecdict_compact.json.gz`: Gzipped compact ECDICT dictionary (~22MB, 770,611 entries) used by the daemon for single-word lookups and committed for offline distribution.
 - `scripts/test-annotation-exports.mjs`: Regression tests for exports, schema compatibility, and word review.
 - `media/reader-app.js` and `media/reader-app.css`: Generated Webview bundle. Do not edit manually; rebuild with `npm run build:webview` or `npm run compile`.
 - `project_map.md`: File-by-file repository map. Update it when adding or changing major files.
@@ -51,7 +56,9 @@ These files are intentionally plain local files. They should remain portable acr
 ## Local Translation
 
 - Default provider: Argos Translate through `.venv-translate/bin/python`.
-- Helper: `scripts/argos_translate.py`.
+- Daemon: `scripts/argos_translate_daemon.py` runs as a long-lived process. It loads the Argos model and ECDICT dictionary once at startup, then serves JSON-line requests over stdin/stdout. The extension host manages daemon lifecycle automatically.
+- Fallback: `scripts/argos_translate.py` (one-shot mode, kept for backward compatibility).
+- Dictionary: Single English words are detected automatically (`/^[a-zA-Z'-]+$/`) and looked up in the compact ECDICT data (`scripts/ecdict_compact.json.gz`, generated from the MIT-licensed upstream ECDICT CSV). Dictionary results include phonetics, Chinese definitions, English definitions, part-of-speech labels, and word forms when available. Non-word text falls through to neural translation.
 - Current expected offline package: `en -> zh`.
 - LibreTranslate remains available as an HTTP fallback through `readingExtension.libreTranslateEndpoint`.
 - Argos quality is usable but limited. Keep `Copy ChatGPT prompt` available for higher-quality translation/explanation.
@@ -84,7 +91,9 @@ For reader changes, manually verify at least one normal text PDF:
 - Text selection works with real text PDFs.
 - Creating, editing, deleting, and undoing annotations autosaves.
 - Closing and reopening restores annotations, wordbook entries, and progress.
-- `Translate locally` returns a result for English selected text.
+- `Translate locally` returns a result for English selected text in <1s after first call.
+- Selecting a single English word and clicking `Translate locally` shows dictionary entry with phonetic, Chinese definitions, and English definitions.
+- Selecting a sentence and clicking `Translate` shows sentence translation without wordbook controls.
 - `Copy ChatGPT prompt` still works.
 
 For scanned PDFs, text selection may not work because there is no text layer. Do not treat that as a regression unless OCR has been added.
@@ -100,8 +109,12 @@ Do not commit:
 - user PDFs
 - runtime `.reading-extension/` sidecar data
 - packaged `*.vsix` files
+- `scripts/ecdict_compact.json` (large generated file, keep only the gzipped version)
+- `scripts/ecdict.csv` (downloaded source CSV)
 
 Generated `media/reader-app.js` and `media/reader-app.css` should be committed when Webview source changes, because the extension loads them at runtime.
+
+The generated dictionary gzip (`scripts/ecdict_compact.json.gz`) should be committed so the dictionary works without an internet connection. Rebuild it with `python3 scripts/build_ecdict_compact.py`.
 
 ## Known Design Priorities
 
@@ -110,3 +123,5 @@ Generated `media/reader-app.js` and `media/reader-app.css` should be committed w
 - Sync-friendly sidecar files first.
 - Keep AI integration optional and cheap.
 - Avoid large refactors unless they directly improve reader stability or maintainability.
+- Webview state preservation: use `retainContextWhenHidden: true` and in-place `navigateTo` messaging rather than rebuilding HTML when switching PDFs.
+- Translation speed: use a long-lived daemon process. Never spawn a one-shot Python process per translation request in the normal code path.

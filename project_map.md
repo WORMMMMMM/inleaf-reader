@@ -10,7 +10,10 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `package-lock.json`: Locked dependency graph for reproducible installs.
 - `tsconfig.json`: TypeScript compiler settings. Source files compile from `src/` into `out/`.
 - `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown ordering, Markdown content, legacy/new annotation geometry export, annotated PDF comment export, and vocabulary review scheduling after TypeScript compilation.
-- `scripts/argos_translate.py`: Python helper used by the extension host for local Argos Translate calls. It reads JSON from stdin and writes a JSON translation result to stdout so the Webview never needs direct Python or network access.
+- `scripts/argos_translate.py`: Python helper used by the extension host for local Argos Translate calls. It reads JSON from stdin and writes a JSON translation result to stdout so the Webview never needs direct Python or network access. Kept as a fallback; the normal code path uses the daemon.
+- `scripts/argos_translate_daemon.py`: Long-lived translation daemon. Loads the Argos Translate model and ECDICT dictionary once at startup, then serves JSON-line requests over stdin/stdout. Supports `mode: "translate"` (neural MT) and `mode: "dict"` (dictionary lookup for single words).
+- `scripts/build_ecdict_compact.py`: Rebuilds the compact offline dictionary from the MIT-licensed upstream ECDICT CSV, preserving Chinese translations, English definitions, phonetics, part-of-speech labels, and word-form exchange data.
+- `scripts/ecdict_compact.json.gz`: Gzipped compact ECDICT dictionary (~22MB, ~770K entries). Loaded by the daemon at startup for single-word lookups.
 - `.gitignore`: Local files excluded from git, including `node_modules/`, compiled output, packaged extensions, and sidecar reading data.
 - `.vscodeignore`: Files excluded when packaging the extension.
 - `project_map.md`: This file. Keep it updated when files or responsibilities change.
@@ -20,7 +23,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 ## Source
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
-- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, and CSS into the Webview, handles messages from the reader UI, calls local Argos Translate or LibreTranslate, and delegates persistence to `ReaderStorage`.
+- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, and CSS into the Webview on first open, handles messages from the reader UI, calls local Argos Translate or LibreTranslate, and delegates persistence to `ReaderStorage`. When switching to a different PDF, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML, preserving in-flight UI state. Translation runs through a long-lived daemon process managed by this panel; single-word English inputs are detected and looked up in the ECDICT dictionary for structured word details.
 - `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags, selection context, legacy normalized rects, and `react-pdf-highlighter-plus` positions.
 - `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes for both legacy rects and new highlighter positions.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores, restores, and deletes colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
@@ -28,10 +31,10 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `webview/src/main.tsx`: React reader app. It pre-registers PDF.js `WorkerMessageHandler` so PDF.js uses fake-worker mode in VS Code Webviews, uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host.
+- `webview/src/main.tsx`: React reader app. It pre-registers PDF.js `WorkerMessageHandler` so PDF.js uses fake-worker mode in VS Code Webviews, uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host. The selection toolbar has one translation flow: words show dictionary details plus `Save to Wordbook`, while sentences show translated text. Translation responses are matched to their source selection to prevent stale results.
 - `webview/src/pdfjsWorker.d.ts`: Type declaration for importing PDF.js worker internals into the Webview bundle.
-- `webview/src/styles.css`: Reader layout, toolbar, side panel, annotation list, wordbook, and responsive rules.
-- `webview/src/types.ts`: Webview-side copies of persisted annotation, progress, and wordbook data shapes.
+- `webview/src/styles.css`: Reader layout, toolbar, side panel, annotation list, wordbook, dictionary result block, and responsive rules.
+- `webview/src/types.ts`: Webview-side copies of persisted annotation, progress, wordbook data shapes, and `WordDetails` for dictionary results.
 - `webview/src/vscodeApi.ts`: Small wrapper around `acquireVsCodeApi()` and injected reader config.
 - `media/reader-app.js`: Generated Webview JavaScript bundle. Built by `npm run build:webview`.
 - `media/reader-app.css`: Generated Webview CSS bundle. Built by `npm run build:webview`.
@@ -86,7 +89,8 @@ VS Code command
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
 - Export logic is covered by `npm test`, which verifies Markdown content, new highlighter-position compatibility, native PDF note comments, and vocabulary review scheduling.
 - Page-only notes are kept in the annotation list and exported as native PDF comments.
-- Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction. Argos Translate is the default provider and LibreTranslate remains available as an HTTP fallback.
+- Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction. Argos Translate is the default provider and runs through a long-lived daemon process for speed. LibreTranslate remains available as an HTTP fallback.
+- Single English words are detected automatically and looked up in the ECDICT dictionary (~770K entries) for phonetics, Chinese definitions, English definitions, part-of-speech labels, and word-form data. Multi-word text falls through to neural machine translation.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.
 - `project_map.md` should be updated whenever a major file is added, removed, or changes responsibility.

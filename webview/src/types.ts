@@ -30,6 +30,8 @@ export interface WordRecord {
   id: string;
   word: string;
   translation?: string;
+  phonetic?: string;
+  definitions?: WordDefinition[];
   sentence?: string;
   note?: string;
   page?: number;
@@ -44,6 +46,12 @@ export interface WordReview {
   lastReviewedAt?: string;
 }
 
+export interface WordDefinition {
+  pos: string;
+  meaning: string;
+  translation?: string;
+}
+
 export interface ProgressRecord {
   page?: number;
   updatedAt: string;
@@ -54,4 +62,10 @@ export interface ReaderStatePayload {
   words: WordRecord[];
   progress: ProgressRecord;
   paperName: string;
+}
+
+export interface WordDetails {
+  word: string;
+  phonetic?: string;
+  definitions: WordDefinition[];
 }

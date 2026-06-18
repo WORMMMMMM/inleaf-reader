@@ -8,6 +8,8 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Render the selected paper through a React Webview powered by `react-pdf-highlighter-plus`.
 - Capture selected PDF text with the library-managed PDF.js text layer.
 - Translate selected text locally through Argos Translate, with optional LibreTranslate fallback.
+- Dictionary lookup for single English words: phonetics, part-of-speech, and Chinese definitions from ECDICT (770,611 entries in the current generated bundle).
+- Fast translation via a long-lived daemon process (model loads once, subsequent translations return instantly).
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
 - Save surrounding text context for captured PDF selections.
 - Reopen text highlights from the PDF or the annotation list.
@@ -65,7 +67,19 @@ The default local provider is Argos Translate. It runs through the project-local
 .venv-translate/bin/python
 ```
 
-The helper script is `scripts/argos_translate.py`, and the current setup has the offline `en -> zh` package installed. This path keeps translation free and local, but quality is more limited than ChatGPT or a paid translation API.
+The helper script is `scripts/argos_translate.py`, and the current setup has the offline `en -> zh` package installed. The extension uses a daemon mode by default: `scripts/argos_translate_daemon.py` loads the model once and stays alive for subsequent requests, making translation nearly instant after the first call.
+
+Single English words (e.g. "epistemology") are automatically detected and looked up in the built-in ECDICT dictionary, showing phonetics, Chinese definitions, English definitions, part-of-speech labels, and word forms when available. Multi-word sentences use neural machine translation as before.
+
+The selection toolbar uses one `Translate` entry point: word selections show a dictionary card with `Save to Wordbook`, while sentence selections show only the translated meaning. Selecting new text clears the previous result so stale words cannot be saved accidentally.
+
+The compact dictionary is generated from the MIT-licensed [ECDICT](https://github.com/skywind3000/ECDICT) CSV:
+
+```bash
+python3 scripts/build_ecdict_compact.py
+```
+
+This writes `scripts/ecdict_compact.json.gz`, which is loaded offline by the translation daemon. Plain `scripts/ecdict_compact.json` is only for inspection and should not be committed.
 
 Useful VS Code settings:
 
@@ -92,6 +106,8 @@ If Argos fails and fallback is enabled, the extension will try the configured Li
 
 If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and pre-registers the PDF.js worker handler in the Webview bundle so PDF.js can run in fake-worker mode inside VS Code.
 
+When switching between PDFs, the reader now sends an in-place navigation message instead of rebuilding the Webview. This preserves the Webview instance and non-document UI state while resetting the active PDF's transient selection state and loading its own sidecar data. If a filesystem error occurs (e.g. disk full), the error will surface in both the reader status bar and a VS Code notification.
+
 ## Roadmap
 
 - Add a visible local translation connection check.
@@ -99,3 +115,4 @@ If the reader shows `Could not load PDF`, reload the Extension Development Host 
 - Add optional free-text notes, drawing, and shape tools from `react-pdf-highlighter-plus`.
 - Improve exported PDF highlight fidelity for rotated/cropped pages.
 - Improve spaced repetition scheduling and filtering.
+- Add dictionary support for additional language pairs.

@@ -8,3 +8,6 @@ vite.webview.config.js
 webview/src/*.js
 .DS_Store
 .reading-extension/
+.vscode/
+scripts/ecdict.csv
+scripts/ecdict_compact.json

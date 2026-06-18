@@ -10,6 +10,12 @@ import {
   WordRecord
 } from './readerStorage';
 
+export interface WordDetails {
+  word: string;
+  phonetic?: string;
+  definitions: { pos: string; meaning: string; translation?: string }[];
+}
+
 type ReaderMessage =
   | { type: 'ready' }
   | { type: 'saveAnnotation'; payload: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'> }
@@ -37,13 +43,18 @@ export class PaperReaderPanel {
   private readonly panel: vscode.WebviewPanel;
   private storage: ReaderStorage;
   private disposables: vscode.Disposable[] = [];
+  private translationDaemon: cp.ChildProcess | undefined;
+  private daemonReady = false;
+  private daemonPending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+  private daemonRequestId = 0;
+  private daemonBuffer = '';
 
   static createOrShow(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
     if (PaperReaderPanel.currentPanel) {
       PaperReaderPanel.currentPanel.panel.reveal(column);
-      PaperReaderPanel.currentPanel.update(pdfUri);
+      PaperReaderPanel.currentPanel.navigateTo(pdfUri);
       return;
     }
 
@@ -53,6 +64,7 @@ export class PaperReaderPanel {
       column,
       {
         enableScripts: true,
+        retainContextWhenHidden: true,
         localResourceRoots: getLocalResourceRoots(extensionUri, pdfUri)
       }
     );
@@ -67,16 +79,16 @@ export class PaperReaderPanel {
   ) {
     this.panel = panel;
     this.storage = new ReaderStorage(pdfUri);
+    this.panel.webview.html = this.getHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage(
       (message: ReaderMessage) => this.handleMessage(message),
       null,
       this.disposables
     );
-    this.update(pdfUri);
   }
 
-  private async update(pdfUri: vscode.Uri) {
+  private async navigateTo(pdfUri: vscode.Uri) {
     this.pdfUri = pdfUri;
     this.storage = new ReaderStorage(pdfUri);
     this.panel.title = `Reader: ${path.basename(pdfUri.fsPath)}`;
@@ -85,10 +97,31 @@ export class PaperReaderPanel {
       localResourceRoots: getLocalResourceRoots(this.extensionUri, pdfUri)
     };
     await this.storage.ensureStorageDir();
-    this.panel.webview.html = await this.getHtml();
+    const pdfWebviewUri = this.panel.webview.asWebviewUri(pdfUri);
+    await this.panel.webview.postMessage({
+      type: 'navigateTo',
+      payload: {
+        pdfUrl: pdfWebviewUri.toString(),
+        paperName: path.basename(pdfUri.fsPath)
+      }
+    });
+    await this.postState();
   }
 
   private async handleMessage(message: ReaderMessage) {
+    try {
+      await this.dispatchMessage(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.panel.webview.postMessage({
+        type: 'stateError',
+        payload: { message }
+      });
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  private async dispatchMessage(message: ReaderMessage) {
     switch (message.type) {
       case 'ready':
         await this.postState();
@@ -120,7 +153,7 @@ export class PaperReaderPanel {
         await this.exportAnnotatedPdf();
         break;
       case 'saveWord':
-        await this.storage.addWord(message.payload);
+        await this.saveWord(message.payload);
         await this.postState();
         break;
       case 'reviewWord':
@@ -166,70 +199,275 @@ export class PaperReaderPanel {
     vscode.window.showInformationMessage('Translation prompt copied for ChatGPT.');
   }
 
+  private async saveWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
+    const word = input.word.trim();
+    if (!word) {
+      throw new Error('No word provided.');
+    }
+
+    let enriched = { ...input, word };
+    if (this.isSingleWord(word)) {
+      try {
+        const result = await this.lookupWordDetails(word);
+        if (result.wordDetails) {
+          enriched = {
+            ...enriched,
+            phonetic: input.phonetic || result.wordDetails.phonetic,
+            definitions: input.definitions || result.wordDetails.definitions,
+            translation: input.translation || compactWordTranslation(result.wordDetails) || result.translatedText
+          };
+        } else if (!input.translation && result.translatedText) {
+          enriched.translation = result.translatedText;
+        }
+      } catch {
+        // Word saving should still work even if local dictionary lookup fails.
+      }
+    }
+
+    await this.storage.addWord(enriched);
+  }
+
   private async translate(text: string) {
     const trimmed = text.trim();
     if (!trimmed) {
-      await this.postTranslationResult('', 'Select or paste text before translating.');
+      await this.postTranslationResult('', '', undefined, 'Select or paste text before translating.');
       return;
     }
 
     try {
-      const translatedText = await this.translateWithLocalProvider(trimmed);
-      await this.postTranslationResult(translatedText);
+      const result = await this.translateWithLocalProvider(trimmed);
+      await this.postTranslationResult(
+        trimmed,
+        result.translatedText,
+        result.wordDetails,
+        result.error
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await this.postTranslationResult('', message);
+      await this.postTranslationResult(trimmed, '', undefined, message);
     }
   }
 
-  private async translateWithLocalProvider(text: string) {
+  private async translateWithLocalProvider(text: string): Promise<{
+    translatedText?: string;
+    wordDetails?: WordDetails;
+    error?: string;
+  }> {
     const config = vscode.workspace.getConfiguration('readingExtension');
     const provider = config.get<string>('translationProvider') || 'argos';
 
     if (provider === 'argos') {
       try {
-        return await this.translateWithArgos(text);
-      } catch (error) {
+        return await this.translateWithDaemon(text);
+      } catch {
         if (config.get<boolean>('translationFallbackToLibreTranslate') === false) {
-          throw error;
+          throw new Error('Local translation failed and fallback is disabled.');
         }
       }
     }
 
-    return this.translateWithLibreTranslate(text);
+    try {
+      const translatedText = await this.translateWithLibreTranslate(text);
+      return { translatedText };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { error: message };
+    }
   }
 
-  private async translateWithArgos(text: string) {
+  private isSingleWord(text: string) {
+    const trimmed = text.trim();
+    // Single word: no spaces, no sentence-ending punctuation
+    return /^[a-zA-Z'-]+$/.test(trimmed) && trimmed.length > 1;
+  }
+
+  private async translateWithDaemon(text: string): Promise<{
+    translatedText?: string;
+    wordDetails?: WordDetails;
+  }> {
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
+    const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
+    const mode = this.isSingleWord(text) ? 'dict' : 'translate';
+
+    await this.ensureDaemon();
+    const result = await this.daemonRequest<{
+      translatedText?: string;
+      wordDetails?: WordDetails;
+      error?: string;
+    }>({ text, source, target, mode });
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    return result;
+  }
+
+  private async lookupWordDetails(text: string): Promise<{
+    translatedText?: string;
+    wordDetails?: WordDetails;
+  }> {
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
+    const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
+
+    await this.ensureDaemon();
+    const result = await this.daemonRequest<{
+      translatedText?: string;
+      wordDetails?: WordDetails;
+      error?: string;
+    }>({ text, source, target, mode: 'dict' });
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    return result;
+  }
+
+  private async ensureDaemon() {
+    if (this.translationDaemon && this.daemonReady) {
+      return;
+    }
+
+    // Kill stale daemon if it exists but isn't ready
+    if (this.translationDaemon) {
+      this.killDaemon();
+    }
+
     const config = vscode.workspace.getConfiguration('readingExtension');
     const configuredPython = config.get<string>('argosPythonPath')?.trim();
     const pythonPath = configuredPython || path.join(this.extensionUri.fsPath, '.venv-translate', 'bin', 'python');
-    const scriptPath = path.join(this.extensionUri.fsPath, 'scripts', 'argos_translate.py');
-    const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
-    const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
+    const daemonPath = path.join(this.extensionUri.fsPath, 'scripts', 'argos_translate_daemon.py');
 
     if (!fs.existsSync(pythonPath)) {
       throw new Error(`Argos Python not found at ${pythonPath}.`);
     }
-    if (!fs.existsSync(scriptPath)) {
-      throw new Error(`Argos helper script not found at ${scriptPath}.`);
+    if (!fs.existsSync(daemonPath)) {
+      throw new Error(`Daemon script not found at ${daemonPath}.`);
     }
 
-    const payload = JSON.stringify({ text, source, target });
-    const result = await runProcess(pythonPath, [scriptPath], payload, 45000);
-    const jsonLine = result.stdout
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .reverse()
-      .find(line => line.startsWith('{') && line.endsWith('}'));
-    const parsed = JSON.parse(jsonLine || '{}') as { translatedText?: string; error?: string };
-    if (parsed.error) {
-      throw new Error(parsed.error);
-    }
-    if (!parsed.translatedText) {
-      throw new Error(result.stderr || 'Argos Translate did not return translatedText.');
-    }
+    this.translationDaemon = cp.spawn(pythonPath, [daemonPath], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
 
-    return parsed.translatedText;
+    let stderr = '';
+    this.translationDaemon.stderr?.on('data', chunk => {
+      stderr += chunk.toString();
+    });
+
+    this.translationDaemon.on('error', () => {
+      this.daemonReady = false;
+    });
+
+    this.translationDaemon.on('close', () => {
+      this.daemonReady = false;
+      // Reject all pending requests
+      for (const { reject } of this.daemonPending.values()) {
+        reject(new Error('Translation daemon exited unexpectedly.'));
+      }
+      this.daemonPending.clear();
+    });
+
+    // Accumulate stdout and dispatch responses
+    this.daemonBuffer = '';
+    this.translationDaemon.stdout?.on('data', chunk => {
+      this.daemonBuffer += chunk.toString();
+      const lines = this.daemonBuffer.split('\n');
+      // Keep the last (potentially incomplete) line in the buffer
+      this.daemonBuffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line.trim());
+          if (parsed.ready) {
+            this.daemonReady = true;
+            continue;
+          }
+          // Resolve the oldest pending request
+          const next = this.daemonPending.entries().next();
+          if (next.done) continue;
+          const [id, pending] = next.value;
+          if (pending && id !== undefined) {
+            this.daemonPending.delete(id);
+            pending.resolve(parsed);
+          }
+        } catch {
+          // Ignore non-JSON lines (e.g. stray stderr mixed in)
+        }
+      }
+    });
+
+    // Wait for ready signal
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.killDaemon();
+        reject(new Error('Translation daemon failed to start within 60 seconds.'));
+      }, 60000);
+
+      const checkReady = () => {
+        if (this.daemonReady) {
+          clearTimeout(timeout);
+          resolve();
+        } else {
+          setTimeout(checkReady, 100);
+        }
+      };
+      checkReady();
+    });
+  }
+
+  private daemonRequest<T>(payload: object): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const id = ++this.daemonRequestId;
+      const wrappedResolver = (value: unknown) => {
+        clearTimeout(timeout);
+        resolve(value as T);
+      };
+      const wrappedRejecter = (error: Error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
+      this.daemonPending.set(id, {
+        resolve: wrappedResolver,
+        reject: wrappedRejecter
+      });
+
+      const timeout = setTimeout(() => {
+        this.daemonPending.delete(id);
+        this.killDaemon();
+        reject(new Error('Translation daemon request timed out.'));
+      }, 30000);
+
+      this.translationDaemon?.stdin?.write(JSON.stringify(payload) + '\n');
+    });
+  }
+
+  private killDaemon() {
+    if (this.translationDaemon) {
+      this.translationDaemon.kill();
+      this.translationDaemon = undefined;
+    }
+    this.daemonReady = false;
+    this.daemonBuffer = '';
+    for (const { reject } of this.daemonPending.values()) {
+      reject(new Error('Translation daemon was killed.'));
+    }
+    this.daemonPending.clear();
+  }
+
+  private postTranslationResult(
+    sourceText: string,
+    translatedText?: string,
+    wordDetails?: WordDetails,
+    error?: string
+  ) {
+    return this.panel.webview.postMessage({
+      type: 'translationResult',
+      payload: { sourceText, translatedText, wordDetails, error }
+    });
   }
 
   private async translateWithLibreTranslate(text: string) {
@@ -243,15 +481,8 @@ export class PaperReaderPanel {
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          q: text,
-          source,
-          target,
-          format: 'text'
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source, target, format: 'text' }),
         signal: controller.signal
       });
 
@@ -279,16 +510,6 @@ export class PaperReaderPanel {
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  private async postTranslationResult(translatedText: string, error?: string) {
-    await this.panel.webview.postMessage({
-      type: 'translationResult',
-      payload: {
-        translatedText,
-        error
-      }
-    });
   }
 
   private async exportAnnotations() {
@@ -370,7 +591,7 @@ export class PaperReaderPanel {
     }
   }
 
-  private async getHtml() {
+  private getHtml(): string {
     const webview = this.panel.webview;
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'reader-app.js')
@@ -379,10 +600,14 @@ export class PaperReaderPanel {
       vscode.Uri.joinPath(this.extensionUri, 'media', 'reader-app.css')
     );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
+    const config = vscode.workspace.getConfiguration('readingExtension');
     const nonce = getNonce();
     const readerConfig = JSON.stringify({
       pdfUrl: pdfWebviewUri.toString(),
-      paperName: path.basename(this.pdfUri.fsPath)
+      paperName: path.basename(this.pdfUri.fsPath),
+      translationProvider: config.get<string>('translationProvider') || 'argos',
+      translationSource: config.get<string>('translationSource') || 'auto',
+      translationTarget: config.get<string>('translationTarget') || 'zh'
     });
 
     return `<!DOCTYPE html>
@@ -429,6 +654,7 @@ export class PaperReaderPanel {
   }
 
   private dispose() {
+    this.killDaemon();
     PaperReaderPanel.currentPanel = undefined;
     while (this.disposables.length) {
       const disposable = this.disposables.pop();
@@ -465,6 +691,18 @@ function normalizeArgosLanguage(value: string, fallback: string) {
     return 'zt';
   }
   return normalized;
+}
+
+function compactWordTranslation(details: WordDetails) {
+  const translations = details.definitions
+    .map(item => item.translation || (containsCjk(item.meaning) ? item.meaning : ''))
+    .map(item => item.trim())
+    .filter(Boolean);
+  return [...new Set(translations)].slice(0, 3).join('; ');
+}
+
+function containsCjk(value: string) {
+  return /[\u3400-\u9fff]/.test(value);
 }
 
 function runProcess(command: string, args: string[], stdin: string, timeoutMs: number) {

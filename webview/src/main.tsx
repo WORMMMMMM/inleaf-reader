@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { WorkerMessageHandler } from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import {
   AreaHighlight,
+  MonitoredHighlightContainer,
   PdfHighlighter,
   PdfLoader,
   TextHighlight,
@@ -11,13 +12,14 @@ import {
   type PdfHighlighterUtils,
   type PdfScaleValue,
   type PdfSelection,
-  type ScaledPosition
+  type ScaledPosition,
+  type Tip
 } from 'react-pdf-highlighter-plus';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import 'react-pdf-highlighter-plus/style/style.css';
 import './styles.css';
 import { readerConfig, vscode } from './vscodeApi';
-import type { AnnotationKind, AnnotationRecord, AnnotationRect, ReaderStatePayload, WordRecord } from './types';
+import type { AnnotationKind, AnnotationRecord, AnnotationRect, ReaderStatePayload, WordDetails, WordRecord } from './types';
 
 type PdfjsGlobal = typeof globalThis & {
   pdfjsWorker?: { WorkerMessageHandler: unknown };
@@ -29,12 +31,31 @@ type ReaderHighlight = Highlight & {
   annotation?: AnnotationRecord;
 };
 
+type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
+
+interface SelectionToolbarContextValue {
+  selectedText: string;
+  translationSourceText: string;
+  translationText: string;
+  wordDetails?: WordDetails;
+  onHighlight(color: string): void;
+  onUnderline(color: string): void;
+  onSaveNote(note: string, color: string): void;
+  onTranslate(): void;
+  onCopyPrompt(): void;
+  onSaveWord(details: WordDetails): void;
+}
+
+const SelectionToolbarContext = React.createContext<SelectionToolbarContextValue | undefined>(undefined);
+
 type IncomingMessage =
   | { type: 'state'; payload: ReaderStatePayload }
-  | { type: 'translationResult'; payload: { translatedText?: string; error?: string } }
+  | { type: 'navigateTo'; payload: { pdfUrl: string; paperName: string } }
+  | { type: 'translationResult'; payload: { sourceText: string; translatedText?: string; wordDetails?: WordDetails; error?: string } }
   | { type: 'exportResult'; payload: { path?: string; error?: string } }
   | { type: 'clipboardResult'; payload: { message?: string; error?: string } }
-  | { type: 'annotationActionResult'; payload: { message?: string; error?: string } };
+  | { type: 'annotationActionResult'; payload: { message?: string; error?: string } }
+  | { type: 'stateError'; payload: { message: string } };
 
 const colorOptions = [
   { label: 'Yellow', value: '#ffd654' },
@@ -61,9 +82,8 @@ function App() {
   const [kind, setKind] = useState<AnnotationKind>('highlight');
   const [editingId, setEditingId] = useState<string | undefined>();
   const [translationOutput, setTranslationOutput] = useState('');
-  const [word, setWord] = useState('');
-  const [wordTranslation, setWordTranslation] = useState('');
-  const [wordNote, setWordNote] = useState('');
+  const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
+  const [translationSourceText, setTranslationSourceText] = useState('');
   const [annotationQuery, setAnnotationQuery] = useState('');
   const [tagQuery, setTagQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -75,10 +95,14 @@ function App() {
   const [status, setStatus] = useState('Loading PDF...');
   const [activeId, setActiveId] = useState<string | undefined>();
   const [lastDeleted, setLastDeleted] = useState<AnnotationRecord | undefined>();
+  const [pdfUrl, setPdfUrl] = useState(readerConfig.pdfUrl);
+  const [paperName, setPaperName] = useState(readerConfig.paperName);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('overview');
   const highlighterRef = useRef<PdfHighlighterUtils | null>(null);
   const editDebounceRef = useRef<number | undefined>(undefined);
   const progressDebounceRef = useRef<number | undefined>(undefined);
   const documentReadyRef = useRef(false);
+  const selectionRef = useRef({ selectedText: '', selectionPosition: undefined as ScaledPosition | undefined, currentPage: 1 });
 
   useEffect(() => {
     document.body.classList.add('reader-mounted');
@@ -110,8 +134,27 @@ function App() {
           setCurrentPage(message.payload.progress.page);
         }
       }
+      if (message.type === 'navigateTo') {
+        setPdfUrl(message.payload.pdfUrl);
+        setPaperName(message.payload.paperName);
+        setState(defaultState);
+        setPageTotal(0);
+        setStatus('Loading PDF...');
+        documentReadyRef.current = false;
+        setLastDeleted(undefined);
+        clearAnnotationDraft();
+      }
+      if (message.type === 'stateError') {
+        setStatus(message.payload.message);
+      }
       if (message.type === 'translationResult') {
+        if (message.payload.sourceText !== selectionRef.current.selectedText.trim()) {
+          return;
+        }
+        setTranslationSourceText(message.payload.sourceText);
         setTranslationOutput(message.payload.error || message.payload.translatedText || '');
+        setWordDetails(message.payload.wordDetails);
+        setActiveSidebarTab('translation');
       }
       if (message.type === 'exportResult') {
         setStatus(message.payload.error ? `Export failed: ${message.payload.error}` : `Exported: ${message.payload.path}`);
@@ -205,11 +248,20 @@ function App() {
     setSelectedText(text);
     setSelectionPosition(ghost.position);
     setCurrentPage(ghost.position.boundingRect.pageNumber);
+    setTranslationSourceText('');
+    setTranslationOutput('');
+    setWordDetails(undefined);
+    selectionRef.current = {
+      selectedText: text,
+      selectionPosition: ghost.position,
+      currentPage: ghost.position.boundingRect.pageNumber
+    };
     setStatus('Selection captured.');
   }
 
   function saveAnnotation() {
-    const page = selectionPosition?.boundingRect.pageNumber || currentPage;
+    const pos = selectionPosition;
+    const page = pos?.boundingRect.pageNumber || currentPage;
     const payload = {
       page,
       selectedText,
@@ -217,8 +269,8 @@ function App() {
       tags: normalizeTags(tags),
       color,
       kind,
-      highlighterPosition: selectionPosition,
-      rects: selectionPosition ? highlighterPositionToRects(selectionPosition) : undefined
+      highlighterPosition: pos,
+      rects: pos ? highlighterPositionToRects(pos) : undefined
     };
     if (!payload.selectedText.trim() && !payload.note.trim()) {
       setStatus('Add selected text or a note before saving.');
@@ -275,55 +327,117 @@ function App() {
     setColor('#ffd654');
     setKind('highlight');
     setActiveId(undefined);
+    selectionRef.current = { selectedText: '', selectionPosition: undefined, currentPage: 1 };
   }
 
-  function focusAnnotation(annotation: AnnotationRecord) {
-    setActiveId(annotation.id);
-    const highlight = annotationToHighlight(annotation);
-    if (highlight) {
-      highlighterRef.current?.scrollToHighlight(highlight);
+  const quickHighlight = useCallback((color: string) => {
+    const s = selectionRef.current;
+    if (!doSaveAnnotation(s, { color, kind: 'highlight' })) {
+      setStatus('Select text before highlighting.');
       return;
     }
-    goToPage(annotation.page || 1);
-  }
+    clearAnnotationDraft();
+    highlighterRef.current?.removeGhostHighlight();
+    setStatus('Annotation saved.');
+  }, []);
 
-  function goToPage(page: number, saveProgress = true) {
-    const nextPage = Math.min(Math.max(page, 1), pageTotal || page || 1);
-    setCurrentPage(nextPage);
-    highlighterRef.current?.getViewer()?.scrollPageIntoView({ pageNumber: nextPage });
-    if (!saveProgress) {
+  const quickUnderline = useCallback((color: string) => {
+    const s = selectionRef.current;
+    if (!doSaveAnnotation(s, { color, kind: 'underline' })) {
+      setStatus('Select text before highlighting.');
       return;
     }
-    window.clearTimeout(progressDebounceRef.current);
-    progressDebounceRef.current = window.setTimeout(() => {
-      vscode.postMessage({ type: 'saveProgress', payload: { page: nextPage } });
-    }, 350);
-  }
+    clearAnnotationDraft();
+    highlighterRef.current?.removeGhostHighlight();
+    setStatus('Annotation saved.');
+  }, []);
 
-  function saveWord() {
-    const text = word.trim() || selectedText.trim();
+  const saveSelectionNote = useCallback((noteText: string, noteColor: string) => {
+    const s = selectionRef.current;
+    if (!s.selectedText.trim()) {
+      setStatus('Select text before adding a note.');
+      return;
+    }
+    if (!doSaveAnnotation(s, { color: noteColor, kind: 'highlight', note: noteText })) {
+      setStatus('Add note text before saving.');
+      return;
+    }
+    clearAnnotationDraft();
+    highlighterRef.current?.removeGhostHighlight();
+    setStatus('Note saved.');
+  }, []);
+
+  const translateSelection = useCallback(() => {
+    const s = selectionRef.current;
+    const text = s.selectedText.trim();
     if (!text) {
-      setStatus('Add a word or select text before saving.');
+      setStatus('Select text before translating.');
+      return;
+    }
+    setSelectedText(text);
+    setCurrentPage(s.currentPage);
+    setTranslationSourceText(text);
+    setTranslationOutput('Translating...');
+    setWordDetails(undefined);
+    setActiveSidebarTab('translation');
+    vscode.postMessage({ type: 'translate', payload: { text } });
+  }, []);
+
+  const copySelectionPrompt = useCallback(() => {
+    const s = selectionRef.current;
+    const text = s.selectedText.trim();
+    if (!text) {
+      setStatus('Select text before copying a prompt.');
+      return;
+    }
+    vscode.postMessage({ type: 'copyPrompt', payload: { text } });
+  }, []);
+
+  const saveSelectionWord = useCallback((details: WordDetails) => {
+    const s = selectionRef.current;
+    const selected = s.selectedText.trim();
+    if (!selected || details.word !== selected) {
+      setStatus('Select a word before saving it.');
       return;
     }
     vscode.postMessage({
       type: 'saveWord',
       payload: {
-        word: text,
-        translation: wordTranslation.trim() || translationOutput.trim(),
-        sentence: selectedText.trim(),
-        note: wordNote.trim(),
-        page: currentPage
+        word: details.word,
+        translation: summarizeWordDetails(details),
+        phonetic: details.phonetic,
+        definitions: details.definitions,
+        sentence: selected,
+        note: '',
+        page: s.currentPage
       }
     });
-    setWord('');
-    setWordTranslation('');
-    setWordNote('');
+    highlighterRef.current?.removeGhostHighlight();
+    setActiveSidebarTab('wordbook');
     setStatus('Word saved.');
-  }
+  }, []);
 
-  return (
-    <main className="shell">
+  const selectionToolbarContextValue = useMemo<SelectionToolbarContextValue>(() => ({
+    selectedText,
+    translationSourceText,
+    translationText: translationOutput,
+    wordDetails,
+    onHighlight: quickHighlight,
+    onUnderline: quickUnderline,
+    onSaveNote: saveSelectionNote,
+    onTranslate: translateSelection,
+    onCopyPrompt: copySelectionPrompt,
+    onSaveWord: saveSelectionWord
+  }), [copySelectionPrompt, quickHighlight, quickUnderline, saveSelectionNote, saveSelectionWord, selectedText, translateSelection, translationOutput, translationSourceText, wordDetails]);
+
+  const selectionTip = useMemo(() => <SelectionToolbar />, []);
+
+  /*
+   * react-pdf-highlighter-plus stores the selectionTip React element at mouseup.
+   * Context keeps that cached element connected to the latest selection/result.
+   */
+  const readerView = (
+    <SelectionToolbarContext.Provider value={selectionToolbarContextValue}>
       <section className="reader">
         <div className="reader-toolbar">
           <button title="Previous page" onClick={() => goToPage(currentPage - 1)}>Prev</button>
@@ -354,7 +468,7 @@ function App() {
         </div>
         <div className="pdf-host">
           <PdfLoader
-            document={readerConfig.pdfUrl}
+            document={pdfUrl}
             beforeLoad={progress => <div className="loading">Loading PDF {progress.loaded ? `${Math.round(progress.loaded / 1024)} KB` : ''}</div>}
             errorMessage={error => <div className="loading error">Could not load PDF: {error.message}</div>}
             onError={error => setStatus(`Could not load PDF: ${error.message}`)}
@@ -364,6 +478,7 @@ function App() {
                 activeId={activeId}
                 highlights={highlights}
                 pdfDocument={pdfDocument}
+                selectionTip={selectionTip}
                 zoom={zoom}
                 onDelete={deleteAnnotation}
                 onDocumentReady={handleDocumentReady}
@@ -378,102 +493,192 @@ function App() {
           </PdfLoader>
         </div>
       </section>
+    </SelectionToolbarContext.Provider>
+  );
+
+  function focusAnnotation(annotation: AnnotationRecord) {
+    setActiveId(annotation.id);
+    const highlight = annotationToHighlight(annotation);
+    if (highlight) {
+      highlighterRef.current?.scrollToHighlight(highlight);
+      return;
+    }
+    goToPage(annotation.page || 1);
+  }
+
+  function goToPage(page: number, saveProgress = true) {
+    const nextPage = Math.min(Math.max(page, 1), pageTotal || page || 1);
+    setCurrentPage(nextPage);
+    highlighterRef.current?.getViewer()?.scrollPageIntoView({ pageNumber: nextPage });
+    if (!saveProgress) {
+      return;
+    }
+    window.clearTimeout(progressDebounceRef.current);
+    progressDebounceRef.current = window.setTimeout(() => {
+      vscode.postMessage({ type: 'saveProgress', payload: { page: nextPage } });
+    }, 350);
+  }
+
+  return (
+    <main className="shell">
+      {readerView}
       <aside className="side-panel">
         <header>
           <p className="eyebrow">Reading Extension</p>
-          <h1>{state.paperName || readerConfig.paperName}</h1>
+          <h1>{paperName || state.paperName || readerConfig.paperName}</h1>
         </header>
 
-        <section className="tool-block">
-          <label htmlFor="selectedText">Selected text</label>
-          <textarea id="selectedText" rows={6} value={selectedText} onChange={event => setSelectedText(event.target.value)} placeholder="Select paper text or paste text here." />
-          <div className="actions">
-            <button onClick={() => vscode.postMessage({ type: 'translate', payload: { text: selectedText } })}>Translate locally</button>
-            <button onClick={() => vscode.postMessage({ type: 'copyPrompt', payload: { text: selectedText } })}>Copy ChatGPT prompt</button>
-          </div>
-          <textarea rows={5} value={translationOutput} onChange={event => setTranslationOutput(event.target.value)} placeholder="Local translation will appear here." />
-        </section>
+        <nav className="side-tabs" aria-label="Reader panels">
+          <button className={activeSidebarTab === 'overview' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('overview')}>Overview</button>
+          <button className={activeSidebarTab === 'annotations' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('annotations')}>Annotations</button>
+          <button className={activeSidebarTab === 'wordbook' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('wordbook')}>Wordbook</button>
+          <button className={activeSidebarTab === 'translation' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('translation')}>Translation</button>
+        </nav>
 
-        <section className="tool-block">
-          <h2>Annotation</h2>
-          {editingId ? <div className="edit-status">Editing annotation - autosaves changes</div> : null}
-          <label htmlFor="annotationColor">Highlight color</label>
-          <select id="annotationColor" value={color} onChange={event => setColor(event.target.value)}>
-            {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <label htmlFor="annotationKind">Annotation style</label>
-          <select id="annotationKind" value={kind} onChange={event => setKind(event.target.value as AnnotationKind)}>
-            <option value="highlight">Highlight</option>
-            <option value="underline">Underline</option>
-          </select>
-          <label htmlFor="annotationTags">Tags</label>
-          <input id="annotationTags" value={tags} onChange={event => setTags(event.target.value)} placeholder="method, question, todo" />
-          <textarea rows={4} value={note} onChange={event => setNote(event.target.value)} placeholder="Your annotation" />
-          <div className="actions">
-            <button onClick={saveAnnotation}>{editingId ? 'Save now' : 'Save annotation'}</button>
-            {editingId ? <button className="secondary-button" onClick={clearAnnotationDraft}>Cancel edit</button> : null}
-          </div>
-        </section>
+        {activeSidebarTab === 'overview' ? (
+          <section className="side-tab-panel">
+            <div className="overview-grid">
+              <div className="metric-card">
+                <span>Page</span>
+                <strong>{currentPage} / {pageTotal || '-'}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Annotations</span>
+                <strong>{state.annotations.length}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Words</span>
+                <strong>{state.words.length}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Due</span>
+                <strong>{dueWords.length}</strong>
+              </div>
+            </div>
+            <section className="tool-block">
+              <h2>Translation</h2>
+              <dl className="meta-list">
+                <div>
+                  <dt>Provider</dt>
+                  <dd>{readerConfig.translationProvider || 'argos'}</dd>
+                </div>
+                <div>
+                  <dt>Languages</dt>
+                  <dd>{readerConfig.translationSource || 'auto'} {'->'} {readerConfig.translationTarget || 'zh'}</dd>
+                </div>
+              </dl>
+            </section>
+            <section className="tool-block">
+              <h2>Status</h2>
+              <div className="empty compact-empty">{status}</div>
+            </section>
+            <section className="tool-block">
+              <h2>Current selection</h2>
+              {selectedText.trim() ? <p className="selection-preview">{shorten(selectedText, 260)}</p> : <div className="empty compact-empty">Select text in the PDF to act on it.</div>}
+            </section>
+          </section>
+        ) : null}
 
-        <section className="tool-block">
-          <h2>Wordbook</h2>
-          <input value={word} onChange={event => setWord(event.target.value)} placeholder="Word or phrase" />
-          <input value={wordTranslation} onChange={event => setWordTranslation(event.target.value)} placeholder="Translation" />
-          <textarea rows={3} value={wordNote} onChange={event => setWordNote(event.target.value)} placeholder="Definition, memory note, or context" />
-          <button onClick={saveWord}>Save word</button>
-        </section>
+        {activeSidebarTab === 'annotations' ? (
+          <section className="side-tab-panel list-block">
+            {editingId ? (
+              <section className="tool-block edit-panel">
+                <h2>Editing Annotation</h2>
+                <div className="edit-status">Changes autosave while this panel is open.</div>
+                <label htmlFor="annotationColor">Highlight color</label>
+                <select id="annotationColor" value={color} onChange={event => setColor(event.target.value)}>
+                  {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+                <label htmlFor="annotationKind">Annotation style</label>
+                <select id="annotationKind" value={kind} onChange={event => setKind(event.target.value as AnnotationKind)}>
+                  <option value="highlight">Highlight</option>
+                  <option value="underline">Underline</option>
+                </select>
+                <label htmlFor="annotationTags">Tags</label>
+                <input id="annotationTags" value={tags} onChange={event => setTags(event.target.value)} placeholder="method, question, todo" />
+                <textarea rows={4} value={note} onChange={event => setNote(event.target.value)} placeholder="Your annotation" />
+                <div className="actions">
+                  <button onClick={saveAnnotation}>Save now</button>
+                  <button className="secondary-button" onClick={clearAnnotationDraft}>Cancel edit</button>
+                </div>
+              </section>
+            ) : null}
 
-        <section className="tool-block list-block">
-          <h2>Due today</h2>
-          {dueWords.length ? dueWords.map(item => (
-            <WordItem key={item.id} word={item} showReview />
-          )) : <div className="empty">No words due today.</div>}
-        </section>
+            <section className="tool-block">
+              <h2>Saved Annotations</h2>
+              <input type="search" value={annotationQuery} onChange={event => setAnnotationQuery(event.target.value)} placeholder="Search annotations" />
+              <input type="search" value={tagQuery} onChange={event => setTagQuery(event.target.value)} placeholder="Filter by tag" />
+              <select value={colorFilter} onChange={event => setColorFilter(event.target.value)}>
+                <option value="">All colors</option>
+                {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              <select value={kindFilter} onChange={event => setKindFilter(event.target.value)}>
+                <option value="">All styles</option>
+                <option value="highlight">Highlight</option>
+                <option value="underline">Underline</option>
+              </select>
+              <select value={sortMode} onChange={event => setSortMode(event.target.value)}>
+                <option value="position">Sort by paper order</option>
+                <option value="created">Sort by newest</option>
+                <option value="updated">Sort by recently edited</option>
+              </select>
+              <div className="actions">
+                <button onClick={() => vscode.postMessage({ type: 'exportAnnotations' })}>Export Markdown</button>
+                <button onClick={() => vscode.postMessage({ type: 'exportAnnotatedPdf' })}>Export PDF</button>
+              </div>
+              {lastDeleted ? <button className="undo-button" onClick={restoreLastDeleted}>Undo delete</button> : null}
+              <div className="status-line">{annotationStatus(filteredAnnotations.length, state.annotations.length)}</div>
+              <AnnotationSummary annotations={filteredAnnotations} />
+              <div className="list">
+                {filteredAnnotations.length ? filteredAnnotations.map(annotation => (
+                  <AnnotationItem
+                    key={annotation.id}
+                    annotation={annotation}
+                    active={annotation.id === activeId}
+                    onFocus={() => focusAnnotation(annotation)}
+                    onEdit={() => editAnnotation(annotation)}
+                    onCopy={() => vscode.postMessage({ type: 'copyAnnotationMarkdown', payload: { id: annotation.id } })}
+                    onDelete={() => deleteAnnotation(annotation)}
+                  />
+                )) : <div className="empty">No annotations saved yet.</div>}
+              </div>
+            </section>
+          </section>
+        ) : null}
 
-        <section className="tool-block list-block">
-          <h2>Saved annotations</h2>
-          <input type="search" value={annotationQuery} onChange={event => setAnnotationQuery(event.target.value)} placeholder="Search annotations" />
-          <input type="search" value={tagQuery} onChange={event => setTagQuery(event.target.value)} placeholder="Filter by tag" />
-          <select value={colorFilter} onChange={event => setColorFilter(event.target.value)}>
-            <option value="">All colors</option>
-            {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <select value={kindFilter} onChange={event => setKindFilter(event.target.value)}>
-            <option value="">All styles</option>
-            <option value="highlight">Highlight</option>
-            <option value="underline">Underline</option>
-          </select>
-          <select value={sortMode} onChange={event => setSortMode(event.target.value)}>
-            <option value="position">Sort by paper order</option>
-            <option value="created">Sort by newest</option>
-            <option value="updated">Sort by recently edited</option>
-          </select>
-          <div className="actions">
-            <button onClick={() => vscode.postMessage({ type: 'exportAnnotations' })}>Export Markdown</button>
-            <button onClick={() => vscode.postMessage({ type: 'exportAnnotatedPdf' })}>Export PDF</button>
-          </div>
-          {lastDeleted ? <button className="undo-button" onClick={restoreLastDeleted}>Undo delete</button> : null}
-          <div className="status-line">{annotationStatus(filteredAnnotations.length, state.annotations.length)}</div>
-          <AnnotationSummary annotations={filteredAnnotations} />
-          <div className="list">
-            {filteredAnnotations.length ? filteredAnnotations.map(annotation => (
-              <AnnotationItem
-                key={annotation.id}
-                annotation={annotation}
-                active={annotation.id === activeId}
-                onFocus={() => focusAnnotation(annotation)}
-                onEdit={() => editAnnotation(annotation)}
-                onCopy={() => vscode.postMessage({ type: 'copyAnnotationMarkdown', payload: { id: annotation.id } })}
-                onDelete={() => deleteAnnotation(annotation)}
-              />
-            )) : <div className="empty">No annotations saved yet.</div>}
-          </div>
-        </section>
+        {activeSidebarTab === 'wordbook' ? (
+          <section className="side-tab-panel list-block">
+            <section className="tool-block">
+              <h2>Due Today</h2>
+              {dueWords.length ? dueWords.map(item => (
+                <WordItem key={item.id} word={item} showReview />
+              )) : <div className="empty">No words due today.</div>}
+            </section>
+            <section className="tool-block">
+              <h2>Saved Words</h2>
+              {state.words.length ? (
+                <div className="list">
+                  {state.words.map(item => <WordItem key={item.id} word={item} />)}
+                </div>
+              ) : <div className="empty">No words saved yet.</div>}
+            </section>
+          </section>
+        ) : null}
 
-        <section className="tool-block list-block">
-          <h2>Wordbook</h2>
-          {state.words.length ? state.words.map(item => <WordItem key={item.id} word={item} />) : <div className="empty">No words saved yet.</div>}
-        </section>
+        {activeSidebarTab === 'translation' ? (
+          <section className="side-tab-panel">
+            <section className="tool-block">
+              <h2>Current Selection</h2>
+              {selectedText.trim() ? <p className="selection-preview">{selectedText}</p> : <div className="empty compact-empty">Select text in the PDF, then use Translate in the selection toolbar.</div>}
+            </section>
+            <section className="tool-block">
+              <h2>Result</h2>
+              {wordDetails ? <WordDetailsBlock details={wordDetails} /> : null}
+              {!wordDetails && translationOutput.trim() ? <p className="translation-preview">{translationOutput}</p> : null}
+              {!wordDetails && !translationOutput.trim() ? <div className="empty compact-empty">No translation yet.</div> : null}
+            </section>
+          </section>
+        ) : null}
       </aside>
     </main>
   );
@@ -483,6 +688,7 @@ function PdfDocumentView({
   activeId,
   highlights,
   pdfDocument,
+  selectionTip,
   zoom,
   onDelete,
   onDocumentReady,
@@ -494,6 +700,7 @@ function PdfDocumentView({
   activeId?: string;
   highlights: ReaderHighlight[];
   pdfDocument: { numPages: number };
+  selectionTip?: React.ReactNode;
   zoom: PdfScaleValue;
   onDelete(annotation: AnnotationRecord): void;
   onDocumentReady(numPages: number): void;
@@ -511,6 +718,7 @@ function PdfDocumentView({
       pdfDocument={pdfDocument as never}
       highlights={highlights}
       onSelection={onSelection}
+      selectionTip={selectionTip}
       enableAreaSelection={event => event.altKey}
       pdfScaleValue={zoom}
       textSelectionColor="rgba(64, 141, 255, 0.28)"
@@ -564,19 +772,22 @@ function HighlightContainer({
     );
   }
 
-  if (highlight.type === 'area') {
-    return (
-      <AreaHighlight
-        highlight={highlight}
-        isScrolledTo={isScrolledTo}
-        bounds={highlightBindings.textLayer}
-        highlightColor={annotation.color || '#ffd654'}
-        onDelete={() => onDelete(annotation)}
-      />
-    );
-  }
+  const hasTooltip = !!(annotation.note || annotation.tags?.length);
+  const highlightTip: Tip | undefined = hasTooltip
+    ? { position: highlight.position, content: <HighlightTooltip annotation={annotation} /> }
+    : undefined;
 
-  return (
+  const areaHighlight = highlight.type === 'area' ? (
+    <AreaHighlight
+      highlight={highlight}
+      isScrolledTo={isScrolledTo}
+      bounds={highlightBindings.textLayer}
+      highlightColor={annotation.color || '#ffd654'}
+      onDelete={() => onDelete(annotation)}
+    />
+  ) : null;
+
+  const textHighlight = highlight.type !== 'area' ? (
     <span className={activeClass}>
       <TextHighlight
         highlight={highlight}
@@ -595,7 +806,17 @@ function HighlightContainer({
         }}
       />
     </span>
-  );
+  ) : null;
+
+  if (highlightTip) {
+    return (
+      <MonitoredHighlightContainer highlightTip={highlightTip}>
+        {areaHighlight || textHighlight}
+      </MonitoredHighlightContainer>
+    );
+  }
+
+  return areaHighlight || textHighlight;
 }
 
 function AnnotationItem({
@@ -651,7 +872,19 @@ function WordItem({ word, showReview = false }: { word: WordRecord; showReview?:
   return (
     <article className="item">
       <strong>{word.word}</strong>
+      {word.phonetic ? <span className="phonetic compact-phonetic">{word.phonetic}</span> : null}
       {word.translation ? <p>{word.translation}</p> : null}
+      {word.definitions?.length ? (
+        <ul className="word-definition-list">
+          {word.definitions.slice(0, 4).map((definition, index) => (
+            <li key={`${definition.pos}-${index}`}>
+              {definition.pos ? <span className="pos">{definition.pos}</span> : null}
+              <span>{definition.translation || definition.meaning}</span>
+              {definition.translation && definition.meaning ? <small>{definition.meaning}</small> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {word.note ? <p className="note">{word.note}</p> : null}
       {showReview ? (
         <div className="annotation-actions">
@@ -744,6 +977,174 @@ function normalizeTags(value: string | string[]) {
   return [...new Set(raw.map(tag => tag.trim().replace(/^#/, '').toLowerCase()).filter(Boolean))];
 }
 
+function doSaveAnnotation(
+  saveState: { selectedText: string; selectionPosition?: ScaledPosition; currentPage: number },
+  opts: { color: string; kind: AnnotationKind; note?: string }
+) {
+  const trimmedNote = opts.note?.trim() || '';
+  const page = saveState.selectionPosition?.boundingRect.pageNumber || saveState.currentPage;
+  const payload = {
+    page,
+    selectedText: saveState.selectedText,
+    note: trimmedNote,
+    tags: [] as string[],
+    color: opts.color,
+    kind: opts.kind,
+    highlighterPosition: saveState.selectionPosition,
+    rects: saveState.selectionPosition ? highlighterPositionToRects(saveState.selectionPosition) : undefined
+  };
+  if (!payload.selectedText.trim() || (opts.note !== undefined && !trimmedNote)) {
+    return false;
+  }
+  vscode.postMessage({ type: 'saveAnnotation', payload });
+  return true;
+}
+
+function SelectionToolbar() {
+  const context = React.useContext(SelectionToolbarContext);
+  if (!context) {
+    return null;
+  }
+  const {
+    selectedText,
+    translationSourceText,
+    translationText,
+    wordDetails,
+    onHighlight,
+    onUnderline,
+    onSaveNote,
+    onTranslate,
+    onCopyPrompt,
+    onSaveWord
+  } = context;
+  const [selColor, setSelColor] = useState('#ffd654');
+  const [activeEditor, setActiveEditor] = useState<'note' | 'translation' | undefined>();
+  const [noteText, setNoteText] = useState('');
+  const noteInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    setActiveEditor(undefined);
+    setNoteText('');
+  }, [selectedText]);
+
+  useEffect(() => {
+    if (activeEditor === 'note') {
+      noteInputRef.current?.focus();
+    }
+  }, [activeEditor]);
+
+  function saveNote() {
+    const trimmed = noteText.trim();
+    if (!trimmed) {
+      noteInputRef.current?.focus();
+      return;
+    }
+    onSaveNote(trimmed, selColor);
+    setNoteText('');
+    setActiveEditor(undefined);
+  }
+
+  function translate() {
+    setActiveEditor('translation');
+    onTranslate();
+  }
+
+  const hasCurrentResult = translationSourceText === selectedText.trim();
+  const isLoading = hasCurrentResult && translationText === 'Translating...';
+  const currentWordDetails = hasCurrentResult ? wordDetails : undefined;
+  const currentTranslation = hasCurrentResult ? translationText : '';
+
+  return (
+    <div
+      className="selection-toolbar"
+      onClick={event => event.stopPropagation()}
+      onMouseDown={event => event.stopPropagation()}
+      onPointerDown={event => event.stopPropagation()}
+    >
+      <div className="selection-toolbar-row">
+        {colorOptions.map(c => (
+          <button
+            key={c.value}
+            className={`swatch${selColor === c.value ? ' active' : ''}`}
+            style={{ background: c.value }}
+            title={c.label}
+            onClick={() => setSelColor(c.value)}
+          />
+        ))}
+        <button onClick={() => onHighlight(selColor)}>HL</button>
+        <button onClick={() => onUnderline(selColor)}>UL</button>
+        <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
+        <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button>
+        <button onClick={onCopyPrompt}>Prompt</button>
+      </div>
+      {activeEditor === 'note' ? (
+        <div className="selection-note-editor">
+          <textarea
+            ref={noteInputRef}
+            value={noteText}
+            onChange={event => setNoteText(event.target.value)}
+            onKeyDown={event => {
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault();
+                saveNote();
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                setActiveEditor(undefined);
+              }
+            }}
+            placeholder="Write a note..."
+            rows={3}
+          />
+          <div className="selection-note-actions">
+            <button onClick={saveNote} disabled={!noteText.trim()}>Save</button>
+            <button onClick={() => setActiveEditor(undefined)}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
+      {activeEditor === 'translation' ? (
+        <div className="selection-translation-result">
+          {isLoading ? <div className="selection-result-status">Looking up...</div> : null}
+          {!isLoading && currentWordDetails ? (
+            <>
+              <WordDetailsBlock details={currentWordDetails} />
+              <div className="selection-note-actions">
+                <button onClick={() => onSaveWord(currentWordDetails)}>Save to Wordbook</button>
+                <button onClick={() => setActiveEditor(undefined)}>Close</button>
+              </div>
+            </>
+          ) : null}
+          {!isLoading && !currentWordDetails && currentTranslation ? (
+            <>
+              <p className="selection-translation-text">{currentTranslation}</p>
+              <div className="selection-note-actions">
+                <button onClick={() => setActiveEditor(undefined)}>Close</button>
+              </div>
+            </>
+          ) : null}
+          {!isLoading && !currentWordDetails && !currentTranslation ? (
+            <div className="selection-result-status">No result yet.</div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function HighlightTooltip({ annotation }: { annotation: AnnotationRecord }) {
+  if (!annotation.note && !annotation.tags?.length) return null;
+  return (
+    <div className="highlight-tooltip">
+      {annotation.note ? <p>{annotation.note}</p> : null}
+      {annotation.tags?.length ? (
+        <div className="annotation-tags">
+          {annotation.tags.map(tag => <span key={tag}>#{tag}</span>)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function annotationStatus(shown: number, total: number) {
   if (!total) {
     return '0 annotations';
@@ -785,11 +1186,41 @@ function shorten(value: string, max: number) {
   return normalized.length > max ? `${normalized.slice(0, max - 1)}...` : normalized;
 }
 
+function summarizeWordDetails(details: WordDetails) {
+  const translations = details.definitions
+    .map(definition => definition.translation || definition.meaning)
+    .map(value => value.trim())
+    .filter(Boolean);
+  return [...new Set(translations)].slice(0, 4).join('; ');
+}
+
 function stopThen(callback: () => void) {
   return (event: React.MouseEvent) => {
     event.stopPropagation();
     callback();
   };
+}
+
+function WordDetailsBlock({ details }: { details: WordDetails }) {
+  if (!details.definitions.length) return null;
+  const uniqueDefs = details.definitions.filter(
+    (d, i, arr) => arr.findIndex(x => x.pos === d.pos && x.meaning === d.meaning) === i
+  );
+  return (
+    <div className="word-details">
+      <h3>{details.word}</h3>
+      {details.phonetic ? <span className="phonetic">{details.phonetic}</span> : null}
+      <ul>
+        {uniqueDefs.map((d, i) => (
+          <li key={i}>
+            {d.pos ? <span className="pos">{d.pos}</span> : null}
+            <span>{d.translation || d.meaning}</span>
+            {d.translation && d.meaning ? <small>{d.meaning}</small> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function Bootstrap() {

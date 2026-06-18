@@ -1,6 +1,9 @@
 export interface ReaderConfig {
   pdfUrl: string;
   paperName: string;
+  translationProvider?: string;
+  translationSource?: string;
+  translationTarget?: string;
 }
 
 export interface VsCodeApi {

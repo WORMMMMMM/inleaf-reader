@@ -194,6 +194,33 @@ textarea {
   margin-bottom: 16px;
 }
 
+.side-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.side-tabs button {
+  min-width: 0;
+  padding: 6px 8px;
+  overflow: hidden;
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-tabs .active-tab {
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.side-tab-panel {
+  display: grid;
+  gap: 14px;
+}
+
 .eyebrow {
   margin: 0 0 5px;
   color: var(--muted);
@@ -252,6 +279,68 @@ label {
 .status-line {
   color: var(--muted);
   font-size: 12px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--vscode-editor-background);
+}
+
+.metric-card span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.metric-card strong {
+  font-size: 18px;
+}
+
+.meta-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.meta-list div {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.meta-list dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meta-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.selection-preview,
+.translation-preview {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.compact-empty {
+  padding: 10px;
 }
 
 .annotation-summary {
@@ -363,4 +452,202 @@ label {
     height: auto;
     min-height: 50vh;
   }
+}
+
+.word-details {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--vscode-editor-background);
+}
+
+.word-details h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.phonetic {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.compact-phonetic {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.word-details ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: none;
+}
+
+.word-details li,
+.word-definition-list li {
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.word-definition-list {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.word-details small,
+.word-definition-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pos {
+  display: inline-block;
+  min-width: 36px;
+  color: var(--vscode-symbolIcon-variableForeground, var(--accent));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.selection-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: min(320px, calc(100vw - 48px));
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: var(--vscode-editor-background);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+}
+
+.selection-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.selection-toolbar .swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  min-width: 0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.selection-toolbar .swatch:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.selection-toolbar .swatch.active {
+  border-color: var(--vscode-foreground);
+}
+
+.selection-toolbar button:not(.swatch) {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+.selection-toolbar .active-command {
+  outline: 2px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 1px;
+}
+
+.selection-note-editor,
+.selection-translation-result {
+  display: grid;
+  gap: 6px;
+}
+
+.selection-note-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.selection-note-editor textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.selection-translation-result .word-details {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.selection-result-status {
+  padding: 10px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+
+.selection-translation-text {
+  max-height: 220px;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-input-background);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.selection-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.selection-note-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.highlight-tooltip {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--vscode-editor-background);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  max-width: 320px;
+}
+
+.highlight-tooltip p {
+  margin: 0 0 6px;
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.highlight-tooltip p:last-child {
+  margin-bottom: 0;
+}
+
+.highlight-tooltip .annotation-tags {
+  margin-top: 0;
 }

@@ -1,6 +1,6 @@
 # Reading Extension
 
-A VS Code extension prototype for paper reading workflows: translation prompts, annotations, vocabulary notes, and automatic local persistence.
+A VS Code extension prototype for paper reading workflows: local translation, annotations, vocabulary notes, and automatic local persistence.
 
 ## Current MVP
 
@@ -26,7 +26,6 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Save vocabulary notes automatically to a sidecar JSON file.
 - Review due vocabulary with a simple spaced repetition loop.
 - Restore the last-read page automatically.
-- Copy a ChatGPT translation/explanation prompt without using paid API calls.
 
 ## Data Model
 

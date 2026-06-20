@@ -55,7 +55,6 @@ interface SelectionToolbarContextValue {
   onUnderline(color: string): void;
   onSaveNote(note: string, color: string): void;
   onTranslate(): void;
-  onCopyPrompt(): void;
   onSaveWord(details: WordDetails): void;
 }
 
@@ -440,16 +439,6 @@ function App() {
     vscode.postMessage({ type: 'translate', payload: { text } });
   }, []);
 
-  const copySelectionPrompt = useCallback(() => {
-    const s = selectionRef.current;
-    const text = s.selectedText.trim();
-    if (!text) {
-      setStatus('Select text before copying a prompt.');
-      return;
-    }
-    vscode.postMessage({ type: 'copyPrompt', payload: { text } });
-  }, []);
-
   const saveSelectionWord = useCallback((details: WordDetails) => {
     const s = selectionRef.current;
     const selected = s.selectedText.trim();
@@ -483,9 +472,8 @@ function App() {
     onUnderline: quickUnderline,
     onSaveNote: saveSelectionNote,
     onTranslate: translateSelection,
-    onCopyPrompt: copySelectionPrompt,
     onSaveWord: saveSelectionWord
-  }), [copySelectionPrompt, quickHighlight, quickUnderline, saveSelectionNote, saveSelectionWord, selectedText, translateSelection, translationOutput, translationSourceText, wordDetails]);
+  }), [quickHighlight, quickUnderline, saveSelectionNote, saveSelectionWord, selectedText, translateSelection, translationOutput, translationSourceText, wordDetails]);
 
   const selectionTip = useMemo(() => <SelectionToolbar />, []);
 
@@ -1113,7 +1101,6 @@ function SelectionToolbar() {
     onUnderline,
     onSaveNote,
     onTranslate,
-    onCopyPrompt,
     onSaveWord
   } = context;
   const [selColor, setSelColor] = useState('#ffd654');
@@ -1174,7 +1161,6 @@ function SelectionToolbar() {
         <button onClick={() => onUnderline(selColor)}>UL</button>
         <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
         <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button>
-        <button onClick={onCopyPrompt}>Prompt</button>
       </div>
       {activeEditor === 'note' ? (
         <div className="selection-note-editor">

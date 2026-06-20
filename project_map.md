@@ -91,6 +91,5 @@ VS Code command
 - Page-only notes are kept in the annotation list and exported as native PDF comments.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction. Argos Translate is the default provider and runs through a long-lived daemon process for speed. LibreTranslate remains available as an HTTP fallback.
 - Single English words are detected automatically and looked up in the ECDICT dictionary (~770K entries) for phonetics, Chinese definitions, English definitions, part-of-speech labels, and word-form data. Multi-word text falls through to neural machine translation.
-- The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.
 - `project_map.md` should be updated whenever a major file is added, removed, or changes responsibility.

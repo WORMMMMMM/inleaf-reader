@@ -75872,7 +75872,7 @@ function EI() {
 		return window.addEventListener("message", e), () => window.removeEventListener("message", e);
 	}, []), (0, v.useEffect)(() => {
 		if (!e.progress?.page || !ee) return;
-		let t = window.setTimeout(() => Je(e.progress.page || 1, !1), 250);
+		let t = window.setTimeout(() => qe(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
 	}, [ee, e.progress?.page]), (0, v.useEffect)(() => {
 		if (m) return window.clearTimeout(_e.current), _e.current = window.setTimeout(() => {
@@ -75962,7 +75962,7 @@ function EI() {
 		}), ae("Annotation saved automatically.")), Le(), ge.current?.removeGhostHighlight();
 	}
 	function Pe(e) {
-		h(e.id), se(e.id), r(e.selectedText || ""), s(e.note || ""), l((e.tags || []).join(", ")), d(e.color || "#ffd654"), p(e.kind || "highlight"), a(e.highlighterPosition || PI(e.rects)), P(e.page || e.highlighterPosition?.boundingRect.pageNumber || 1), qe(e);
+		h(e.id), se(e.id), r(e.selectedText || ""), s(e.note || ""), l((e.tags || []).join(", ")), d(e.color || "#ffd654"), p(e.kind || "highlight"), a(e.highlighterPosition || PI(e.rects)), P(e.page || e.highlighterPosition?.boundingRect.pageNumber || 1), Ke(e);
 	}
 	function Fe(e) {
 		le(e), xI.postMessage({
@@ -76028,17 +76028,7 @@ function EI() {
 			type: "translate",
 			payload: { text: t }
 		});
-	}, []), He = (0, v.useCallback)(() => {
-		let e = be.current.selectedText.trim();
-		if (!e) {
-			ae("Select text before copying a prompt.");
-			return;
-		}
-		xI.postMessage({
-			type: "copyPrompt",
-			payload: { text: e }
-		});
-	}, []), Ue = (0, v.useCallback)((e) => {
+	}, []), He = (0, v.useCallback)((e) => {
 		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
 			ae("Select a word before saving it.");
@@ -76056,7 +76046,7 @@ function EI() {
 				page: t.currentPage
 			}
 		}), ge.current?.removeGhostHighlight(), he("wordbook"), ae("Word saved.");
-	}, []), We = (0, v.useMemo)(() => ({
+	}, []), Ue = (0, v.useMemo)(() => ({
 		selectedText: n,
 		translationSourceText: x,
 		translationText: g,
@@ -76065,21 +76055,19 @@ function EI() {
 		onUnderline: ze,
 		onSaveNote: Be,
 		onTranslate: Ve,
-		onCopyPrompt: He,
-		onSaveWord: Ue
+		onSaveWord: He
 	}), [
-		He,
 		Re,
 		ze,
 		Be,
-		Ue,
+		He,
 		n,
 		Ve,
 		g,
 		x,
 		y
-	]), Ge = (0, v.useMemo)(() => /* @__PURE__ */ (0, Q.jsx)(zI, {}), []), Ke = /* @__PURE__ */ (0, Q.jsx)(CI.Provider, {
-		value: We,
+	]), We = (0, v.useMemo)(() => /* @__PURE__ */ (0, Q.jsx)(zI, {}), []), Ge = /* @__PURE__ */ (0, Q.jsx)(CI.Provider, {
+		value: Ue,
 		children: /* @__PURE__ */ (0, Q.jsxs)("section", {
 			className: "reader",
 			children: [/* @__PURE__ */ (0, Q.jsxs)("div", {
@@ -76087,7 +76075,7 @@ function EI() {
 				children: [
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Previous page",
-						onClick: () => Je(N - 1),
+						onClick: () => qe(N - 1),
 						children: "Prev"
 					}),
 					/* @__PURE__ */ (0, Q.jsxs)("label", {
@@ -76100,9 +76088,9 @@ function EI() {
 								max: ee || void 0,
 								value: N,
 								onChange: (e) => P(Number(e.target.value) || 1),
-								onBlur: () => Je(N),
+								onBlur: () => qe(N),
 								onKeyDown: (e) => {
-									e.key === "Enter" && Je(N);
+									e.key === "Enter" && qe(N);
 								}
 							}),
 							/* @__PURE__ */ (0, Q.jsxs)("span", { children: ["/ ", ee || "-"] })
@@ -76110,7 +76098,7 @@ function EI() {
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Next page",
-						onClick: () => Je(N + 1),
+						onClick: () => qe(N + 1),
 						children: "Next"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
@@ -76159,7 +76147,7 @@ function EI() {
 						activeId: oe,
 						highlights: ke,
 						pdfDocument: e,
-						selectionTip: Ge,
+						selectionTip: We,
 						zoom: ne,
 						onDelete: Fe,
 						onDocumentReady: De,
@@ -76174,22 +76162,22 @@ function EI() {
 			})]
 		})
 	});
-	function qe(e) {
+	function Ke(e) {
 		se(e.id);
 		let t = MI(e);
 		if (t) {
 			ge.current?.scrollToHighlight(t);
 			return;
 		}
-		Je(e.page || 1);
+		qe(e.page || 1);
 	}
-	function Je(e, t = !0) {
+	function qe(e, t = !0) {
 		let n = Math.min(Math.max(e, 1), ee || e || 1);
 		P(n), ge.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && xe(n);
 	}
 	return /* @__PURE__ */ (0, Q.jsxs)("main", {
 		className: "shell",
-		children: [Ke, /* @__PURE__ */ (0, Q.jsxs)("aside", {
+		children: [Ge, /* @__PURE__ */ (0, Q.jsxs)("aside", {
 			className: "side-panel",
 			children: [
 				/* @__PURE__ */ (0, Q.jsxs)("header", { children: [/* @__PURE__ */ (0, Q.jsx)("p", {
@@ -76437,7 +76425,7 @@ function EI() {
 								children: Ae.length ? Ae.map((e) => /* @__PURE__ */ (0, Q.jsx)(kI, {
 									annotation: e,
 									active: e.id === oe,
-									onFocus: () => qe(e),
+									onFocus: () => Ke(e),
 									onEdit: () => Pe(e),
 									onCopy: () => xI.postMessage({
 										type: "copyAnnotationMarkdown",
@@ -76774,24 +76762,24 @@ function RI(e, t) {
 function zI() {
 	let e = v.useContext(CI);
 	if (!e) return null;
-	let { selectedText: t, translationSourceText: n, translationText: r, wordDetails: i, onHighlight: a, onUnderline: o, onSaveNote: s, onTranslate: c, onCopyPrompt: l, onSaveWord: u } = e, [d, f] = (0, v.useState)("#ffd654"), [p, m] = (0, v.useState)(), [h, g] = (0, v.useState)(""), _ = (0, v.useRef)(null);
+	let { selectedText: t, translationSourceText: n, translationText: r, wordDetails: i, onHighlight: a, onUnderline: o, onSaveNote: s, onTranslate: c, onSaveWord: l } = e, [u, d] = (0, v.useState)("#ffd654"), [f, p] = (0, v.useState)(), [m, h] = (0, v.useState)(""), g = (0, v.useRef)(null);
 	(0, v.useEffect)(() => {
-		m(void 0), g("");
+		p(void 0), h("");
 	}, [t]), (0, v.useEffect)(() => {
-		p === "note" && _.current?.focus();
-	}, [p]);
-	function y() {
-		let e = h.trim();
+		f === "note" && g.current?.focus();
+	}, [f]);
+	function _() {
+		let e = m.trim();
 		if (!e) {
-			_.current?.focus();
+			g.current?.focus();
 			return;
 		}
-		s(e, d), g(""), m(void 0);
+		s(e, u), h(""), p(void 0);
 	}
-	function b() {
-		m("translation"), c();
+	function y() {
+		p("translation"), c();
 	}
-	let x = n === t.trim(), S = x && r === "Translating...", C = x ? i : void 0, w = x ? r : "";
+	let b = n === t.trim(), x = b && r === "Translating...", S = b ? i : void 0, C = b ? r : "";
 	return /* @__PURE__ */ (0, Q.jsxs)("div", {
 		className: "selection-toolbar",
 		onClick: (e) => e.stopPropagation(),
@@ -76802,86 +76790,82 @@ function zI() {
 				className: "selection-toolbar-row",
 				children: [
 					wI.map((e) => /* @__PURE__ */ (0, Q.jsx)("button", {
-						className: `swatch${d === e.value ? " active" : ""}`,
+						className: `swatch${u === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
-						onClick: () => f(e.value)
+						onClick: () => d(e.value)
 					}, e.value)),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
-						onClick: () => a(d),
+						onClick: () => a(u),
 						children: "HL"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
-						onClick: () => o(d),
+						onClick: () => o(u),
 						children: "UL"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
-						className: p === "note" ? "active-command" : "",
-						onClick: () => m(p === "note" ? void 0 : "note"),
+						className: f === "note" ? "active-command" : "",
+						onClick: () => p(f === "note" ? void 0 : "note"),
 						children: "Note"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
-						className: p === "translation" ? "active-command" : "",
-						onClick: b,
+						className: f === "translation" ? "active-command" : "",
+						onClick: y,
 						children: "Translate"
-					}),
-					/* @__PURE__ */ (0, Q.jsx)("button", {
-						onClick: l,
-						children: "Prompt"
 					})
 				]
 			}),
-			p === "note" ? /* @__PURE__ */ (0, Q.jsxs)("div", {
+			f === "note" ? /* @__PURE__ */ (0, Q.jsxs)("div", {
 				className: "selection-note-editor",
 				children: [/* @__PURE__ */ (0, Q.jsx)("textarea", {
-					ref: _,
-					value: h,
-					onChange: (e) => g(e.target.value),
+					ref: g,
+					value: m,
+					onChange: (e) => h(e.target.value),
 					onKeyDown: (e) => {
-						(e.metaKey || e.ctrlKey) && e.key === "Enter" && (e.preventDefault(), y()), e.key === "Escape" && (e.preventDefault(), m(void 0));
+						(e.metaKey || e.ctrlKey) && e.key === "Enter" && (e.preventDefault(), _()), e.key === "Escape" && (e.preventDefault(), p(void 0));
 					},
 					placeholder: "Write a note...",
 					rows: 3
 				}), /* @__PURE__ */ (0, Q.jsxs)("div", {
 					className: "selection-note-actions",
 					children: [/* @__PURE__ */ (0, Q.jsx)("button", {
-						onClick: y,
-						disabled: !h.trim(),
+						onClick: _,
+						disabled: !m.trim(),
 						children: "Save"
 					}), /* @__PURE__ */ (0, Q.jsx)("button", {
-						onClick: () => m(void 0),
+						onClick: () => p(void 0),
 						children: "Cancel"
 					})]
 				})]
 			}) : null,
-			p === "translation" ? /* @__PURE__ */ (0, Q.jsxs)("div", {
+			f === "translation" ? /* @__PURE__ */ (0, Q.jsxs)("div", {
 				className: "selection-translation-result",
 				children: [
-					S ? /* @__PURE__ */ (0, Q.jsx)("div", {
+					x ? /* @__PURE__ */ (0, Q.jsx)("div", {
 						className: "selection-result-status",
 						children: "Looking up..."
 					}) : null,
-					!S && C ? /* @__PURE__ */ (0, Q.jsxs)(Q.Fragment, { children: [/* @__PURE__ */ (0, Q.jsx)(YI, { details: C }), /* @__PURE__ */ (0, Q.jsxs)("div", {
+					!x && S ? /* @__PURE__ */ (0, Q.jsxs)(Q.Fragment, { children: [/* @__PURE__ */ (0, Q.jsx)(YI, { details: S }), /* @__PURE__ */ (0, Q.jsxs)("div", {
 						className: "selection-note-actions",
 						children: [/* @__PURE__ */ (0, Q.jsx)("button", {
-							onClick: () => u(C),
+							onClick: () => l(S),
 							children: "Save to Wordbook"
 						}), /* @__PURE__ */ (0, Q.jsx)("button", {
-							onClick: () => m(void 0),
+							onClick: () => p(void 0),
 							children: "Close"
 						})]
 					})] }) : null,
-					!S && !C && w ? /* @__PURE__ */ (0, Q.jsxs)(Q.Fragment, { children: [/* @__PURE__ */ (0, Q.jsx)("p", {
+					!x && !S && C ? /* @__PURE__ */ (0, Q.jsxs)(Q.Fragment, { children: [/* @__PURE__ */ (0, Q.jsx)("p", {
 						className: "selection-translation-text",
-						children: w
+						children: C
 					}), /* @__PURE__ */ (0, Q.jsx)("div", {
 						className: "selection-note-actions",
 						children: /* @__PURE__ */ (0, Q.jsx)("button", {
-							onClick: () => m(void 0),
+							onClick: () => p(void 0),
 							children: "Close"
 						})
 					})] }) : null,
-					!S && !C && !w ? /* @__PURE__ */ (0, Q.jsx)("div", {
+					!x && !S && !C ? /* @__PURE__ */ (0, Q.jsx)("div", {
 						className: "selection-result-status",
 						children: "No result yet."
 					}) : null

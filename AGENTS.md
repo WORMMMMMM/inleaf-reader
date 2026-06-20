@@ -7,7 +7,7 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - Build a usable VS Code PDF reader for papers and books.
 - Keep annotation data, vocabulary, and reading progress in sidecar files next to the PDF so they can sync through Git or any file-sync tool.
 - Let the user work beside VS Code AI extensions such as Codex, Claude Code, or ChatGPT extensions.
-- Avoid paid AI API dependencies by default. The extension may copy prompts for ChatGPT Plus, but it should not assume Plus includes API quota.
+- Avoid paid AI API dependencies by default.
 
 ## Architecture Rules
 
@@ -61,7 +61,7 @@ These files are intentionally plain local files. They should remain portable acr
 - Dictionary: Single English words are detected automatically (`/^[a-zA-Z'-]+$/`) and looked up in the compact ECDICT data (`scripts/ecdict_compact.json.gz`, generated from the MIT-licensed upstream ECDICT CSV). Dictionary results include phonetics, Chinese definitions, English definitions, part-of-speech labels, and word forms when available. Non-word text falls through to neural translation.
 - Current expected offline package: `en -> zh`.
 - LibreTranslate remains available as an HTTP fallback through `readingExtension.libreTranslateEndpoint`.
-- Argos quality is usable but limited. Keep `Copy ChatGPT prompt` available for higher-quality translation/explanation.
+- Argos quality is usable but limited.
 - Do not commit `.venv-translate/`; it is a local runtime dependency.
 
 ## Development Commands
@@ -94,7 +94,6 @@ For reader changes, manually verify at least one normal text PDF:
 - `Translate locally` returns a result for English selected text in <1s after first call.
 - Selecting a single English word and clicking `Translate locally` shows dictionary entry with phonetic, Chinese definitions, and English definitions.
 - Selecting a sentence and clicking `Translate` shows sentence translation without wordbook controls.
-- `Copy ChatGPT prompt` still works.
 
 For scanned PDFs, text selection may not work because there is no text layer. Do not treat that as a regression unless OCR has been added.
 

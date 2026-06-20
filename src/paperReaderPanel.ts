@@ -34,7 +34,6 @@ type ReaderMessage =
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
-  | { type: 'copyPrompt'; payload: { text: string } }
   | { type: 'translate'; payload: { text: string } };
 
 export class PaperReaderPanel {
@@ -163,9 +162,6 @@ export class PaperReaderPanel {
       case 'saveProgress':
         await this.storage.saveProgress(message.payload);
         break;
-      case 'copyPrompt':
-        await this.copyPrompt(message.payload.text);
-        break;
       case 'translate':
         await this.translate(message.payload.text);
         break;
@@ -188,15 +184,6 @@ export class PaperReaderPanel {
         paperName: path.basename(this.pdfUri.fsPath)
       }
     });
-  }
-
-  private async copyPrompt(text: string) {
-    const template = vscode.workspace
-      .getConfiguration('readingExtension')
-      .get<string>('chatGptPromptTemplate');
-    const prompt = (template || '请翻译并解释下面这段论文内容：\n\n{text}').replace('{text}', text);
-    await vscode.env.clipboard.writeText(prompt);
-    vscode.window.showInformationMessage('Translation prompt copied for ChatGPT.');
   }
 
   private async saveWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {

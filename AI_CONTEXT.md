@@ -17,8 +17,7 @@ beside coding AI extensions without requiring a paid API.
 3. Sidecar data that can sync through Git or ordinary file-sync tools.
 4. PDF rendering and text interaction delegated to
    `react-pdf-highlighter-plus`.
-5. Fast, free local translation with optional ChatGPT prompt copying for
-   higher-quality explanations.
+5. Fast, free local translation and structured offline dictionary results.
 
 The durable engineering rules, runtime data contract, and required checks live
 in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
@@ -44,10 +43,10 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 
 - This reader navigation and dictionary work is committed on `main`.
 - Base before this work: `203cddb` (`origin/main`).
-- `main` is currently one commit ahead of `origin/main`.
+- Local `main` currently contains unpushed commits.
 - `.vscode/` remains local-only and is intentionally excluded from Git.
 
-## Work Present in the Current Commit
+## Current Development State
 
 ### Reader and persistence
 

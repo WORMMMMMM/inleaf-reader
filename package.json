@@ -24,11 +24,6 @@
     "configuration": {
       "title": "Reading Extension",
       "properties": {
-        "readingExtension.chatGptPromptTemplate": {
-          "type": "string",
-          "default": "请把下面这段论文内容翻译成中文，并解释关键术语和句子结构：\n\n{text}",
-          "description": "Prompt template used when copying selected text for ChatGPT. Use {text} as the selected text placeholder."
-        },
         "readingExtension.libreTranslateEndpoint": {
           "type": "string",
           "default": "http://localhost:5000/translate",

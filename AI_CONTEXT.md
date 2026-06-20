@@ -54,6 +54,9 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 - The Webview panel uses `retainContextWhenHidden: true`.
 - The page indicator and saved reading progress follow PDF.js `pagechanging`
   events, including continuous scrolling with a mouse wheel or trackpad.
+- Trackpad pinch gestures zoom the PDF through the viewer's wheel events while
+  ordinary two-finger scrolling remains unchanged. Toolbar zoom controls use
+  the same PDF.js scale state.
 - Switching PDFs now reuses the existing Webview and sends `navigateTo`
   instead of rebuilding its HTML.
 - `navigateTo` changes the active `ReaderStorage`, updates resource roots,

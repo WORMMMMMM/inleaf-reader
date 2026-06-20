@@ -75831,13 +75831,23 @@ function EI() {
 		P(e), xe(e);
 	}, [xe]), Ce = (0, v.useCallback)((e) => {
 		ge.current = e;
-	}, []);
+	}, []), we = (0, v.useCallback)((e) => {
+		re(e);
+		let t = ge.current?.getViewer();
+		t && (t.currentScaleValue = e.toString());
+	}, []), Te = (0, v.useCallback)((e) => {
+		let t = ge.current?.getViewer(), n = HI((t?.currentScale || 1) * e);
+		re(n), t && (t.currentScale = n);
+	}, []), Ee = (0, v.useCallback)((e) => {
+		let t = Math.min(Math.max(-e * .01, -.25), .25);
+		Te(Math.exp(t));
+	}, [Te]);
 	(0, v.useEffect)(() => (document.body.classList.add("reader-mounted"), () => {
 		window.clearTimeout(ve.current), document.body.classList.remove("reader-mounted");
 	}), []);
-	let we = (0, v.useCallback)((e) => {
+	let De = (0, v.useCallback)((e) => {
 		te(e), ye.current || (ye.current = !0, ae("PDF loaded."));
-	}, []), Te = (0, v.useCallback)((e, t, n) => {
+	}, []), Oe = (0, v.useCallback)((e, t, n) => {
 		xI.postMessage({
 			type: "updateAnnotation",
 			payload: {
@@ -75853,7 +75863,7 @@ function EI() {
 		xI.postMessage({ type: "ready" });
 		let e = (e) => {
 			let n = e.data;
-			if (n.type === "state" && (t(n.payload), n.payload.progress?.page && P(n.payload.progress.page)), n.type === "navigateTo" && (window.clearTimeout(ve.current), de(n.payload.pdfUrl), pe(n.payload.paperName), t(TI), P(1), te(0), ae("Loading PDF..."), ye.current = !1, le(void 0), Pe()), n.type === "stateError" && ae(n.payload.message), n.type === "translationResult") {
+			if (n.type === "state" && (t(n.payload), n.payload.progress?.page && P(n.payload.progress.page)), n.type === "navigateTo" && (window.clearTimeout(ve.current), de(n.payload.pdfUrl), pe(n.payload.paperName), t(TI), P(1), te(0), ae("Loading PDF..."), ye.current = !1, le(void 0), Le()), n.type === "stateError" && ae(n.payload.message), n.type === "translationResult") {
 				if (n.payload.sourceText !== be.current.selectedText.trim()) return;
 				S(n.payload.sourceText), _(n.payload.error || n.payload.translatedText || ""), b(n.payload.wordDetails), he("translation");
 			}
@@ -75862,7 +75872,7 @@ function EI() {
 		return window.addEventListener("message", e), () => window.removeEventListener("message", e);
 	}, []), (0, v.useEffect)(() => {
 		if (!e.progress?.page || !ee) return;
-		let t = window.setTimeout(() => Ge(e.progress.page || 1, !1), 250);
+		let t = window.setTimeout(() => Je(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
 	}, [ee, e.progress?.page]), (0, v.useEffect)(() => {
 		if (m) return window.clearTimeout(_e.current), _e.current = window.setTimeout(() => {
@@ -75894,7 +75904,7 @@ function EI() {
 		i,
 		c
 	]);
-	let Ee = (0, v.useMemo)(() => e.annotations.map(MI).filter(Boolean), [e.annotations]), De = (0, v.useMemo)(() => {
+	let ke = (0, v.useMemo)(() => e.annotations.map(MI).filter(Boolean), [e.annotations]), Ae = (0, v.useMemo)(() => {
 		let t = C.trim().toLowerCase(), n = LI(T);
 		return [...e.annotations].filter((e) => {
 			let r = [
@@ -75913,11 +75923,11 @@ function EI() {
 		j,
 		e.annotations,
 		T
-	]), Oe = (0, v.useMemo)(() => {
+	]), je = (0, v.useMemo)(() => {
 		let t = Date.now();
 		return e.words.filter((e) => Date.parse(e.review?.nextReviewAt || e.createdAt) <= t);
 	}, [e.words]);
-	function ke(e) {
+	function Me(e) {
 		let t = e.makeGhostHighlight(), n = t.content.text || "";
 		r(n), a(t.position), P(t.position.boundingRect.pageNumber), S(""), _(""), b(void 0), be.current = {
 			selectedText: n,
@@ -75925,7 +75935,7 @@ function EI() {
 			currentPage: t.position.boundingRect.pageNumber
 		}, ae("Selection captured.");
 	}
-	function Ae() {
+	function Ne() {
 		let e = i, t = {
 			page: e?.boundingRect.pageNumber || N,
 			selectedText: n,
@@ -75949,31 +75959,31 @@ function EI() {
 		}), ae("Annotation saved.")) : (xI.postMessage({
 			type: "saveAnnotation",
 			payload: t
-		}), ae("Annotation saved automatically.")), Pe(), ge.current?.removeGhostHighlight();
+		}), ae("Annotation saved automatically.")), Le(), ge.current?.removeGhostHighlight();
 	}
-	function je(e) {
-		h(e.id), se(e.id), r(e.selectedText || ""), s(e.note || ""), l((e.tags || []).join(", ")), d(e.color || "#ffd654"), p(e.kind || "highlight"), a(e.highlighterPosition || PI(e.rects)), P(e.page || e.highlighterPosition?.boundingRect.pageNumber || 1), We(e);
+	function Pe(e) {
+		h(e.id), se(e.id), r(e.selectedText || ""), s(e.note || ""), l((e.tags || []).join(", ")), d(e.color || "#ffd654"), p(e.kind || "highlight"), a(e.highlighterPosition || PI(e.rects)), P(e.page || e.highlighterPosition?.boundingRect.pageNumber || 1), qe(e);
 	}
-	function Me(e) {
+	function Fe(e) {
 		le(e), xI.postMessage({
 			type: "deleteAnnotation",
 			payload: { id: e.id }
-		}), m === e.id && Pe(), ae("Annotation deleted. Use undo to restore it.");
+		}), m === e.id && Le(), ae("Annotation deleted. Use undo to restore it.");
 	}
-	function Ne() {
+	function Ie() {
 		ce && (xI.postMessage({
 			type: "restoreAnnotation",
 			payload: ce
 		}), le(void 0));
 	}
-	function Pe() {
+	function Le() {
 		window.clearTimeout(_e.current), h(void 0), r(""), a(void 0), s(""), l(""), d("#ffd654"), p("highlight"), se(void 0), be.current = {
 			selectedText: "",
 			selectionPosition: void 0,
 			currentPage: 1
 		};
 	}
-	let Fe = (0, v.useCallback)((e) => {
+	let Re = (0, v.useCallback)((e) => {
 		let t = be.current;
 		if (!RI(t, {
 			color: e,
@@ -75982,8 +75992,8 @@ function EI() {
 			ae("Select text before highlighting.");
 			return;
 		}
-		Pe(), ge.current?.removeGhostHighlight(), ae("Annotation saved.");
-	}, []), Ie = (0, v.useCallback)((e) => {
+		Le(), ge.current?.removeGhostHighlight(), ae("Annotation saved.");
+	}, []), ze = (0, v.useCallback)((e) => {
 		let t = be.current;
 		if (!RI(t, {
 			color: e,
@@ -75992,8 +76002,8 @@ function EI() {
 			ae("Select text before highlighting.");
 			return;
 		}
-		Pe(), ge.current?.removeGhostHighlight(), ae("Annotation saved.");
-	}, []), Le = (0, v.useCallback)((e, t) => {
+		Le(), ge.current?.removeGhostHighlight(), ae("Annotation saved.");
+	}, []), Be = (0, v.useCallback)((e, t) => {
 		let n = be.current;
 		if (!n.selectedText.trim()) {
 			ae("Select text before adding a note.");
@@ -76007,8 +76017,8 @@ function EI() {
 			ae("Add note text before saving.");
 			return;
 		}
-		Pe(), ge.current?.removeGhostHighlight(), ae("Note saved.");
-	}, []), Re = (0, v.useCallback)(() => {
+		Le(), ge.current?.removeGhostHighlight(), ae("Note saved.");
+	}, []), Ve = (0, v.useCallback)(() => {
 		let e = be.current, t = e.selectedText.trim();
 		if (!t) {
 			ae("Select text before translating.");
@@ -76018,7 +76028,7 @@ function EI() {
 			type: "translate",
 			payload: { text: t }
 		});
-	}, []), ze = (0, v.useCallback)(() => {
+	}, []), He = (0, v.useCallback)(() => {
 		let e = be.current.selectedText.trim();
 		if (!e) {
 			ae("Select text before copying a prompt.");
@@ -76028,7 +76038,7 @@ function EI() {
 			type: "copyPrompt",
 			payload: { text: e }
 		});
-	}, []), Be = (0, v.useCallback)((e) => {
+	}, []), Ue = (0, v.useCallback)((e) => {
 		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
 			ae("Select a word before saving it.");
@@ -76046,30 +76056,30 @@ function EI() {
 				page: t.currentPage
 			}
 		}), ge.current?.removeGhostHighlight(), he("wordbook"), ae("Word saved.");
-	}, []), Ve = (0, v.useMemo)(() => ({
+	}, []), We = (0, v.useMemo)(() => ({
 		selectedText: n,
 		translationSourceText: x,
 		translationText: g,
 		wordDetails: y,
-		onHighlight: Fe,
-		onUnderline: Ie,
-		onSaveNote: Le,
-		onTranslate: Re,
-		onCopyPrompt: ze,
-		onSaveWord: Be
+		onHighlight: Re,
+		onUnderline: ze,
+		onSaveNote: Be,
+		onTranslate: Ve,
+		onCopyPrompt: He,
+		onSaveWord: Ue
 	}), [
-		ze,
-		Fe,
-		Ie,
-		Le,
-		Be,
-		n,
+		He,
 		Re,
+		ze,
+		Be,
+		Ue,
+		n,
+		Ve,
 		g,
 		x,
 		y
-	]), He = (0, v.useMemo)(() => /* @__PURE__ */ (0, Q.jsx)(zI, {}), []), Ue = /* @__PURE__ */ (0, Q.jsx)(CI.Provider, {
-		value: Ve,
+	]), Ge = (0, v.useMemo)(() => /* @__PURE__ */ (0, Q.jsx)(zI, {}), []), Ke = /* @__PURE__ */ (0, Q.jsx)(CI.Provider, {
+		value: We,
 		children: /* @__PURE__ */ (0, Q.jsxs)("section", {
 			className: "reader",
 			children: [/* @__PURE__ */ (0, Q.jsxs)("div", {
@@ -76077,7 +76087,7 @@ function EI() {
 				children: [
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Previous page",
-						onClick: () => Ge(N - 1),
+						onClick: () => Je(N - 1),
 						children: "Prev"
 					}),
 					/* @__PURE__ */ (0, Q.jsxs)("label", {
@@ -76090,9 +76100,9 @@ function EI() {
 								max: ee || void 0,
 								value: N,
 								onChange: (e) => P(Number(e.target.value) || 1),
-								onBlur: () => Ge(N),
+								onBlur: () => Je(N),
 								onKeyDown: (e) => {
-									e.key === "Enter" && Ge(N);
+									e.key === "Enter" && Je(N);
 								}
 							}),
 							/* @__PURE__ */ (0, Q.jsxs)("span", { children: ["/ ", ee || "-"] })
@@ -76100,12 +76110,12 @@ function EI() {
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Next page",
-						onClick: () => Ge(N + 1),
+						onClick: () => Je(N + 1),
 						children: "Next"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Zoom out",
-						onClick: () => re((e) => HI(typeof e == "number" ? e - .15 : .85)),
+						onClick: () => Te(.85),
 						children: "-"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("span", {
@@ -76114,17 +76124,17 @@ function EI() {
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Zoom in",
-						onClick: () => re((e) => HI(typeof e == "number" ? e + .15 : 1.15)),
+						onClick: () => Te(1.15),
 						children: "+"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Fit full page",
-						onClick: () => re("page-fit"),
+						onClick: () => we("page-fit"),
 						children: "Fit"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("button", {
 						title: "Fit page width",
-						onClick: () => re("page-width"),
+						onClick: () => we("page-width"),
 						children: "Width"
 					}),
 					/* @__PURE__ */ (0, Q.jsx)("span", {
@@ -76147,38 +76157,39 @@ function EI() {
 					onError: (e) => ae(`Could not load PDF: ${e.message}`),
 					children: (e) => /* @__PURE__ */ (0, Q.jsx)(DI, {
 						activeId: oe,
-						highlights: Ee,
+						highlights: ke,
 						pdfDocument: e,
-						selectionTip: He,
+						selectionTip: Ge,
 						zoom: ne,
-						onDelete: Me,
-						onDocumentReady: we,
-						onOpen: je,
+						onDelete: Fe,
+						onDocumentReady: De,
+						onOpen: Pe,
 						onPageChange: Se,
-						onSelection: ke,
-						onStyleChange: Te,
+						onPinchZoom: Ee,
+						onSelection: Me,
+						onStyleChange: Oe,
 						utilsRef: Ce
 					})
 				})
 			})]
 		})
 	});
-	function We(e) {
+	function qe(e) {
 		se(e.id);
 		let t = MI(e);
 		if (t) {
 			ge.current?.scrollToHighlight(t);
 			return;
 		}
-		Ge(e.page || 1);
+		Je(e.page || 1);
 	}
-	function Ge(e, t = !0) {
+	function Je(e, t = !0) {
 		let n = Math.min(Math.max(e, 1), ee || e || 1);
 		P(n), ge.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && xe(n);
 	}
 	return /* @__PURE__ */ (0, Q.jsxs)("main", {
 		className: "shell",
-		children: [Ue, /* @__PURE__ */ (0, Q.jsxs)("aside", {
+		children: [Ke, /* @__PURE__ */ (0, Q.jsxs)("aside", {
 			className: "side-panel",
 			children: [
 				/* @__PURE__ */ (0, Q.jsxs)("header", { children: [/* @__PURE__ */ (0, Q.jsx)("p", {
@@ -76235,7 +76246,7 @@ function EI() {
 								}),
 								/* @__PURE__ */ (0, Q.jsxs)("div", {
 									className: "metric-card",
-									children: [/* @__PURE__ */ (0, Q.jsx)("span", { children: "Due" }), /* @__PURE__ */ (0, Q.jsx)("strong", { children: Oe.length })]
+									children: [/* @__PURE__ */ (0, Q.jsx)("span", { children: "Due" }), /* @__PURE__ */ (0, Q.jsx)("strong", { children: je.length })]
 								})
 							]
 						}),
@@ -76329,11 +76340,11 @@ function EI() {
 							/* @__PURE__ */ (0, Q.jsxs)("div", {
 								className: "actions",
 								children: [/* @__PURE__ */ (0, Q.jsx)("button", {
-									onClick: Ae,
+									onClick: Ne,
 									children: "Save now"
 								}), /* @__PURE__ */ (0, Q.jsx)("button", {
 									className: "secondary-button",
-									onClick: Pe,
+									onClick: Le,
 									children: "Cancel edit"
 								})]
 							})
@@ -76413,26 +76424,26 @@ function EI() {
 							}),
 							ce ? /* @__PURE__ */ (0, Q.jsx)("button", {
 								className: "undo-button",
-								onClick: Ne,
+								onClick: Ie,
 								children: "Undo delete"
 							}) : null,
 							/* @__PURE__ */ (0, Q.jsx)("div", {
 								className: "status-line",
-								children: VI(De.length, e.annotations.length)
+								children: VI(Ae.length, e.annotations.length)
 							}),
-							/* @__PURE__ */ (0, Q.jsx)(AI, { annotations: De }),
+							/* @__PURE__ */ (0, Q.jsx)(AI, { annotations: Ae }),
 							/* @__PURE__ */ (0, Q.jsx)("div", {
 								className: "list",
-								children: De.length ? De.map((e) => /* @__PURE__ */ (0, Q.jsx)(kI, {
+								children: Ae.length ? Ae.map((e) => /* @__PURE__ */ (0, Q.jsx)(kI, {
 									annotation: e,
 									active: e.id === oe,
-									onFocus: () => We(e),
-									onEdit: () => je(e),
+									onFocus: () => qe(e),
+									onEdit: () => Pe(e),
 									onCopy: () => xI.postMessage({
 										type: "copyAnnotationMarkdown",
 										payload: { id: e.id }
 									}),
-									onDelete: () => Me(e)
+									onDelete: () => Fe(e)
 								}, e.id)) : /* @__PURE__ */ (0, Q.jsx)("div", {
 									className: "empty",
 									children: "No annotations saved yet."
@@ -76445,7 +76456,7 @@ function EI() {
 					className: "side-tab-panel list-block",
 					children: [/* @__PURE__ */ (0, Q.jsxs)("section", {
 						className: "tool-block",
-						children: [/* @__PURE__ */ (0, Q.jsx)("h2", { children: "Due Today" }), Oe.length ? Oe.map((e) => /* @__PURE__ */ (0, Q.jsx)(jI, {
+						children: [/* @__PURE__ */ (0, Q.jsx)("h2", { children: "Due Today" }), je.length ? je.map((e) => /* @__PURE__ */ (0, Q.jsx)(jI, {
 							word: e,
 							showReview: !0
 						}, e.id)) : /* @__PURE__ */ (0, Q.jsx)("div", {
@@ -76494,34 +76505,42 @@ function EI() {
 		})]
 	});
 }
-function DI({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDelete: a, onDocumentReady: o, onOpen: s, onPageChange: c, onSelection: l, onStyleChange: u, utilsRef: d }) {
-	let f = (0, v.useRef)(null);
+function DI({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDelete: a, onDocumentReady: o, onOpen: s, onPageChange: c, onPinchZoom: l, onSelection: u, onStyleChange: d, utilsRef: f }) {
+	let p = (0, v.useRef)(null), m = (0, v.useRef)(null);
 	(0, v.useEffect)(() => {
 		o(n.numPages);
 	}, [o, n.numPages]);
-	let p = (0, v.useCallback)((e) => {
+	let h = (0, v.useCallback)((e) => {
 		typeof e.pageNumber == "number" && c(e.pageNumber);
-	}, [c]), m = (0, v.useCallback)((e) => {
+	}, [c]), g = (0, v.useCallback)((e) => {
+		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), l(e.deltaY));
+	}, [l]), _ = (0, v.useCallback)((e) => {
 		let t = e.getEventBus();
-		f.current !== t && (f.current?.off("pagechanging", p), t?.on("pagechanging", p), f.current = t), d(e);
-	}, [p, d]);
+		p.current !== t && (p.current?.off("pagechanging", h), t?.on("pagechanging", h), p.current = t);
+		let n = e.getViewer()?.container || null;
+		m.current !== n && (m.current?.removeEventListener("wheel", g), n?.addEventListener("wheel", g, { passive: !1 }), m.current = n), f(e);
+	}, [
+		h,
+		g,
+		f
+	]);
 	return (0, v.useEffect)(() => () => {
-		f.current?.off("pagechanging", p), f.current = null;
-	}, [p]), /* @__PURE__ */ (0, Q.jsx)(JF, {
+		p.current?.off("pagechanging", h), p.current = null, m.current?.removeEventListener("wheel", g), m.current = null;
+	}, [h, g]), /* @__PURE__ */ (0, Q.jsx)(JF, {
 		pdfDocument: n,
 		highlights: t,
-		onSelection: l,
+		onSelection: u,
 		selectionTip: r,
 		enableAreaSelection: (e) => e.altKey,
 		pdfScaleValue: i,
 		textSelectionColor: "rgba(64, 141, 255, 0.28)",
-		utilsRef: m,
+		utilsRef: _,
 		style: { height: "100%" },
 		children: /* @__PURE__ */ (0, Q.jsx)(OI, {
 			activeId: e,
 			onDelete: a,
 			onOpen: s,
-			onStyleChange: u
+			onStyleChange: d
 		})
 	});
 }

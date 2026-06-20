@@ -40,6 +40,10 @@ type PdfEventBus = {
   off(eventName: 'pagechanging', listener: (event: PdfPageChangingEvent) => void): void;
 };
 
+type PdfViewerContainer = {
+  container: HTMLDivElement;
+};
+
 type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
 
 interface SelectionToolbarContextValue {
@@ -128,6 +132,29 @@ function App() {
   const handleHighlighterUtils = useCallback((utils: PdfHighlighterUtils) => {
     highlighterRef.current = utils;
   }, []);
+
+  const applyZoom = useCallback((value: PdfScaleValue) => {
+    setZoom(value);
+    const viewer = highlighterRef.current?.getViewer();
+    if (viewer) {
+      viewer.currentScaleValue = value.toString();
+    }
+  }, []);
+
+  const zoomByFactor = useCallback((factor: number) => {
+    const viewer = highlighterRef.current?.getViewer();
+    const baseScale = viewer?.currentScale || 1;
+    const nextScale = clampZoom(baseScale * factor);
+    setZoom(nextScale);
+    if (viewer) {
+      viewer.currentScale = nextScale;
+    }
+  }, []);
+
+  const handlePinchZoom = useCallback((deltaY: number) => {
+    const exponent = Math.min(Math.max(-deltaY * 0.01, -0.25), 0.25);
+    zoomByFactor(Math.exp(exponent));
+  }, [zoomByFactor]);
 
   useEffect(() => {
     document.body.classList.add('reader-mounted');
@@ -489,11 +516,11 @@ function App() {
             <span>/ {pageTotal || '-'}</span>
           </label>
           <button title="Next page" onClick={() => goToPage(currentPage + 1)}>Next</button>
-          <button title="Zoom out" onClick={() => setZoom(value => clampZoom(typeof value === 'number' ? value - 0.15 : 0.85))}>-</button>
+          <button title="Zoom out" onClick={() => zoomByFactor(0.85)}>-</button>
           <span className="zoom-value">{zoomLabel(zoom)}</span>
-          <button title="Zoom in" onClick={() => setZoom(value => clampZoom(typeof value === 'number' ? value + 0.15 : 1.15))}>+</button>
-          <button title="Fit full page" onClick={() => setZoom('page-fit')}>Fit</button>
-          <button title="Fit page width" onClick={() => setZoom('page-width')}>Width</button>
+          <button title="Zoom in" onClick={() => zoomByFactor(1.15)}>+</button>
+          <button title="Fit full page" onClick={() => applyZoom('page-fit')}>Fit</button>
+          <button title="Fit page width" onClick={() => applyZoom('page-width')}>Width</button>
           <span className="reader-status">{status}</span>
         </div>
         <div className="pdf-host">
@@ -514,6 +541,7 @@ function App() {
                 onDocumentReady={handleDocumentReady}
                 onOpen={editAnnotation}
                 onPageChange={handleVisiblePageChange}
+                onPinchZoom={handlePinchZoom}
                 onSelection={handleSelection}
                 onStyleChange={handleStyleChange}
                 utilsRef={handleHighlighterUtils}
@@ -720,6 +748,7 @@ function PdfDocumentView({
   onDocumentReady,
   onOpen,
   onPageChange,
+  onPinchZoom,
   onSelection,
   onStyleChange,
   utilsRef
@@ -733,11 +762,13 @@ function PdfDocumentView({
   onDocumentReady(numPages: number): void;
   onOpen(annotation: AnnotationRecord): void;
   onPageChange(page: number): void;
+  onPinchZoom(deltaY: number): void;
   onSelection(selection: PdfSelection): void;
   onStyleChange(annotation: AnnotationRecord, color: string, kind: AnnotationKind): void;
   utilsRef(utils: PdfHighlighterUtils): void;
 }) {
   const eventBusRef = useRef<PdfEventBus | null>(null);
+  const viewerContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -749,6 +780,15 @@ function PdfDocumentView({
     }
   }, [onPageChange]);
 
+  const handleWheel = useCallback((event: WheelEvent) => {
+    if (!event.ctrlKey) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onPinchZoom(event.deltaY);
+  }, [onPinchZoom]);
+
   const captureUtils = useCallback((utils: PdfHighlighterUtils) => {
     const nextEventBus = utils.getEventBus() as PdfEventBus | null;
     if (eventBusRef.current !== nextEventBus) {
@@ -756,13 +796,21 @@ function PdfDocumentView({
       nextEventBus?.on('pagechanging', handlePageChanging);
       eventBusRef.current = nextEventBus;
     }
+    const nextViewerContainer = (utils.getViewer() as PdfViewerContainer | null)?.container || null;
+    if (viewerContainerRef.current !== nextViewerContainer) {
+      viewerContainerRef.current?.removeEventListener('wheel', handleWheel);
+      nextViewerContainer?.addEventListener('wheel', handleWheel, { passive: false });
+      viewerContainerRef.current = nextViewerContainer;
+    }
     utilsRef(utils);
-  }, [handlePageChanging, utilsRef]);
+  }, [handlePageChanging, handleWheel, utilsRef]);
 
   useEffect(() => () => {
     eventBusRef.current?.off('pagechanging', handlePageChanging);
     eventBusRef.current = null;
-  }, [handlePageChanging]);
+    viewerContainerRef.current?.removeEventListener('wheel', handleWheel);
+    viewerContainerRef.current = null;
+  }, [handlePageChanging, handleWheel]);
 
   return (
     <PdfHighlighter

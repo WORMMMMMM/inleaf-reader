@@ -1,6 +1,6 @@
 # AI Context
 
-Last updated: 2026-06-18
+Last updated: 2026-06-20
 
 ## Why This Project Exists
 
@@ -52,6 +52,8 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 ### Reader and persistence
 
 - The Webview panel uses `retainContextWhenHidden: true`.
+- The page indicator and saved reading progress follow PDF.js `pagechanging`
+  events, including continuous scrolling with a mouse wheel or trackpad.
 - Switching PDFs now reuses the existing Webview and sends `navigateTo`
   instead of rebuilding its HTML.
 - `navigateTo` changes the active `ReaderStorage`, updates resource roots,
@@ -110,12 +112,12 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 
 Update this section whenever checks are rerun.
 
-- `npm test`: passed on 2026-06-18; this ran `npm run compile`, rebuilt
+- `npm test`: passed on 2026-06-20; this ran `npm run compile`, rebuilt
   `media/reader-app.js` and `media/reader-app.css`, and passed the annotation
   export regression suite.
 - `./node_modules/.bin/tsc -p tsconfig.webview.json --noEmit`: passed on
-  2026-06-18.
-- `node --check media/reader-app.js`: passed on 2026-06-18.
+  2026-06-20.
+- `node --check media/reader-app.js`: passed on 2026-06-20.
 - Non-blocking build warning: Vite reports that `inlineDynamicImports` is
   deprecated and recommends `codeSplitting: false`.
 - Manual VS Code Extension Development Host checks: not completed yet.

@@ -31,6 +31,15 @@ type ReaderHighlight = Highlight & {
   annotation?: AnnotationRecord;
 };
 
+type PdfPageChangingEvent = {
+  pageNumber?: number;
+};
+
+type PdfEventBus = {
+  on(eventName: 'pagechanging', listener: (event: PdfPageChangingEvent) => void): void;
+  off(eventName: 'pagechanging', listener: (event: PdfPageChangingEvent) => void): void;
+};
+
 type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
 
 interface SelectionToolbarContextValue {
@@ -104,9 +113,28 @@ function App() {
   const documentReadyRef = useRef(false);
   const selectionRef = useRef({ selectedText: '', selectionPosition: undefined as ScaledPosition | undefined, currentPage: 1 });
 
+  const saveReadingProgress = useCallback((page: number) => {
+    window.clearTimeout(progressDebounceRef.current);
+    progressDebounceRef.current = window.setTimeout(() => {
+      vscode.postMessage({ type: 'saveProgress', payload: { page } });
+    }, 350);
+  }, []);
+
+  const handleVisiblePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    saveReadingProgress(page);
+  }, [saveReadingProgress]);
+
+  const handleHighlighterUtils = useCallback((utils: PdfHighlighterUtils) => {
+    highlighterRef.current = utils;
+  }, []);
+
   useEffect(() => {
     document.body.classList.add('reader-mounted');
-    return () => document.body.classList.remove('reader-mounted');
+    return () => {
+      window.clearTimeout(progressDebounceRef.current);
+      document.body.classList.remove('reader-mounted');
+    };
   }, []);
 
   const handleDocumentReady = useCallback((numPages: number) => {
@@ -135,9 +163,11 @@ function App() {
         }
       }
       if (message.type === 'navigateTo') {
+        window.clearTimeout(progressDebounceRef.current);
         setPdfUrl(message.payload.pdfUrl);
         setPaperName(message.payload.paperName);
         setState(defaultState);
+        setCurrentPage(1);
         setPageTotal(0);
         setStatus('Loading PDF...');
         documentReadyRef.current = false;
@@ -483,11 +513,10 @@ function App() {
                 onDelete={deleteAnnotation}
                 onDocumentReady={handleDocumentReady}
                 onOpen={editAnnotation}
+                onPageChange={handleVisiblePageChange}
                 onSelection={handleSelection}
                 onStyleChange={handleStyleChange}
-                utilsRef={utils => {
-                  highlighterRef.current = utils;
-                }}
+                utilsRef={handleHighlighterUtils}
               />
             )}
           </PdfLoader>
@@ -513,10 +542,7 @@ function App() {
     if (!saveProgress) {
       return;
     }
-    window.clearTimeout(progressDebounceRef.current);
-    progressDebounceRef.current = window.setTimeout(() => {
-      vscode.postMessage({ type: 'saveProgress', payload: { page: nextPage } });
-    }, 350);
+    saveReadingProgress(nextPage);
   }
 
   return (
@@ -693,6 +719,7 @@ function PdfDocumentView({
   onDelete,
   onDocumentReady,
   onOpen,
+  onPageChange,
   onSelection,
   onStyleChange,
   utilsRef
@@ -705,13 +732,37 @@ function PdfDocumentView({
   onDelete(annotation: AnnotationRecord): void;
   onDocumentReady(numPages: number): void;
   onOpen(annotation: AnnotationRecord): void;
+  onPageChange(page: number): void;
   onSelection(selection: PdfSelection): void;
   onStyleChange(annotation: AnnotationRecord, color: string, kind: AnnotationKind): void;
   utilsRef(utils: PdfHighlighterUtils): void;
 }) {
+  const eventBusRef = useRef<PdfEventBus | null>(null);
+
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
   }, [onDocumentReady, pdfDocument.numPages]);
+
+  const handlePageChanging = useCallback((event: PdfPageChangingEvent) => {
+    if (typeof event.pageNumber === 'number') {
+      onPageChange(event.pageNumber);
+    }
+  }, [onPageChange]);
+
+  const captureUtils = useCallback((utils: PdfHighlighterUtils) => {
+    const nextEventBus = utils.getEventBus() as PdfEventBus | null;
+    if (eventBusRef.current !== nextEventBus) {
+      eventBusRef.current?.off('pagechanging', handlePageChanging);
+      nextEventBus?.on('pagechanging', handlePageChanging);
+      eventBusRef.current = nextEventBus;
+    }
+    utilsRef(utils);
+  }, [handlePageChanging, utilsRef]);
+
+  useEffect(() => () => {
+    eventBusRef.current?.off('pagechanging', handlePageChanging);
+    eventBusRef.current = null;
+  }, [handlePageChanging]);
 
   return (
     <PdfHighlighter
@@ -722,7 +773,7 @@ function PdfDocumentView({
       enableAreaSelection={event => event.altKey}
       pdfScaleValue={zoom}
       textSelectionColor="rgba(64, 141, 255, 0.28)"
-      utilsRef={utilsRef}
+      utilsRef={captureUtils}
       style={{ height: '100%' }}
     >
       <HighlightContainer

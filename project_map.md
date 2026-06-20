@@ -31,7 +31,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `webview/src/main.tsx`: React reader app. It pre-registers PDF.js `WorkerMessageHandler` so PDF.js uses fake-worker mode in VS Code Webviews, uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host. The selection toolbar has one translation flow: words show dictionary details plus `Save to Wordbook`, while sentences show translated text. Translation responses are matched to their source selection to prevent stale results.
+- `webview/src/main.tsx`: React reader app. It pre-registers PDF.js `WorkerMessageHandler` so PDF.js uses fake-worker mode in VS Code Webviews, uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, and follows PDF.js `pagechanging` events so trackpad or wheel scrolling updates the displayed page and saved reading progress. It sends save/copy/review/translation/export events back to the extension host. The selection toolbar has one translation flow: words show dictionary details plus `Save to Wordbook`, while sentences show translated text. Translation responses are matched to their source selection to prevent stale results.
 - `webview/src/pdfjsWorker.d.ts`: Type declaration for importing PDF.js worker internals into the Webview bundle.
 - `webview/src/styles.css`: Reader layout, toolbar, side panel, annotation list, wordbook, dictionary result block, and responsive rules.
 - `webview/src/types.ts`: Webview-side copies of persisted annotation, progress, wordbook data shapes, and `WordDetails` for dictionary results.

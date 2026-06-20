@@ -7,7 +7,7 @@ A VS Code extension prototype for paper reading workflows: local translation, an
 - Open the current PDF or choose one from disk.
 - Render the selected paper through a React Webview powered by `react-pdf-highlighter-plus`.
 - Capture selected PDF text with the library-managed PDF.js text layer.
-- Translate selected text locally through Argos Translate, with optional LibreTranslate fallback.
+- Translate selected text through local Argos Translate, optional LibreTranslate, or DeepSeek V4 Flash.
 - Dictionary lookup for single English words: phonetics, part-of-speech, and Chinese definitions from ECDICT (770,611 entries in the current generated bundle).
 - Fast translation via a long-lived daemon process (model loads once, subsequent translations return instantly).
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
@@ -100,6 +100,27 @@ If Argos fails and fallback is enabled, the extension will try the configured Li
   "readingExtension.translationProvider": "libretranslate"
 }
 ```
+
+## DeepSeek AI Translation
+
+DeepSeek translation uses `deepseek-v4-flash` by default and disables thinking
+mode for lower latency. The API key is stored in VS Code SecretStorage, never
+in workspace settings or repository files.
+
+1. Revoke any key that has been pasted into chat, source code, or logs.
+2. Generate a new key in the DeepSeek console.
+3. Open the reader's `Translation` tab and choose `AI translation (DeepSeek V4 Flash)`.
+4. Enter the new key in the secure password prompt.
+
+The Translation tab can switch back to `Local translation (Argos + ECDICT)` at
+any time. Its `Set API Key` / `Replace API Key` button opens the same secure
+credential prompt as the `Reading Extension: Set DeepSeek API Key` command.
+The model can be changed between `deepseek-v4-flash` and `deepseek-v4-pro` in
+VS Code settings. Run `Reading Extension: Clear DeepSeek API Key` to remove the
+secret and return to Argos.
+
+Single English words still use the local ECDICT dictionary when available;
+sentences and paragraphs use DeepSeek when it is selected.
 
 ## Troubleshooting
 

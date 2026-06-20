@@ -281,6 +281,22 @@ label {
   font-size: 12px;
 }
 
+.provider-status {
+  border-left: 3px solid var(--border);
+  padding: 7px 9px;
+  color: var(--muted);
+  background: var(--vscode-editor-background);
+  font-size: 12px;
+}
+
+.provider-status.ready {
+  border-left-color: var(--vscode-testing-iconPassed, #2ea043);
+}
+
+.provider-status.missing {
+  border-left-color: var(--vscode-inputValidation-warningBorder, #cca700);
+}
+
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

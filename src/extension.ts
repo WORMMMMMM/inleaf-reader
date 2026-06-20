@@ -25,13 +25,40 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    PaperReaderPanel.createOrShow(context.extensionUri, pdfUri);
+    PaperReaderPanel.createOrShow(context.extensionUri, context.secrets, pdfUri);
   });
 
-  context.subscriptions.push(openReader);
+  const setDeepSeekApiKey = vscode.commands.registerCommand('readingExtension.setDeepSeekApiKey', async () => {
+    const apiKey = await vscode.window.showInputBox({
+      title: 'Set DeepSeek API Key',
+      prompt: 'Stored in VS Code SecretStorage. When DeepSeek is selected, translated text is sent to the DeepSeek API.',
+      password: true,
+      ignoreFocusOut: true,
+      validateInput: value => value.trim() ? undefined : 'Enter a DeepSeek API key.'
+    });
+    if (apiKey === undefined) {
+      return;
+    }
+
+    await context.secrets.store(PaperReaderPanel.deepSeekApiKeySecret, apiKey.trim());
+    await vscode.workspace
+      .getConfiguration('readingExtension')
+      .update('translationProvider', 'deepseek', vscode.ConfigurationTarget.Global);
+    vscode.window.showInformationMessage('DeepSeek API key stored securely. DeepSeek is now the translation provider.');
+  });
+
+  const clearDeepSeekApiKey = vscode.commands.registerCommand('readingExtension.clearDeepSeekApiKey', async () => {
+    await context.secrets.delete(PaperReaderPanel.deepSeekApiKeySecret);
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    if (config.get<string>('translationProvider') === 'deepseek') {
+      await config.update('translationProvider', 'argos', vscode.ConfigurationTarget.Global);
+    }
+    vscode.window.showInformationMessage('DeepSeek API key removed from VS Code SecretStorage.');
+  });
+
+  context.subscriptions.push(openReader, setDeepSeekApiKey, clearDeepSeekApiKey);
 }
 
 export function deactivate() {
   // No long-lived resources.
 }
-

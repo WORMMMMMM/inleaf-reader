@@ -11,7 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:readingExtension.openReader"
+    "onCommand:readingExtension.openReader",
+    "onCommand:readingExtension.setDeepSeekApiKey",
+    "onCommand:readingExtension.clearDeepSeekApiKey"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -19,6 +21,14 @@
       {
         "command": "readingExtension.openReader",
         "title": "Reading Extension: Open Paper Reader"
+      },
+      {
+        "command": "readingExtension.setDeepSeekApiKey",
+        "title": "Reading Extension: Set DeepSeek API Key"
+      },
+      {
+        "command": "readingExtension.clearDeepSeekApiKey",
+        "title": "Reading Extension: Clear DeepSeek API Key"
       }
     ],
     "configuration": {
@@ -34,9 +44,19 @@
           "default": "argos",
           "enum": [
             "argos",
-            "libretranslate"
+            "libretranslate",
+            "deepseek"
           ],
-          "description": "Local translation provider. Argos uses a local Python helper; LibreTranslate calls the configured HTTP endpoint."
+          "description": "Translation provider. Argos and LibreTranslate can run locally; DeepSeek uses the configured API key from VS Code SecretStorage."
+        },
+        "readingExtension.deepSeekModel": {
+          "type": "string",
+          "default": "deepseek-v4-flash",
+          "enum": [
+            "deepseek-v4-flash",
+            "deepseek-v4-pro"
+          ],
+          "description": "DeepSeek model used when the translation provider is DeepSeek."
         },
         "readingExtension.argosPythonPath": {
           "type": "string",
@@ -51,12 +71,12 @@
         "readingExtension.translationSource": {
           "type": "string",
           "default": "auto",
-          "description": "Source language code used by the local translation provider."
+          "description": "Source language code used by translation providers that require it."
         },
         "readingExtension.translationTarget": {
           "type": "string",
           "default": "zh",
-          "description": "Target language code used by the local translation provider."
+          "description": "Target language code used by the selected translation provider."
         }
       }
     }

@@ -45,6 +45,7 @@ type PdfViewerContainer = {
 };
 
 type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
+type TranslationMode = 'local' | 'deepseek';
 
 interface SelectionToolbarContextValue {
   selectedText: string;
@@ -64,6 +65,7 @@ type IncomingMessage =
   | { type: 'state'; payload: ReaderStatePayload }
   | { type: 'navigateTo'; payload: { pdfUrl: string; paperName: string } }
   | { type: 'translationResult'; payload: { sourceText: string; translatedText?: string; wordDetails?: WordDetails; error?: string } }
+  | { type: 'translationSettings'; payload: { mode: TranslationMode; hasDeepSeekApiKey: boolean } }
   | { type: 'exportResult'; payload: { path?: string; error?: string } }
   | { type: 'clipboardResult'; payload: { message?: string; error?: string } }
   | { type: 'annotationActionResult'; payload: { message?: string; error?: string } }
@@ -96,6 +98,10 @@ function App() {
   const [translationOutput, setTranslationOutput] = useState('');
   const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
   const [translationSourceText, setTranslationSourceText] = useState('');
+  const [translationMode, setTranslationMode] = useState<TranslationMode>(
+    readerConfig.translationProvider === 'deepseek' ? 'deepseek' : 'local'
+  );
+  const [hasDeepSeekApiKey, setHasDeepSeekApiKey] = useState(false);
   const [annotationQuery, setAnnotationQuery] = useState('');
   const [tagQuery, setTagQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -211,6 +217,10 @@ function App() {
         setTranslationOutput(message.payload.error || message.payload.translatedText || '');
         setWordDetails(message.payload.wordDetails);
         setActiveSidebarTab('translation');
+      }
+      if (message.type === 'translationSettings') {
+        setTranslationMode(message.payload.mode);
+        setHasDeepSeekApiKey(message.payload.hasDeepSeekApiKey);
       }
       if (message.type === 'exportResult') {
         setStatus(message.payload.error ? `Export failed: ${message.payload.error}` : `Exported: ${message.payload.path}`);
@@ -602,7 +612,7 @@ function App() {
               <dl className="meta-list">
                 <div>
                   <dt>Provider</dt>
-                  <dd>{readerConfig.translationProvider || 'argos'}</dd>
+                  <dd>{translationMode === 'deepseek' ? 'DeepSeek AI' : 'Local Argos'}</dd>
                 </div>
                 <div>
                   <dt>Languages</dt>
@@ -709,6 +719,36 @@ function App() {
 
         {activeSidebarTab === 'translation' ? (
           <section className="side-tab-panel">
+            <section className="tool-block">
+              <h2>Translation Mode</h2>
+              <label htmlFor="translationMode">Choose how selected text is translated</label>
+              <select
+                id="translationMode"
+                value={translationMode}
+                onChange={event => {
+                  const mode = event.target.value as TranslationMode;
+                  vscode.postMessage({ type: 'setTranslationMode', payload: { mode } });
+                }}
+              >
+                <option value="local">Local translation (Argos + ECDICT)</option>
+                <option value="deepseek">AI translation (DeepSeek V4 Flash)</option>
+              </select>
+              {translationMode === 'deepseek' ? (
+                <>
+                  <div className={`provider-status ${hasDeepSeekApiKey ? 'ready' : 'missing'}`}>
+                    {hasDeepSeekApiKey ? 'DeepSeek API Key is configured.' : 'DeepSeek API Key is required.'}
+                  </div>
+                  <button
+                    className="secondary-button"
+                    onClick={() => vscode.postMessage({ type: 'configureDeepSeek' })}
+                  >
+                    {hasDeepSeekApiKey ? 'Replace API Key' : 'Set API Key'}
+                  </button>
+                </>
+              ) : (
+                <div className="provider-status ready">Translation stays on this machine.</div>
+              )}
+            </section>
             <section className="tool-block">
               <h2>Current Selection</h2>
               {selectedText.trim() ? <p className="selection-preview">{selectedText}</p> : <div className="empty compact-empty">Select text in the PDF, then use Translate in the selection toolbar.</div>}

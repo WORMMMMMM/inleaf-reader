@@ -26,8 +26,10 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 
 - `src/extension.ts` opens the reader command.
 - `src/paperReaderPanel.ts` owns the VS Code Webview panel, filesystem-facing
-  orchestration, clipboard access, translation process lifecycle, and messages
-  between the extension host and Webview.
+  orchestration, clipboard access, translation process lifecycle, optional
+  DeepSeek API calls, and messages between the extension host and Webview.
+- DeepSeek credentials are stored only through VS Code SecretStorage commands
+  registered in `src/extension.ts`; they are never injected into the Webview.
 - `src/readerStorage.ts` persists annotations, wordbook entries, and progress
   under `.reading-extension/` next to the active PDF.
 - `webview/src/main.tsx` owns the React reader UI, PDF interactions,
@@ -68,6 +70,14 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 
 ### Translation and dictionary
 
+- DeepSeek AI translation is available through the official Chat Completions
+  endpoint using `deepseek-v4-flash` by default with thinking disabled.
+- The Translation sidebar switches live between local Argos/ECDICT and
+  DeepSeek AI, reports whether a key exists, and opens secure key setup without
+  requiring the user to edit settings manually.
+- `Reading Extension: Set DeepSeek API Key` stores a newly generated key in
+  VS Code SecretStorage and selects DeepSeek as the provider; the clear command
+  deletes it and returns to Argos.
 - Normal Argos requests use a long-lived Python daemon instead of spawning a
   one-shot process for every translation.
 - A single English word is routed to ECDICT lookup; multi-word text is routed

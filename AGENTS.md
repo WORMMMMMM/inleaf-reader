@@ -7,12 +7,13 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - Build a usable VS Code PDF reader for papers and books.
 - Keep annotation data, vocabulary, and reading progress in sidecar files next to the PDF so they can sync through Git or any file-sync tool.
 - Let the user work beside VS Code AI extensions such as Codex, Claude Code, or ChatGPT extensions.
-- Avoid paid AI API dependencies by default.
+- Avoid paid AI API dependencies by default. DeepSeek is optional and must use
+  a user-provided key stored through VS Code SecretStorage.
 
 ## Architecture Rules
 
 - Do not rebuild a custom PDF renderer unless there is no alternative. PDF rendering, text selection, text layer behavior, scrolling, zooming, and highlight positioning should stay delegated to `react-pdf-highlighter-plus`.
-- The extension host owns file access, clipboard access, local translation process calls, and sidecar persistence.
+- The extension host owns file access, clipboard access, local translation process calls, optional AI API calls, SecretStorage access, and sidecar persistence.
 - The Webview owns reader UI, PDF interaction, annotation editing controls, wordbook controls, and `postMessage` events back to the extension host.
 - Selection actions are unified around `Translate`: a single English word returns dictionary details and a `Save to Wordbook` action; multi-word text returns sentence translation. Do not add a separate `Word` selection entry point.
 - Extension-host errors from message handlers must be surfaced to both the Webview (via `stateError` messages) and the VS Code notification API (`vscode.window.showErrorMessage`).
@@ -21,8 +22,8 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 
 ## Important Files
 
-- `src/extension.ts`: Registers commands and opens the reader.
-- `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config on first open, handles Webview messages, calls local translation, and delegates storage. When switching PDFs, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML. All message handlers are wrapped in try/catch so filesystem errors surface to both the Webview status bar and a VS Code error notification. Translation runs through a long-lived daemon process for speed; single English words trigger dictionary lookup via ECDICT.
+- `src/extension.ts`: Registers reader and DeepSeek credential commands. DeepSeek keys are accepted through a password input and stored only in VS Code SecretStorage.
+- `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config on first open, handles Webview messages, calls local or DeepSeek translation, and delegates storage. When switching PDFs, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML. All message handlers are wrapped in try/catch so filesystem errors surface to both the Webview status bar and a VS Code error notification. Local translation runs through a long-lived daemon process for speed; single English words trigger dictionary lookup via ECDICT.
 - `src/readerStorage.ts`: Reads/writes annotations, wordbook, progress, Markdown export, and annotated PDF export.
 - `src/annotationTypes.ts`: Shared persisted data types. Update this carefully when changing the annotation schema.
 - `src/annotationExports.ts`: Markdown and annotated PDF export logic.
@@ -64,6 +65,16 @@ These files are intentionally plain local files. They should remain portable acr
 - Argos quality is usable but limited.
 - Do not commit `.venv-translate/`; it is a local runtime dependency.
 
+## DeepSeek Translation
+
+- Optional provider: DeepSeek's OpenAI-compatible Chat Completions endpoint.
+- Default model: `deepseek-v4-flash` with thinking disabled for lower-latency translation.
+- API keys must be stored through `Reading Extension: Set DeepSeek API Key`.
+- The Translation sidebar lets users switch directly between local translation
+  and DeepSeek AI translation, and opens the secure key input when needed.
+- Never put API keys in `package.json`, VS Code settings, sidecar files, logs, or the Webview.
+- Single English words continue to prefer the local ECDICT dictionary so structured word details and `Save to Wordbook` remain available.
+
 ## Development Commands
 
 Run these before committing code changes:
@@ -94,6 +105,7 @@ For reader changes, manually verify at least one normal text PDF:
 - `Translate locally` returns a result for English selected text in <1s after first call.
 - Selecting a single English word and clicking `Translate locally` shows dictionary entry with phonetic, Chinese definitions, and English definitions.
 - Selecting a sentence and clicking `Translate` shows sentence translation without wordbook controls.
+- With DeepSeek configured, selecting a sentence and clicking `Translate` returns an AI translation without exposing the key to the Webview.
 
 For scanned PDFs, text selection may not work because there is no text layer. Do not treat that as a regression unless OCR has been added.
 

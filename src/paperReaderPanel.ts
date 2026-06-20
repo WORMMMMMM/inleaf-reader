@@ -34,9 +34,12 @@ type ReaderMessage =
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
+  | { type: 'setTranslationMode'; payload: { mode: 'local' | 'deepseek' } }
+  | { type: 'configureDeepSeek' }
   | { type: 'translate'; payload: { text: string } };
 
 export class PaperReaderPanel {
+  static readonly deepSeekApiKeySecret = 'readingExtension.deepSeekApiKey';
   private static currentPanel: PaperReaderPanel | undefined;
 
   private readonly panel: vscode.WebviewPanel;
@@ -48,7 +51,7 @@ export class PaperReaderPanel {
   private daemonRequestId = 0;
   private daemonBuffer = '';
 
-  static createOrShow(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
+  static createOrShow(extensionUri: vscode.Uri, secrets: vscode.SecretStorage, pdfUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
     if (PaperReaderPanel.currentPanel) {
@@ -68,12 +71,13 @@ export class PaperReaderPanel {
       }
     );
 
-    PaperReaderPanel.currentPanel = new PaperReaderPanel(panel, extensionUri, pdfUri);
+    PaperReaderPanel.currentPanel = new PaperReaderPanel(panel, extensionUri, secrets, pdfUri);
   }
 
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,
+    private readonly secrets: vscode.SecretStorage,
     private pdfUri: vscode.Uri
   ) {
     this.panel = panel;
@@ -82,6 +86,15 @@ export class PaperReaderPanel {
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage(
       (message: ReaderMessage) => this.handleMessage(message),
+      null,
+      this.disposables
+    );
+    vscode.workspace.onDidChangeConfiguration(
+      event => {
+        if (event.affectsConfiguration('readingExtension.translationProvider')) {
+          void this.postTranslationSettings();
+        }
+      },
       null,
       this.disposables
     );
@@ -162,6 +175,13 @@ export class PaperReaderPanel {
       case 'saveProgress':
         await this.storage.saveProgress(message.payload);
         break;
+      case 'setTranslationMode':
+        await this.setTranslationMode(message.payload.mode);
+        break;
+      case 'configureDeepSeek':
+        await vscode.commands.executeCommand('readingExtension.setDeepSeekApiKey');
+        await this.postTranslationSettings();
+        break;
       case 'translate':
         await this.translate(message.payload.text);
         break;
@@ -182,6 +202,35 @@ export class PaperReaderPanel {
         words,
         progress,
         paperName: path.basename(this.pdfUri.fsPath)
+      }
+    });
+    await this.postTranslationSettings();
+  }
+
+  private async setTranslationMode(mode: 'local' | 'deepseek') {
+    if (mode === 'deepseek' && !(await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret))) {
+      await vscode.commands.executeCommand('readingExtension.setDeepSeekApiKey');
+      if (!(await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret))) {
+        await this.postTranslationSettings();
+        return;
+      }
+    } else {
+      await vscode.workspace
+        .getConfiguration('readingExtension')
+        .update('translationProvider', mode === 'deepseek' ? 'deepseek' : 'argos', vscode.ConfigurationTarget.Global);
+    }
+    await this.postTranslationSettings();
+  }
+
+  private async postTranslationSettings() {
+    const provider = vscode.workspace
+      .getConfiguration('readingExtension')
+      .get<string>('translationProvider') || 'argos';
+    await this.panel.webview.postMessage({
+      type: 'translationSettings',
+      payload: {
+        mode: provider === 'deepseek' ? 'deepseek' : 'local',
+        hasDeepSeekApiKey: !!(await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret))
       }
     });
   }
@@ -242,6 +291,26 @@ export class PaperReaderPanel {
   }> {
     const config = vscode.workspace.getConfiguration('readingExtension');
     const provider = config.get<string>('translationProvider') || 'argos';
+
+    if (provider === 'deepseek') {
+      if (this.isSingleWord(text)) {
+        try {
+          const dictionaryResult = await this.lookupWordDetails(text);
+          if (dictionaryResult.wordDetails) {
+            return dictionaryResult;
+          }
+        } catch {
+          // DeepSeek remains available when the optional local dictionary cannot start.
+        }
+      }
+      try {
+        const translatedText = await this.translateWithDeepSeek(text);
+        return { translatedText };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { error: message };
+      }
+    }
 
     if (provider === 'argos') {
       try {
@@ -455,6 +524,84 @@ export class PaperReaderPanel {
       type: 'translationResult',
       payload: { sourceText, translatedText, wordDetails, error }
     });
+  }
+
+  private async translateWithDeepSeek(text: string) {
+    const apiKey = await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret);
+    if (!apiKey) {
+      throw new Error('DeepSeek API key is not configured. Run “Reading Extension: Set DeepSeek API Key”.');
+    }
+
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const model = config.get<string>('deepSeekModel') || 'deepseek-v4-flash';
+    const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional academic translator. Translate the user's text into ${target}. Preserve formulas, citations, terminology, paragraph structure, and proper nouns accurately. Return only the translation, without commentary or quotation marks.`
+            },
+            {
+              role: 'user',
+              content: text
+            }
+          ],
+          thinking: { type: 'disabled' },
+          max_tokens: 4096,
+          stream: false
+        }),
+        signal: controller.signal
+      });
+
+      const responseText = await response.text();
+      let data: {
+        choices?: { message?: { content?: string | null } }[];
+        error?: { message?: string };
+      } = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        if (!response.ok) {
+          throw new Error(`DeepSeek returned HTTP ${response.status}.`);
+        }
+        throw new Error('DeepSeek returned an invalid response.');
+      }
+
+      if (!response.ok) {
+        const detail = data.error?.message?.trim();
+        if (response.status === 401) {
+          throw new Error('DeepSeek rejected the API key. Run “Reading Extension: Set DeepSeek API Key” with a valid key.');
+        }
+        throw new Error(detail || `DeepSeek returned HTTP ${response.status}.`);
+      }
+
+      const translatedText = data.choices?.[0]?.message?.content?.trim();
+      if (!translatedText) {
+        throw new Error('DeepSeek response did not include translated text.');
+      }
+      return translatedText;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('DeepSeek translation timed out.');
+      }
+      if (error instanceof TypeError) {
+        throw new Error('Could not reach the DeepSeek API. Check your network connection.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   private async translateWithLibreTranslate(text: string) {
@@ -678,6 +825,17 @@ function normalizeArgosLanguage(value: string, fallback: string) {
     return 'zt';
   }
   return normalized;
+}
+
+function describeTargetLanguage(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized === 'zh' || normalized === 'zh-cn' || normalized === 'zh-hans' || normalized === 'zh_hans') {
+    return 'Simplified Chinese';
+  }
+  if (normalized === 'zh-tw' || normalized === 'zh-hant' || normalized === 'zh_hant' || normalized === 'zt') {
+    return 'Traditional Chinese';
+  }
+  return value;
 }
 
 function compactWordTranslation(details: WordDetails) {

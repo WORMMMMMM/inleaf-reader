@@ -52,11 +52,30 @@ npm test
 
 Then press `F5` in VS Code to launch an Extension Development Host.
 
-`npm run compile` builds both the React Webview bundle under `media/` and the extension host under `out/`.
+`npm run compile` builds the React Webview, refreshes packaged PDF.js font/CMap
+assets, compiles test modules, and bundles the extension host under `out/`.
 
 `npm test` compiles the extension and runs regression checks for annotation Markdown export, annotated PDF export, and highlighter-position annotation compatibility.
 
 See `project_map.md` for a file-by-file map of the repository.
+
+## Install as a normal VS Code extension
+
+Build and install a local VSIX:
+
+```bash
+npm test
+npx @vscode/vsce package --no-dependencies --allow-missing-repository --skip-license --out reading-extension-0.0.1.vsix
+code --install-extension ./reading-extension-0.0.1.vsix --force
+```
+
+Reload the normal VS Code window, then run
+`Reading Extension: Open Paper Reader` from the Command Palette. The VSIX
+contains the Webview, PDF.js CMaps and standard fonts, translation scripts, and
+the offline ECDICT dictionary. It intentionally excludes `.venv-translate`
+because Python virtual environments are machine-specific. For local Argos
+translation, set `readingExtension.argosPythonPath` to a Python executable that
+has `argostranslate` and the desired language package installed.
 
 ## Local Translation
 
@@ -136,5 +155,4 @@ If a PDF that has already been opened by this version of the extension is later 
 - Add DeepL API Free support.
 - Add optional free-text notes, drawing, and shape tools from `react-pdf-highlighter-plus`.
 - Improve exported PDF highlight fidelity for rotated/cropped pages.
-- Improve spaced repetition scheduling and filtering.
 - Add dictionary support for additional language pairs.

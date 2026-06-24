@@ -174,16 +174,11 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
    request matching relies on daemon responses arriving in request order.
 4. Test one known dictionary word, one missing word, and one sentence. Confirm
    missing words fall through to translation as intended.
-5. Check the packaged extension contains
-   `scripts/argos_translate_daemon.py` and
-   `scripts/ecdict_compact.json.gz`, plus the PDF.js CMap and standard-font
-   resources. `.vscodeignore` excludes the machine-specific translation
-   virtual environment and keeps only runtime Node dependencies.
-6. Inspect the large generated `media/reader-app.js` diff only through the
+5. Inspect the large generated `media/reader-app.js` diff only through the
    corresponding Webview source and build output; do not edit it manually.
-7. Complete the manual checks in `AGENTS.md` using a normal text PDF. Scanned
+6. Complete the manual checks in `AGENTS.md` using a normal text PDF. Scanned
    PDFs without a text layer are not a valid selection regression test.
-8. Move and rename a PDF that has been opened once by this build, leaving its
+7. Move and rename a PDF that has been opened once by this build, leaving its
    old sidecars behind, and confirm annotations, words, and progress are copied
    to the new sidecar names. Existing destination files must remain unchanged.
 
@@ -197,6 +192,12 @@ Update this section whenever checks are rerun.
 - `./node_modules/.bin/tsc -p tsconfig.webview.json --noEmit`: passed on
   2026-06-24.
 - `node --check media/reader-app.js`: passed on 2026-06-24.
+- VSIX packaging: passed on 2026-06-24 with 201 files and a 24.53 MB package.
+  Verified that the package contains the bundled extension host, Webview,
+  169 CMaps, 16 standard-font files, translation scripts, and ECDICT, while
+  excluding `node_modules` and `.venv-translate`.
+- Normal VS Code installation: `ziming.reading-extension@0.0.1` installed and
+  its runtime files verified under the VS Code extensions directory.
 - Non-blocking build warning: Vite reports that `inlineDynamicImports` is
   deprecated and recommends `codeSplitting: false`.
 - Manual VS Code Extension Development Host checks: not completed yet.
@@ -207,10 +208,9 @@ Update this section whenever checks are rerun.
    interruption.
 2. Exercise dictionary lookup and sentence translation against the local
    `.venv-translate`.
-3. Verify VSIX contents before considering the dictionary feature complete.
-4. Address the Vite deprecation warning separately if the required config
+3. Address the Vite deprecation warning separately if the required config
    change is small and behavior-preserving.
-5. Push the current commit only after the manual reader checks pass.
+4. Push the current commit only after the manual reader checks pass.
 
 ## Handoff Rule
 

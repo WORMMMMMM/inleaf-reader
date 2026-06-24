@@ -1,13 +1,32 @@
 {
   "name": "reading-extension",
   "displayName": "Reading Extension",
-  "description": "A VS Code paper reader prototype focused on translation, annotations, vocabulary, and automatic local saves.",
+  "description": "A local-first VS Code PDF reader with annotations, translation, vocabulary capture, and portable sidecar data.",
   "version": "0.0.1",
   "publisher": "ziming",
+  "license": "MIT",
+  "preview": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WORMMMMMM/reading-extension.git"
+  },
+  "homepage": "https://github.com/WORMMMMMM/reading-extension#readme",
+  "bugs": {
+    "url": "https://github.com/WORMMMMMM/reading-extension/issues"
+  },
+  "keywords": [
+    "pdf",
+    "paper",
+    "reader",
+    "annotation",
+    "translation",
+    "wordbook"
+  ],
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": [
+    "Education",
     "Other"
   ],
   "activationEvents": [

@@ -158,6 +158,17 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 - `README.md`, `AGENTS.md`, and `project_map.md` describe the daemon,
   dictionary, unified translation flow, Webview navigation, and error
   surfacing.
+- `README.md` is shared by GitHub and the VS Code Marketplace. It now includes
+  product motivation, features, installation, quick start, translation setup,
+  settings, privacy disclosures, limitations, development, and contribution
+  guidance. `README2.md` remains the user's editable working draft.
+- The README explicitly distinguishes bundled runtime assets from optional
+  dependencies: ECDICT, 169 PDF.js CMaps, and 16 standard-font files require no
+  user installation; source builds refresh them through `npm run compile`.
+  Argos Python and its `en -> zh` model have separate macOS/Linux and Windows
+  installation instructions.
+- The repository is licensed under MIT through the root `LICENSE`; third-party
+  components and bundled assets retain their respective licenses.
 - Generated `media/reader-app.js` and `media/reader-app.css` are included.
 - `npm run compile` also refreshes `media/pdfjs-dist` and bundles the extension
   host into `out/extension.js`, allowing VSIX packaging without shipping the

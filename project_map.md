@@ -5,6 +5,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 ## Root Files
 
 - `README.md`: User-facing overview, setup commands, current MVP, and roadmap.
+- `LICENSE`: MIT License for Reading Extension's original source code.
 - `AGENTS.md`: Development handoff guide for future human or AI agents. It defines the product goal, architecture rules, important files, runtime data contract, local translation expectations, validation commands, and git hygiene.
 - `package.json`: VS Code extension manifest, contributed command, configuration, scripts, and npm dependencies including the React Webview, `react-pdf-highlighter-plus`, pdf.js, and PDF export helpers.
 - `package-lock.json`: Locked dependency graph for reproducible installs.

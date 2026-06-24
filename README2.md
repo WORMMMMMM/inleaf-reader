@@ -1,65 +1,65 @@
 # Reading Extension
 
-A local-first PDF reader for VS Code — annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.
+A local-first PDF reader for VS Code with annotations, translation, vocabulary capture, and portable reading data.
 
 ## Why I Built This
 
-I wanted to read papers without bouncing between a separate reader and my editor. Since I'm already using AI assistants like Codex and Claude Code in VS Code, it felt natural to keep my reading workflow in the same place.
+I wanted to read papers without moving between a separate reading application and my coding tools. I already use assistants such as Codex and Claude Code in VS Code, so the editor is a natural place to keep the rest of my reading workflow too.
 
-Reading Extension focuses on three things:
+Reading Extension focuses on three practical needs:
 
-1. Annotate papers and books while you read.
-2. Save unfamiliar words to a simple wordbook.
-3. Read alongside the AI and development tools already in VS Code.
+1. Annotate papers and books while reading.
+2. Save unfamiliar words in a simple vocabulary list.
+3. Read beside the AI and development tools already available in VS Code.
 
-Optional DeepSeek translation uses your own DeepSeek API key. Local translation is also available through Argos Translate.
+The extension does not treat a ChatGPT Plus subscription as API access. Optional DeepSeek translation uses a separately configured DeepSeek API key. Local translation is also available through Argos Translate.
 
 ## Features
 
 ### PDF reading
 
-- Open a PDF from the Command Palette, or open the reader while a PDF is already active.
-- Continuous scrolling with synced page progress.
+- Open a PDF from the Command Palette or use the currently active PDF.
+- Continuous scrolling with synchronized page progress.
 - Trackpad scrolling and pinch-to-zoom.
 - Fit-page and fit-width controls.
-- Collapsible sidebar for a distraction-free reading view.
-- Bundled PDF.js CMaps and standard fonts for better multilingual PDF support.
+- Collapsible reader sidebar for a distraction-free view.
+- Bundled PDF.js CMaps and standard fonts for improved multilingual PDF compatibility.
 
 ### Text selection
 
-- Select PDF text for translation, copying, highlighting, or notes.
-- Copy selected text with `Cmd+C` or `Ctrl+C`.
-- When selecting across pages, headers, footers, page numbers, side notices, and inferred figure blocks are automatically excluded — as long as your selection starts in the body text.
-- Need to include one of those? Just start the selection there.
+- Select real PDF text for translation, copying, highlighting, and notes.
+- Copy captured text with `Cmd+C` or `Ctrl+C`.
+- Cross-page selections automatically exclude common headers, footers, page numbers, side notices, and inferred figure blocks when the selection starts in body text.
+- Start a selection inside a header, footer, or figure when you intentionally want to include it.
 
 ### Annotations
 
 - Create colored highlights and underlines.
 - Attach notes and tags to selected text.
 - Edit, delete, search, filter, sort, and jump to saved annotations.
-- Undo the last deletion.
+- Undo the most recent annotation deletion.
 - Export annotations as Markdown.
 - Export a highlighted PDF with native note comments.
-- Everything autosaves — no save button needed.
+- Autosave changes without a manual save button.
 
 ### Translation and dictionary
 
-- A single `Translate` action works for words, sentences, and paragraphs.
+- Use one `Translate` action for words, sentences, and paragraphs.
 - Look up single English words offline with the bundled ECDICT dictionary.
-- Shows phonetics, parts of speech, Chinese meanings, English definitions, and word forms when available.
+- Show phonetics, parts of speech, Chinese meanings, English definitions, and word forms when available.
 - Translate longer text locally with Argos Translate.
-- Optionally route academic text through DeepSeek.
-- Use a configured LibreTranslate server as an alternative or fallback.
+- Optionally translate academic text through DeepSeek.
+- Use a configurable LibreTranslate server as an alternative or fallback.
 
 ### Wordbook
 
-- Save dictionary lookups to a per-PDF wordbook.
+- Save dictionary results to a per-PDF wordbook.
 - View phonetics and structured definitions.
 - Delete entries you no longer need.
 
 ### Portable local data
 
-For a PDF named `paper.pdf`, the extension stores its data alongside the PDF:
+For a PDF named `paper.pdf`, the extension stores its data next to the PDF:
 
 ```text
 .reading-extension/
@@ -70,15 +70,15 @@ For a PDF named `paper.pdf`, the extension stores its data alongside the PDF:
   paper.pdf.progress.json
 ```
 
-These are plain local files — you can sync them with Git, iCloud Drive, Dropbox, Syncthing, or any file sync tool.
+These are ordinary local files. They can be synchronized with Git, iCloud Drive, Dropbox, Syncthing, or another file-sync tool.
 
-The extension computes a lightweight content fingerprint so it can recover sidecar files after a PDF is moved or renamed. Existing files at the new location are never overwritten.
+The extension computes a lightweight content fingerprint so it can recover missing sidecar files after a previously opened PDF is moved or renamed. Existing files at the new location are never overwritten.
 
 ## Installation
 
 ### VS Code Marketplace
 
-Once it's publicly released, search for **Reading Extension** in the VS Code Extensions view and hit **Install**.
+After the public release, search for **Reading Extension** in the VS Code Extensions view and select **Install**.
 
 ### Install from a VSIX
 
@@ -88,7 +88,7 @@ Download the latest `.vsix`, then run:
 code --install-extension reading-extension-0.0.1.vsix
 ```
 
-Or use **Extensions: Install from VSIX...** from the Command Palette.
+You can also use **Extensions: Install from VSIX...** from the Command Palette.
 
 ### Build from source
 
@@ -192,11 +192,11 @@ resources work without Argos.
 
 ### Offline dictionary
 
-The compressed ECDICT dictionary is bundled with the extension. Single English words can be looked up without network access or any extra setup.
+The compressed ECDICT dictionary is included in the extension. Single English words can be looked up without network access or additional setup.
 
 ### Local Argos Translate
 
-The VSIX doesn't include a Python virtual environment — those are platform- and machine-specific.
+The VSIX does not include a Python virtual environment because virtual environments are platform- and machine-specific.
 
 On macOS or Linux, create a virtual environment and install Argos Translate:
 
@@ -273,11 +273,11 @@ the local daemon and loads the model; later translations reuse that process.
 
 1. Generate a DeepSeek API key.
 2. Run **Reading Extension: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
-3. Enter the key when prompted.
+3. Enter the key in the secure password prompt.
 
-The key is stored with VS Code SecretStorage — it's never written to settings, sidecar files, logs, or the Webview.
+The key is stored with VS Code SecretStorage. It is not written to settings, sidecar files, logs, or the Webview.
 
-Run **Reading Extension: Clear DeepSeek API Key** to remove it.
+Use **Reading Extension: Clear DeepSeek API Key** to remove it.
 
 ### LibreTranslate
 
@@ -304,25 +304,25 @@ Configure a LibreTranslate-compatible endpoint:
 
 ## Data and Privacy
 
-- PDFs are read from paths you choose.
-- Annotations, words, exports, and reading progress stay in `.reading-extension/` next to each PDF.
-- A fingerprint-to-path index is stored in VS Code global state for move/rename recovery. It contains paths and timestamps, not annotation or wordbook content.
+- PDFs are read from paths selected by the user.
+- Annotations, words, exports, and reading progress remain in `.reading-extension/` beside each PDF.
+- A PDF fingerprint-to-path index is stored in VS Code global state for move/rename recovery. It contains paths and timestamps, not annotation or wordbook content.
 - API keys are stored in VS Code SecretStorage.
-- ECDICT lookups are entirely offline.
-- Local Argos translation runs on your machine.
+- ECDICT word lookup is offline.
+- Local Argos translation runs on the user's machine.
 - When DeepSeek is selected, the selected text and translation instruction are sent to the DeepSeek API.
 - When LibreTranslate is selected or used as a fallback, the selected text is sent to the configured endpoint.
-- The extension doesn't currently collect telemetry or analytics.
+- The extension does not currently collect telemetry or analytics.
 
 Review the privacy terms of any external translation service before using it with sensitive documents.
 
 ## Known Limitations
 
-- Scanned PDFs without a text layer can't be selected unless you run OCR separately.
-- Header, footer, and figure exclusion is heuristic — many PDFs don't provide reliable semantic structure.
-- Local Argos translation requires separate Python and language-package setup.
+- Scanned PDFs without a text layer cannot be selected unless OCR is performed separately.
+- Header, footer, and figure exclusion is heuristic because many PDFs do not provide reliable semantic structure.
+- Local Argos translation requires separate Python and language-package installation.
 - The current workflow is optimized for English-to-Chinese reading.
-- The extension is in early preview — keep important PDFs and sidecar data backed up.
+- The extension is in an early preview stage; keep important PDFs and sidecar data backed up.
 
 ## Commands
 

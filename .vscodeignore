@@ -4,4 +4,13 @@ vite.webview.config.*
 tsconfig.webview.json
 .vscode/
 tsconfig.json
-*.map
+**/*.map
+.venv-translate/
+AGENTS.md
+AI_CONTEXT.md
+project_map.md
+scripts/test-*.mjs
+scripts/build_ecdict_compact.py
+scripts/copy_pdfjs_assets.mjs
+scripts/ecdict_compact.json
+node_modules/

@@ -83,7 +83,9 @@
   },
   "scripts": {
     "build:webview": "vite build --config vite.webview.config.ts",
-    "compile": "npm run build:webview && tsc -p ./",
+    "copy:pdfjs-assets": "node scripts/copy_pdfjs_assets.mjs",
+    "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap",
+    "compile": "npm run copy:pdfjs-assets && npm run build:webview && npm run build:extension",
     "test": "npm run compile && node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs",
     "watch": "tsc -watch -p ./",
     "watch:webview": "vite build --watch --config vite.webview.config.ts"
@@ -93,6 +95,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.4.5"
   },
   "dependencies": {

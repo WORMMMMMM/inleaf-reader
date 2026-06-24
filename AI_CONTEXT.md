@@ -73,8 +73,8 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   Chromium/Webview failures with CID CFF fonts that can otherwise lose Chinese
   canvas text and leave scattered fallback glyphs.
 - PDF.js CMap and standard-font resource URLs are injected from the extension's
-  bundled `pdfjs-dist` package. This is required for CID fonts without embedded
-  Unicode maps, such as the FandolSong fonts in EasyRL.
+  generated `media/pdfjs-dist` runtime assets. This is required for CID fonts
+  without embedded Unicode maps, such as the FandolSong fonts in EasyRL.
 - The bundled PDF resources cover all 169 Adobe CMaps and PDF.js's complete
   Standard 14 replacement-font set. Other embedded fonts are rendered through
   PDF.js glyph paths, so the reader does not depend on network fonts.
@@ -159,6 +159,9 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   dictionary, unified translation flow, Webview navigation, and error
   surfacing.
 - Generated `media/reader-app.js` and `media/reader-app.css` are included.
+- `npm run compile` also refreshes `media/pdfjs-dist` and bundles the extension
+  host into `out/extension.js`, allowing VSIX packaging without shipping the
+  full `node_modules` tree.
 
 ## Known Risks and Items to Verify
 
@@ -173,8 +176,9 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
    missing words fall through to translation as intended.
 5. Check the packaged extension contains
    `scripts/argos_translate_daemon.py` and
-   `scripts/ecdict_compact.json.gz`; `.vscodeignore` currently ignores source
-   directories broadly, so packaging behavior deserves explicit verification.
+   `scripts/ecdict_compact.json.gz`, plus the PDF.js CMap and standard-font
+   resources. `.vscodeignore` excludes the machine-specific translation
+   virtual environment and keeps only runtime Node dependencies.
 6. Inspect the large generated `media/reader-app.js` diff only through the
    corresponding Webview source and build output; do not edit it manually.
 7. Complete the manual checks in `AGENTS.md` using a normal text PDF. Scanned

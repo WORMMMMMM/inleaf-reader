@@ -781,10 +781,10 @@ export class PaperReaderPanel {
     );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
     const cMapUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'cmaps')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'cmaps')
     );
     const standardFontDataUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'standard_fonts')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'standard_fonts')
     );
     const config = vscode.workspace.getConfiguration('readingExtension');
     const nonce = getNonce();

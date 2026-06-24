@@ -11,6 +11,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `tsconfig.json`: TypeScript compiler settings. Source files compile from `src/` into `out/`.
 - `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown ordering, Markdown content, legacy/new annotation geometry export, and annotated PDF comment export after TypeScript compilation.
 - `scripts/test-pdf-identity.mjs`: Regression test for sampled PDF fingerprints, rename stability, sidecar path generation, and location-index ordering.
+- `scripts/copy_pdfjs_assets.mjs`: Build helper that refreshes the packaged PDF.js CMap and standard-font assets under `media/pdfjs-dist/`.
 - `scripts/argos_translate.py`: Python helper used by the extension host for local Argos Translate calls. It reads JSON from stdin and writes a JSON translation result to stdout so the Webview never needs direct Python or network access. Kept as a fallback; the normal code path uses the daemon.
 - `scripts/argos_translate_daemon.py`: Long-lived translation daemon. Loads the Argos Translate model and ECDICT dictionary once at startup, then serves JSON-line requests over stdin/stdout. Supports `mode: "translate"` (neural MT) and `mode: "dict"` (dictionary lookup for single words).
 - `scripts/build_ecdict_compact.py`: Rebuilds the compact offline dictionary from the MIT-licensed upstream ECDICT CSV, preserving Chinese translations, English definitions, phonetics, part-of-speech labels, and word-form exchange data.
@@ -39,10 +40,11 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `webview/src/vscodeApi.ts`: Small wrapper around `acquireVsCodeApi()` and injected reader config, including PDF.js CMap and standard-font resource URLs.
 - `media/reader-app.js`: Generated Webview JavaScript bundle. Built by `npm run build:webview`.
 - `media/reader-app.css`: Generated Webview CSS bundle. Built by `npm run build:webview`.
+- `media/pdfjs-dist/`: Generated PDF.js CMaps and standard fonts used at runtime, copied from the installed `pdfjs-dist` package during compilation.
 
 ## Build Output
 
-- `out/`: Generated JavaScript and source maps from `npm run compile`. Do not edit these files manually.
+- `out/`: Generated JavaScript and source maps from `npm run compile`. The extension entrypoint is bundled with `pdf-lib` dependencies for a compact VSIX; auxiliary modules remain available for Node regression tests. Do not edit these files manually.
 
 ## Runtime Data
 

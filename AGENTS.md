@@ -37,6 +37,7 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - `scripts/ecdict_compact.json.gz`: Gzipped compact ECDICT dictionary (~22MB, 770,611 entries) used by the daemon for single-word lookups and committed for offline distribution.
 - `scripts/test-annotation-exports.mjs`: Regression tests for exports and schema compatibility.
 - `media/reader-app.js` and `media/reader-app.css`: Generated Webview bundle. Do not edit manually; rebuild with `npm run build:webview` or `npm run compile`.
+- `media/pdfjs-dist/`: Generated runtime copy of PDF.js CMaps and standard fonts. Rebuilt from `node_modules/pdfjs-dist` by `npm run copy:pdfjs-assets` as part of `npm run compile`.
 - `project_map.md`: File-by-file repository map. Update it when adding or changing major files.
 
 ## Runtime Data Contract
@@ -91,7 +92,9 @@ Use:
 npm run compile
 ```
 
-to rebuild both the Webview bundle under `media/` and the extension host under `out/`.
+to rebuild the Webview bundle and PDF.js runtime assets under `media/`, compile
+testable CommonJS modules under `out/`, and bundle the extension entrypoint with
+its Node dependencies into `out/extension.js`.
 
 ## Manual Checks
 

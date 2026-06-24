@@ -9,10 +9,6 @@ const {
   formatAnnotationsMarkdown,
   sortAnnotationsByDocumentPosition
 } = require('../out/annotationExports.js');
-const {
-  advanceWordReview,
-  createInitialWordReview
-} = require('../out/wordReview.js');
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 const annotations = [
@@ -118,21 +114,5 @@ const annots = firstPage.node.Annots();
 
 assert.ok(annots, 'annotated PDF should include native note comments');
 assert.equal(annots.size(), 2, 'notes should create one native PDF comment each');
-
-const reviewNow = new Date('2026-01-02T12:30:00.000Z');
-const initialReview = createInitialWordReview(reviewNow);
-assert.deepEqual(initialReview, {
-  level: 0,
-  nextReviewAt: '2026-01-01T16:00:00.000Z'
-});
-
-const rememberedReview = advanceWordReview(initialReview, true, reviewNow);
-assert.equal(rememberedReview.level, 1);
-assert.equal(rememberedReview.lastReviewedAt, reviewNow.toISOString());
-assert.equal(rememberedReview.nextReviewAt, '2026-01-02T16:00:00.000Z');
-
-const forgottenReview = advanceWordReview(rememberedReview, false, reviewNow);
-assert.equal(forgottenReview.level, 0);
-assert.equal(forgottenReview.nextReviewAt, '2026-01-02T16:00:00.000Z');
 
 console.log('annotation export regression passed');

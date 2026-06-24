@@ -24,7 +24,7 @@ A VS Code extension prototype for paper reading workflows: local translation, an
 - Export annotations to Markdown next to the PDF, ordered by paper position and including tags/context.
 - Export a highlighted PDF copy with native note comments next to the PDF.
 - Save vocabulary notes automatically to a sidecar JSON file.
-- Review due vocabulary with a simple spaced repetition loop.
+- View saved vocabulary in a simple wordbook and delete entries when no longer needed.
 - Restore the last-read page automatically.
 
 ## Data Model
@@ -54,7 +54,7 @@ Then press `F5` in VS Code to launch an Extension Development Host.
 
 `npm run compile` builds both the React Webview bundle under `media/` and the extension host under `out/`.
 
-`npm test` compiles the extension and runs regression checks for annotation Markdown export, annotated PDF export, highlighter-position annotation compatibility, and vocabulary review scheduling.
+`npm test` compiles the extension and runs regression checks for annotation Markdown export, annotated PDF export, and highlighter-position annotation compatibility.
 
 See `project_map.md` for a file-by-file map of the repository.
 
@@ -127,6 +127,8 @@ sentences and paragraphs use DeepSeek when it is selected.
 If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and pre-registers the PDF.js worker handler in the Webview bundle so PDF.js can run in fake-worker mode inside VS Code.
 
 When switching between PDFs, the reader now sends an in-place navigation message instead of rebuilding the Webview. This preserves the Webview instance and non-document UI state while resetting the active PDF's transient selection state and loading its own sidecar data. If a filesystem error occurs (e.g. disk full), the error will surface in both the reader status bar and a VS Code notification.
+
+If a PDF that has already been opened by this version of the extension is later moved or renamed, the reader recognizes it from a sampled content fingerprint. It copies any missing annotation, wordbook, progress, or export sidecars from a known previous location into the new PDF's `.reading-extension/` naming scheme. Current files are never overwritten, and only the fingerprint/path index—not reader content—is stored in VS Code global state.
 
 ## Roadmap
 

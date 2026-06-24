@@ -4,6 +4,8 @@ export interface ReaderConfig {
   translationProvider?: string;
   translationSource?: string;
   translationTarget?: string;
+  pdfCMapUrl: string;
+  pdfStandardFontDataUrl: string;
 }
 
 export interface VsCodeApi {

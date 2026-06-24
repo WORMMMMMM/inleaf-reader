@@ -35,14 +35,34 @@ type PdfPageChangingEvent = {
   pageNumber?: number;
 };
 
-type PdfEventBus = {
-  on(eventName: 'pagechanging', listener: (event: PdfPageChangingEvent) => void): void;
-  off(eventName: 'pagechanging', listener: (event: PdfPageChangingEvent) => void): void;
+type PdfScaleChangingEvent = {
+  scale?: number;
 };
 
-type PdfViewerContainer = {
-  container: HTMLDivElement;
+type PdfLayerRenderedEvent = {
+  pageNumber?: number;
 };
+
+type PdfEventBus = {
+  on(eventName: string, listener: (event: any) => void): void;
+  off(eventName: string, listener: (event: any) => void): void;
+};
+
+type PdfViewerInstance = {
+  container: HTMLDivElement;
+  currentScale: number;
+  currentScaleValue: string;
+  getPageView(index: number): { div?: HTMLElement } | undefined;
+};
+
+const PAGE_VERTICAL_MARGIN_SELECTION_RATIO = 0.08;
+const PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO = 0.04;
+const FIGURE_CAPTION_PATTERN = /^(?:figure|fig\.)\s*\d+/i;
+
+interface NormalizedPageRegion {
+  top: number;
+  bottom: number;
+}
 
 type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
 type TranslationMode = 'local' | 'deepseek';
@@ -116,11 +136,23 @@ function App() {
   const [pdfUrl, setPdfUrl] = useState(readerConfig.pdfUrl);
   const [paperName, setPaperName] = useState(readerConfig.paperName);
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('overview');
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   const highlighterRef = useRef<PdfHighlighterUtils | null>(null);
   const editDebounceRef = useRef<number | undefined>(undefined);
   const progressDebounceRef = useRef<number | undefined>(undefined);
+  const zoomCommitRef = useRef<number | undefined>(undefined);
+  const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
   const documentReadyRef = useRef(false);
   const selectionRef = useRef({ selectedText: '', selectionPosition: undefined as ScaledPosition | undefined, currentPage: 1 });
+  const pdfDocumentSource = useMemo(() => ({
+    url: pdfUrl,
+    cMapUrl: readerConfig.pdfCMapUrl,
+    cMapPacked: true,
+    standardFontDataUrl: readerConfig.pdfStandardFontDataUrl,
+    useWorkerFetch: false,
+    disableFontFace: true,
+    useSystemFonts: false
+  }), [pdfUrl]);
 
   const saveReadingProgress = useCallback((page: number) => {
     window.clearTimeout(progressDebounceRef.current);
@@ -139,6 +171,7 @@ function App() {
   }, []);
 
   const applyZoom = useCallback((value: PdfScaleValue) => {
+    window.clearTimeout(zoomCommitRef.current);
     setZoom(value);
     const viewer = highlighterRef.current?.getViewer();
     if (viewer) {
@@ -146,27 +179,62 @@ function App() {
     }
   }, []);
 
-  const zoomByFactor = useCallback((factor: number) => {
+  const zoomByFactor = useCallback((factor: number, deferStateCommit = false) => {
     const viewer = highlighterRef.current?.getViewer();
     const baseScale = viewer?.currentScale || 1;
     const nextScale = clampZoom(baseScale * factor);
-    setZoom(nextScale);
     if (viewer) {
       viewer.currentScale = nextScale;
     }
+    if (!deferStateCommit) {
+      window.clearTimeout(zoomCommitRef.current);
+      setZoom(nextScale);
+      return;
+    }
+    if (zoomLabelRef.current) {
+      zoomLabelRef.current.textContent = zoomLabel(nextScale);
+    }
+    window.clearTimeout(zoomCommitRef.current);
+    zoomCommitRef.current = window.setTimeout(() => {
+      setZoom(nextScale);
+    }, 140);
   }, []);
 
   const handlePinchZoom = useCallback((deltaY: number) => {
     const exponent = Math.min(Math.max(-deltaY * 0.01, -0.25), 0.25);
-    zoomByFactor(Math.exp(exponent));
+    zoomByFactor(Math.exp(exponent), true);
   }, [zoomByFactor]);
 
   useEffect(() => {
     document.body.classList.add('reader-mounted');
     return () => {
       window.clearTimeout(progressDebounceRef.current);
+      window.clearTimeout(zoomCommitRef.current);
       document.body.classList.remove('reader-mounted');
     };
+  }, []);
+
+  useEffect(() => {
+    const copyCapturedSelection = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'c') {
+        return;
+      }
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLElement &&
+        activeElement.closest('input, textarea, [contenteditable="true"]')
+      ) {
+        return;
+      }
+      const text = selectionRef.current.selectedText.trim();
+      if (!text) {
+        return;
+      }
+      event.preventDefault();
+      vscode.postMessage({ type: 'copySelection', payload: { text } });
+    };
+    window.addEventListener('keydown', copyCapturedSelection, true);
+    return () => window.removeEventListener('keydown', copyCapturedSelection, true);
   }, []);
 
   const handleDocumentReady = useCallback((numPages: number) => {
@@ -303,24 +371,30 @@ function App() {
       .sort((a, b) => compareAnnotations(a, b, sortMode));
   }, [annotationQuery, colorFilter, kindFilter, sortMode, state.annotations, tagQuery]);
 
-  const dueWords = useMemo(() => {
-    const now = Date.now();
-    return state.words.filter(item => Date.parse(item.review?.nextReviewAt || item.createdAt) <= now);
-  }, [state.words]);
-
   function handleSelection(selection: PdfSelection) {
+    const nativeSelection = window.getSelection();
+    if (nativeSelection?.rangeCount) {
+      selectedPageElements(nativeSelection.getRangeAt(0)).forEach(markPageSelectionRegions);
+    }
+    const startsInNonBodyText = selectionStartsInNonBodyText(nativeSelection);
+    const cleanText = extractSelectedPdfText(nativeSelection, startsInNonBodyText);
     const ghost = selection.makeGhostHighlight();
-    const text = ghost.content.text || '';
+    const cleanPosition = startsInNonBodyText
+      ? ghost.position
+      : filterNonBodyRects(ghost.position);
+    const text = cleanText || ghost.content.text || '';
+    ghost.content.text = text;
+    ghost.position = cleanPosition;
     setSelectedText(text);
-    setSelectionPosition(ghost.position);
-    setCurrentPage(ghost.position.boundingRect.pageNumber);
+    setSelectionPosition(cleanPosition);
+    setCurrentPage(cleanPosition.boundingRect.pageNumber);
     setTranslationSourceText('');
     setTranslationOutput('');
     setWordDetails(undefined);
     selectionRef.current = {
       selectedText: text,
-      selectionPosition: ghost.position,
-      currentPage: ghost.position.boundingRect.pageNumber
+      selectionPosition: cleanPosition,
+      currentPage: cleanPosition.boundingRect.pageNumber
     };
     setStatus('Selection captured.');
   }
@@ -354,6 +428,8 @@ function App() {
   }
 
   function editAnnotation(annotation: AnnotationRecord) {
+    setSidebarVisible(true);
+    setActiveSidebarTab('annotations');
     setEditingId(annotation.id);
     setActiveId(annotation.id);
     setSelectedText(annotation.selectedText || '');
@@ -470,6 +546,7 @@ function App() {
     });
     highlighterRef.current?.removeGhostHighlight();
     setActiveSidebarTab('wordbook');
+    setSidebarVisible(true);
     setStatus('Word saved.');
   }, []);
 
@@ -515,18 +592,32 @@ function App() {
           </label>
           <button title="Next page" onClick={() => goToPage(currentPage + 1)}>Next</button>
           <button title="Zoom out" onClick={() => zoomByFactor(0.85)}>-</button>
-          <span className="zoom-value">{zoomLabel(zoom)}</span>
+          <span ref={zoomLabelRef} className="zoom-value">{zoomLabel(zoom)}</span>
           <button title="Zoom in" onClick={() => zoomByFactor(1.15)}>+</button>
           <button title="Fit full page" onClick={() => applyZoom('page-fit')}>Fit</button>
           <button title="Fit page width" onClick={() => applyZoom('page-width')}>Width</button>
+          <button
+            className="sidebar-toggle"
+            title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+            aria-label={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+            aria-expanded={sidebarVisible}
+            onClick={() => setSidebarVisible(visible => !visible)}
+          >
+            {sidebarVisible ? 'Hide panel' : 'Show panel'}
+          </button>
           <span className="reader-status">{status}</span>
         </div>
         <div className="pdf-host">
           <PdfLoader
-            document={pdfUrl}
+            key={pdfUrl}
+            document={pdfDocumentSource}
             beforeLoad={progress => <div className="loading">Loading PDF {progress.loaded ? `${Math.round(progress.loaded / 1024)} KB` : ''}</div>}
             errorMessage={error => <div className="loading error">Could not load PDF: {error.message}</div>}
-            onError={error => setStatus(`Could not load PDF: ${error.message}`)}
+            onError={error => {
+              if (!isExpectedPdfCancellation(error)) {
+                setStatus(`Could not load PDF: ${error.message}`);
+              }
+            }}
           >
             {pdfDocument => (
               <PdfDocumentView
@@ -572,12 +663,22 @@ function App() {
   }
 
   return (
-    <main className="shell">
+    <main className={`shell${sidebarVisible ? '' : ' sidebar-hidden'}`}>
       {readerView}
-      <aside className="side-panel">
-        <header>
-          <p className="eyebrow">Reading Extension</p>
-          <h1>{paperName || state.paperName || readerConfig.paperName}</h1>
+      <aside className="side-panel" aria-hidden={!sidebarVisible}>
+        <header className="side-panel-header">
+          <div>
+            <p className="eyebrow">Reading Extension</p>
+            <h1>{paperName || state.paperName || readerConfig.paperName}</h1>
+          </div>
+          <button
+            className="side-panel-close secondary-button"
+            title="Hide sidebar"
+            aria-label="Hide sidebar"
+            onClick={() => setSidebarVisible(false)}
+          >
+            ×
+          </button>
         </header>
 
         <nav className="side-tabs" aria-label="Reader panels">
@@ -601,10 +702,6 @@ function App() {
               <div className="metric-card">
                 <span>Words</span>
                 <strong>{state.words.length}</strong>
-              </div>
-              <div className="metric-card">
-                <span>Due</span>
-                <strong>{dueWords.length}</strong>
               </div>
             </div>
             <section className="tool-block">
@@ -701,16 +798,16 @@ function App() {
         {activeSidebarTab === 'wordbook' ? (
           <section className="side-tab-panel list-block">
             <section className="tool-block">
-              <h2>Due Today</h2>
-              {dueWords.length ? dueWords.map(item => (
-                <WordItem key={item.id} word={item} showReview />
-              )) : <div className="empty">No words due today.</div>}
-            </section>
-            <section className="tool-block">
-              <h2>Saved Words</h2>
+              <h2>Saved Words ({state.words.length})</h2>
               {state.words.length ? (
                 <div className="list">
-                  {state.words.map(item => <WordItem key={item.id} word={item} />)}
+                  {state.words.map(item => (
+                    <WordItem
+                      key={item.id}
+                      word={item}
+                      onDelete={() => vscode.postMessage({ type: 'deleteWord', payload: { id: item.id } })}
+                    />
+                  ))}
                 </div>
               ) : <div className="empty">No words saved yet.</div>}
             </section>
@@ -797,6 +894,9 @@ function PdfDocumentView({
 }) {
   const eventBusRef = useRef<PdfEventBus | null>(null);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
+  const pdfViewerRef = useRef<PdfViewerInstance | null>(null);
+  const renderedHighlightScaleRef = useRef<number | undefined>(undefined);
+  const highlightSyncFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -808,6 +908,43 @@ function PdfDocumentView({
     }
   }, [onPageChange]);
 
+  const handleScaleChanging = useCallback((event: PdfScaleChangingEvent) => {
+    const viewer = pdfViewerRef.current;
+    const nextScale = event.scale;
+    if (!viewer || typeof nextScale !== 'number') {
+      return;
+    }
+    const renderedScale = renderedHighlightScaleRef.current || viewer.currentScale || nextScale;
+    viewerContainerRef.current?.classList.add('pdf-scale-in-progress');
+    for (const layer of getHighlightLayers(viewerContainerRef.current)) {
+      const layerScale = Number(layer.dataset.renderedScale) || renderedScale;
+      layer.style.transformOrigin = '0 0';
+      layer.style.transform = `scale(${nextScale / layerScale})`;
+    }
+  }, []);
+
+  const handleLayerRendered = useCallback((event: PdfLayerRenderedEvent) => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer || typeof event.pageNumber !== 'number') {
+      return;
+    }
+    window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
+    highlightSyncFrameRef.current = window.requestAnimationFrame(() => {
+      const pageView = viewer.getPageView(event.pageNumber! - 1);
+      const pageElement = pageView?.div as HTMLElement | undefined;
+      if (pageElement) {
+        markPageSelectionRegions(pageElement);
+      }
+      for (const layer of getHighlightLayers(pageElement || null)) {
+        layer.style.transform = '';
+        layer.style.transformOrigin = '';
+        layer.dataset.renderedScale = String(viewer.currentScale);
+      }
+      renderedHighlightScaleRef.current = viewer.currentScale;
+      viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
+    });
+  }, []);
+
   const handleWheel = useCallback((event: WheelEvent) => {
     if (!event.ctrlKey) {
       return;
@@ -817,28 +954,54 @@ function PdfDocumentView({
     onPinchZoom(event.deltaY);
   }, [onPinchZoom]);
 
+  const handlePointerDown = useCallback((event: PointerEvent) => {
+    const target = event.target instanceof Element ? event.target : null;
+    viewerContainerRef.current?.classList.toggle(
+      'allow-non-body-text-selection',
+      !!target?.closest('.reader-margin-text, .reader-figure-text')
+    );
+  }, []);
+
   const captureUtils = useCallback((utils: PdfHighlighterUtils) => {
     const nextEventBus = utils.getEventBus() as PdfEventBus | null;
     if (eventBusRef.current !== nextEventBus) {
       eventBusRef.current?.off('pagechanging', handlePageChanging);
+      eventBusRef.current?.off('scalechanging', handleScaleChanging);
+      eventBusRef.current?.off('textlayerrendered', handleLayerRendered);
+      eventBusRef.current?.off('pagerendered', handleLayerRendered);
       nextEventBus?.on('pagechanging', handlePageChanging);
+      nextEventBus?.on('scalechanging', handleScaleChanging);
+      nextEventBus?.on('textlayerrendered', handleLayerRendered);
+      nextEventBus?.on('pagerendered', handleLayerRendered);
       eventBusRef.current = nextEventBus;
     }
-    const nextViewerContainer = (utils.getViewer() as PdfViewerContainer | null)?.container || null;
+    const nextViewer = utils.getViewer() as PdfViewerInstance | null;
+    pdfViewerRef.current = nextViewer;
+    const nextViewerContainer = nextViewer?.container || null;
     if (viewerContainerRef.current !== nextViewerContainer) {
       viewerContainerRef.current?.removeEventListener('wheel', handleWheel);
+      viewerContainerRef.current?.removeEventListener('pointerdown', handlePointerDown, true);
       nextViewerContainer?.addEventListener('wheel', handleWheel, { passive: false });
+      nextViewerContainer?.addEventListener('pointerdown', handlePointerDown, true);
       viewerContainerRef.current = nextViewerContainer;
+      renderedHighlightScaleRef.current = nextViewer?.currentScale;
+      nextViewerContainer?.querySelectorAll<HTMLElement>('.page').forEach(markPageSelectionRegions);
     }
     utilsRef(utils);
-  }, [handlePageChanging, handleWheel, utilsRef]);
+  }, [handlePageChanging, handlePointerDown, handleWheel, utilsRef]);
 
   useEffect(() => () => {
     eventBusRef.current?.off('pagechanging', handlePageChanging);
+    eventBusRef.current?.off('scalechanging', handleScaleChanging);
+    eventBusRef.current?.off('textlayerrendered', handleLayerRendered);
+    eventBusRef.current?.off('pagerendered', handleLayerRendered);
     eventBusRef.current = null;
     viewerContainerRef.current?.removeEventListener('wheel', handleWheel);
+    viewerContainerRef.current?.removeEventListener('pointerdown', handlePointerDown, true);
     viewerContainerRef.current = null;
-  }, [handlePageChanging, handleWheel]);
+    pdfViewerRef.current = null;
+    window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
+  }, [handleLayerRendered, handlePageChanging, handlePointerDown, handleScaleChanging, handleWheel]);
 
   return (
     <PdfHighlighter
@@ -995,7 +1158,7 @@ function AnnotationSummary({ annotations }: { annotations: AnnotationRecord[] })
   );
 }
 
-function WordItem({ word, showReview = false }: { word: WordRecord; showReview?: boolean }) {
+function WordItem({ word, onDelete }: { word: WordRecord; onDelete(): void }) {
   return (
     <article className="item">
       <strong>{word.word}</strong>
@@ -1013,12 +1176,9 @@ function WordItem({ word, showReview = false }: { word: WordRecord; showReview?:
         </ul>
       ) : null}
       {word.note ? <p className="note">{word.note}</p> : null}
-      {showReview ? (
-        <div className="annotation-actions">
-          <button onClick={() => vscode.postMessage({ type: 'reviewWord', payload: { id: word.id, remembered: true } })}>Remembered</button>
-          <button onClick={() => vscode.postMessage({ type: 'reviewWord', payload: { id: word.id, remembered: false } })}>Again</button>
-        </div>
-      ) : null}
+      <div className="annotation-actions">
+        <button className="danger-button" onClick={onDelete}>Delete</button>
+      </div>
     </article>
   );
 }
@@ -1046,6 +1206,334 @@ function highlighterPositionToRects(position: ScaledPosition): AnnotationRect[] 
     width: safeRatio(rect.x2 - rect.x1, rect.width),
     height: safeRatio(rect.y2 - rect.y1, rect.height)
   }));
+}
+
+function markPageSelectionRegions(pageElement: HTMLElement) {
+  const textLayer = pageElement.querySelector<HTMLElement>('.textLayer');
+  if (!textLayer || textLayer.dataset.readerSelectionRegionsMarked === 'true') {
+    return;
+  }
+  if (!textLayer.querySelector('.endOfContent')) {
+    return;
+  }
+  const pageRect = pageElement.getBoundingClientRect();
+  if (!pageRect.width || !pageRect.height) {
+    return;
+  }
+  const topBoundary = pageRect.top + pageRect.height * PAGE_VERTICAL_MARGIN_SELECTION_RATIO;
+  const bottomBoundary = pageRect.bottom - pageRect.height * PAGE_VERTICAL_MARGIN_SELECTION_RATIO;
+  const leftBoundary = pageRect.left + pageRect.width * PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO;
+  const rightBoundary = pageRect.right - pageRect.width * PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO;
+  const textSpans = textLayer.querySelectorAll<HTMLElement>('span');
+  if (!textSpans.length) {
+    return;
+  }
+
+  for (const span of textSpans) {
+    if (span.querySelector('span') || !span.textContent?.trim()) {
+      continue;
+    }
+    const rect = span.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    span.classList.toggle(
+      'reader-margin-text',
+      rect.width > 0 &&
+        rect.height > 0 &&
+        (
+          centerY < topBoundary ||
+          centerY > bottomBoundary ||
+          centerX < leftBoundary ||
+          centerX > rightBoundary
+      )
+    );
+  }
+  const figureRegions = detectFigureRegions(pageElement, textSpans);
+  for (const span of textSpans) {
+    const rect = span.getBoundingClientRect();
+    const centerY = safeRatio(rect.top + rect.height / 2 - pageRect.top, pageRect.height);
+    span.classList.toggle(
+      'reader-figure-text',
+      figureRegions.some(region => centerY >= region.top && centerY <= region.bottom)
+    );
+  }
+  pageElement.dataset.readerFigureRegions = JSON.stringify(figureRegions);
+  textLayer.dataset.readerSelectionRegionsMarked = 'true';
+}
+
+function selectionStartsInNonBodyText(selection: Selection | null) {
+  const anchorElement = nodeElement(selection?.anchorNode);
+  return !!anchorElement?.closest('.reader-margin-text, .reader-figure-text');
+}
+
+function extractSelectedPdfText(selection: Selection | null, includeNonBodyText: boolean) {
+  if (!selection || selection.isCollapsed || !selection.rangeCount) {
+    return '';
+  }
+  const range = selection.getRangeAt(0);
+  const selectionDocument = range.commonAncestorContainer.ownerDocument || window.document;
+  const pieces: string[] = [];
+  for (const pageElement of selectedPageElements(range)) {
+    markPageSelectionRegions(pageElement);
+    const textLayer = pageElement.querySelector('.textLayer');
+    if (!textLayer) {
+      continue;
+    }
+    const walker = selectionDocument.createTreeWalker(
+      textLayer,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.textContent || !rangeIntersectsNode(range, node)) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          const element = nodeElement(node);
+          if (
+            !includeNonBodyText &&
+            element?.closest('.reader-margin-text, .reader-figure-text')
+          ) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+    let node = walker.nextNode();
+    while (node) {
+      const text = selectedTextFromNode(range, node);
+      if (text) {
+        pieces.push(text);
+      }
+      node = walker.nextNode();
+    }
+  }
+  return pieces.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function detectFigureRegions(
+  pageElement: HTMLElement,
+  textSpans: NodeListOf<HTMLElement>
+): NormalizedPageRegion[] {
+  const pageRect = pageElement.getBoundingClientRect();
+  const lines = groupTextSpansIntoLines(textSpans, pageRect);
+  const regions: NormalizedPageRegion[] = [];
+
+  for (let captionIndex = 0; captionIndex < lines.length; captionIndex += 1) {
+    const captionLine = lines[captionIndex];
+    if (!FIGURE_CAPTION_PATTERN.test(captionLine.text)) {
+      continue;
+    }
+
+    const linesAbove = lines.slice(0, captionIndex);
+    const medianHeight = median(lines.map(line => line.height)) || 0.015;
+    const minimumGap = Math.max(medianHeight * 2.5, 0.025);
+    let regionTop = captionLine.top;
+
+    for (let index = 1; index < linesAbove.length; index += 1) {
+      const gap = linesAbove[index].top - linesAbove[index - 1].bottom;
+      if (gap >= minimumGap) {
+        regionTop = (linesAbove[index - 1].bottom + linesAbove[index].top) / 2;
+        break;
+      }
+    }
+
+    let regionBottom = captionLine.bottom;
+    for (let index = captionIndex + 1; index < lines.length; index += 1) {
+      const nextLine = lines[index];
+      if (nextLine.top - regionBottom > medianHeight * 1.8) {
+        break;
+      }
+      regionBottom = nextLine.bottom;
+    }
+
+    regions.push({
+      top: Math.max(0, regionTop),
+      bottom: Math.min(1, regionBottom)
+    });
+  }
+
+  return regions;
+}
+
+function groupTextSpansIntoLines(
+  textSpans: NodeListOf<HTMLElement>,
+  pageRect: DOMRect
+) {
+  const items = Array.from(textSpans)
+    .filter(
+      span =>
+        !span.querySelector('span') &&
+        !span.classList.contains('reader-margin-text') &&
+        !!span.textContent?.trim()
+    )
+    .map(span => {
+      const rect = span.getBoundingClientRect();
+      return {
+        text: span.textContent!.trim(),
+        left: safeRatio(rect.left - pageRect.left, pageRect.width),
+        top: safeRatio(rect.top - pageRect.top, pageRect.height),
+        bottom: safeRatio(rect.bottom - pageRect.top, pageRect.height),
+        height: safeRatio(rect.height, pageRect.height)
+      };
+    })
+    .filter(item => item.height > 0)
+    .sort((left, right) => left.top - right.top || left.left - right.left);
+  const lines: Array<{
+    text: string;
+    top: number;
+    bottom: number;
+    height: number;
+    items: typeof items;
+  }> = [];
+
+  for (const item of items) {
+    const line = lines.find(
+      candidate =>
+        Math.abs((candidate.top + candidate.bottom) / 2 - (item.top + item.bottom) / 2) <
+        Math.max(candidate.height, item.height) * 0.65
+    );
+    if (line) {
+      line.items.push(item);
+      line.top = Math.min(line.top, item.top);
+      line.bottom = Math.max(line.bottom, item.bottom);
+      line.height = Math.max(line.height, item.height);
+      continue;
+    }
+    lines.push({
+      text: '',
+      top: item.top,
+      bottom: item.bottom,
+      height: item.height,
+      items: [item]
+    });
+  }
+
+  return lines
+    .map(line => ({
+      text: line.items
+        .sort((left, right) => left.left - right.left)
+        .map(item => item.text)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+      top: line.top,
+      bottom: line.bottom,
+      height: line.height
+    }))
+    .sort((left, right) => left.top - right.top);
+}
+
+function median(values: number[]) {
+  if (!values.length) {
+    return 0;
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function selectedPageElements(range: Range) {
+  const startPage = nodeElement(range.startContainer)?.closest<HTMLElement>('.page');
+  const endPage = nodeElement(range.endContainer)?.closest<HTMLElement>('.page');
+  if (!startPage && !endPage) {
+    return [] as HTMLElement[];
+  }
+  if (!startPage || !endPage || startPage === endPage) {
+    return [startPage || endPage!];
+  }
+  const viewer = startPage.closest('.PdfHighlighter');
+  if (!viewer || viewer !== endPage.closest('.PdfHighlighter')) {
+    return [startPage, endPage];
+  }
+  const pages = Array.from(viewer.querySelectorAll<HTMLElement>('.page'));
+  const startIndex = pages.indexOf(startPage);
+  const endIndex = pages.indexOf(endPage);
+  if (startIndex < 0 || endIndex < 0) {
+    return [startPage, endPage];
+  }
+  return pages.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+}
+
+function rangeIntersectsNode(range: Range, node: Node) {
+  try {
+    return range.intersectsNode(node);
+  } catch {
+    return false;
+  }
+}
+
+function selectedTextFromNode(range: Range, node: Node) {
+  const value = node.textContent || '';
+  let start = 0;
+  let end = value.length;
+  if (range.startContainer === node) {
+    start = range.startOffset;
+  }
+  if (range.endContainer === node) {
+    end = range.endOffset;
+  }
+  return value.slice(start, end);
+}
+
+function nodeElement(node: Node | null | undefined): Element | null {
+  if (!node) {
+    return null;
+  }
+  return node instanceof Element ? node : node.parentElement;
+}
+
+function filterNonBodyRects(position: ScaledPosition): ScaledPosition {
+  const filteredRects = position.rects.filter(
+    rect => !isPageMarginRect(rect) && !isFigureRect(rect)
+  );
+  if (!filteredRects.length) {
+    return position;
+  }
+  const firstPage = Math.min(...filteredRects.map(rect => rect.pageNumber));
+  const firstPageRects = filteredRects.filter(rect => rect.pageNumber === firstPage);
+  return {
+    ...position,
+    boundingRect: {
+      x1: Math.min(...firstPageRects.map(rect => rect.x1)),
+      y1: Math.min(...firstPageRects.map(rect => rect.y1)),
+      x2: Math.max(...firstPageRects.map(rect => rect.x2)),
+      y2: Math.max(...firstPageRects.map(rect => rect.y2)),
+      width: firstPageRects[0].width,
+      height: firstPageRects[0].height,
+      pageNumber: firstPage
+    },
+    rects: filteredRects
+  };
+}
+
+function isPageMarginRect(rect: ScaledPosition['rects'][number]) {
+  const centerX = safeRatio(rect.x1 + rect.x2, rect.width * 2);
+  const centerY = safeRatio(rect.y1 + rect.y2, rect.height * 2);
+  return (
+    centerY < PAGE_VERTICAL_MARGIN_SELECTION_RATIO ||
+    centerY > 1 - PAGE_VERTICAL_MARGIN_SELECTION_RATIO ||
+    centerX < PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO ||
+    centerX > 1 - PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO
+  );
+}
+
+function isFigureRect(rect: ScaledPosition['rects'][number]) {
+  const pageElement = document.querySelector<HTMLElement>(
+    `.PdfHighlighter .page[data-page-number="${rect.pageNumber}"]`
+  );
+  if (!pageElement?.dataset.readerFigureRegions) {
+    return false;
+  }
+  let regions: NormalizedPageRegion[];
+  try {
+    regions = JSON.parse(pageElement.dataset.readerFigureRegions) as NormalizedPageRegion[];
+  } catch {
+    return false;
+  }
+  const centerY = safeRatio(rect.y1 + rect.y2, rect.height * 2);
+  return regions.some(region => centerY >= region.top && centerY <= region.bottom);
 }
 
 function rectsToHighlighterPosition(rects?: AnnotationRect[]): ScaledPosition | undefined {
@@ -1353,9 +1841,17 @@ function Bootstrap() {
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
+      if (isExpectedPdfCancellation(event.error || event.message)) {
+        event.preventDefault();
+        return;
+      }
       setError(event.message || String(event.error || 'Unknown Webview error'));
     };
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (isExpectedPdfCancellation(event.reason)) {
+        event.preventDefault();
+        return;
+      }
       setError(event.reason instanceof Error ? event.reason.message : String(event.reason || 'Unhandled promise rejection'));
     };
     window.addEventListener('error', onError);
@@ -1376,6 +1872,21 @@ function Bootstrap() {
   }
 
   return <App />;
+}
+
+function isExpectedPdfCancellation(reason: unknown) {
+  const message = reason instanceof Error ? reason.message : String(reason || '');
+  return /worker was (?:terminated|destroyed)/i.test(message)
+    || /loading aborted/i.test(message);
+}
+
+function getHighlightLayers(root: ParentNode | null) {
+  if (!root) {
+    return [] as HTMLElement[];
+  }
+  return Array.from(root.querySelectorAll<HTMLElement>(
+    '.PdfHighlighter__highlight-layer, .PdfHighlighter__note-layer, .PdfHighlighter__config-layer'
+  ));
 }
 
 createRoot(document.getElementById('root')!).render(<Bootstrap />);

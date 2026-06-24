@@ -25,7 +25,12 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    PaperReaderPanel.createOrShow(context.extensionUri, context.secrets, pdfUri);
+    PaperReaderPanel.createOrShow(
+      context.extensionUri,
+      context.secrets,
+      context.globalState,
+      pdfUri
+    );
   });
 
   const setDeepSeekApiKey = vscode.commands.registerCommand('readingExtension.setDeepSeekApiKey', async () => {

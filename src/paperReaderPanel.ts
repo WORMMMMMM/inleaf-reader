@@ -29,10 +29,11 @@ type ReaderMessage =
   | { type: 'deleteAnnotation'; payload: { id: string } }
   | { type: 'restoreAnnotation'; payload: AnnotationRecord }
   | { type: 'copyAnnotationMarkdown'; payload: { id: string } }
+  | { type: 'copySelection'; payload: { text: string } }
   | { type: 'exportAnnotations' }
   | { type: 'exportAnnotatedPdf' }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
-  | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
+  | { type: 'deleteWord'; payload: { id: string } }
   | { type: 'saveProgress'; payload: ProgressRecord }
   | { type: 'setTranslationMode'; payload: { mode: 'local' | 'deepseek' } }
   | { type: 'configureDeepSeek' }
@@ -50,8 +51,14 @@ export class PaperReaderPanel {
   private daemonPending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
   private daemonRequestId = 0;
   private daemonBuffer = '';
+  private readonly recoveryNotifications = new WeakSet<ReaderStorage>();
 
-  static createOrShow(extensionUri: vscode.Uri, secrets: vscode.SecretStorage, pdfUri: vscode.Uri) {
+  static createOrShow(
+    extensionUri: vscode.Uri,
+    secrets: vscode.SecretStorage,
+    globalState: vscode.Memento,
+    pdfUri: vscode.Uri
+  ) {
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
     if (PaperReaderPanel.currentPanel) {
@@ -71,17 +78,24 @@ export class PaperReaderPanel {
       }
     );
 
-    PaperReaderPanel.currentPanel = new PaperReaderPanel(panel, extensionUri, secrets, pdfUri);
+    PaperReaderPanel.currentPanel = new PaperReaderPanel(
+      panel,
+      extensionUri,
+      secrets,
+      globalState,
+      pdfUri
+    );
   }
 
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,
     private readonly secrets: vscode.SecretStorage,
+    private readonly globalState: vscode.Memento,
     private pdfUri: vscode.Uri
   ) {
     this.panel = panel;
-    this.storage = new ReaderStorage(pdfUri);
+    this.storage = new ReaderStorage(pdfUri, globalState);
     this.panel.webview.html = this.getHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage(
@@ -102,13 +116,17 @@ export class PaperReaderPanel {
 
   private async navigateTo(pdfUri: vscode.Uri) {
     this.pdfUri = pdfUri;
-    this.storage = new ReaderStorage(pdfUri);
+    const storage = new ReaderStorage(pdfUri, this.globalState);
+    this.storage = storage;
     this.panel.title = `Reader: ${path.basename(pdfUri.fsPath)}`;
     this.panel.webview.options = {
       ...this.panel.webview.options,
       localResourceRoots: getLocalResourceRoots(this.extensionUri, pdfUri)
     };
-    await this.storage.ensureStorageDir();
+    await this.prepareStorage(storage);
+    if (storage !== this.storage) {
+      return;
+    }
     const pdfWebviewUri = this.panel.webview.asWebviewUri(pdfUri);
     await this.panel.webview.postMessage({
       type: 'navigateTo',
@@ -158,6 +176,13 @@ export class PaperReaderPanel {
       case 'copyAnnotationMarkdown':
         await this.copyAnnotationMarkdown(message.payload.id);
         break;
+      case 'copySelection':
+        await vscode.env.clipboard.writeText(message.payload.text);
+        await this.panel.webview.postMessage({
+          type: 'clipboardResult',
+          payload: { message: 'Selected text copied.' }
+        });
+        break;
       case 'exportAnnotations':
         await this.exportAnnotations();
         break;
@@ -168,8 +193,8 @@ export class PaperReaderPanel {
         await this.saveWord(message.payload);
         await this.postState();
         break;
-      case 'reviewWord':
-        await this.storage.updateWordReview(message.payload.id, message.payload.remembered);
+      case 'deleteWord':
+        await this.storage.deleteWord(message.payload.id);
         await this.postState();
         break;
       case 'saveProgress':
@@ -189,11 +214,20 @@ export class PaperReaderPanel {
   }
 
   private async postState() {
+    const storage = this.storage;
+    const pdfUri = this.pdfUri;
+    await this.prepareStorage(storage);
+    if (storage !== this.storage) {
+      return;
+    }
     const [annotations, words, progress] = await Promise.all([
-      this.storage.readAnnotations(),
-      this.storage.readWords(),
-      this.storage.readProgress()
+      storage.readAnnotations(),
+      storage.readWords(),
+      storage.readProgress()
     ]);
+    if (storage !== this.storage) {
+      return;
+    }
 
     await this.panel.webview.postMessage({
       type: 'state',
@@ -201,10 +235,22 @@ export class PaperReaderPanel {
         annotations,
         words,
         progress,
-        paperName: path.basename(this.pdfUri.fsPath)
+        paperName: path.basename(pdfUri.fsPath)
       }
     });
     await this.postTranslationSettings();
+  }
+
+  private async prepareStorage(storage: ReaderStorage) {
+    const result = await storage.prepare();
+    if (!result.recoveredFrom || this.recoveryNotifications.has(storage)) {
+      return;
+    }
+
+    this.recoveryNotifications.add(storage);
+    vscode.window.showInformationMessage(
+      `Recovered ${result.recoveredFiles} reader data file${result.recoveredFiles === 1 ? '' : 's'} from the PDF's previous location.`
+    );
   }
 
   private async setTranslationMode(mode: 'local' | 'deepseek') {
@@ -734,6 +780,12 @@ export class PaperReaderPanel {
       vscode.Uri.joinPath(this.extensionUri, 'media', 'reader-app.css')
     );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
+    const cMapUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'cmaps')
+    );
+    const standardFontDataUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'standard_fonts')
+    );
     const config = vscode.workspace.getConfiguration('readingExtension');
     const nonce = getNonce();
     const readerConfig = JSON.stringify({
@@ -741,7 +793,9 @@ export class PaperReaderPanel {
       paperName: path.basename(this.pdfUri.fsPath),
       translationProvider: config.get<string>('translationProvider') || 'argos',
       translationSource: config.get<string>('translationSource') || 'auto',
-      translationTarget: config.get<string>('translationTarget') || 'zh'
+      translationTarget: config.get<string>('translationTarget') || 'zh',
+      pdfCMapUrl: ensureTrailingSlash(cMapUri.toString()),
+      pdfStandardFontDataUrl: ensureTrailingSlash(standardFontDataUri.toString())
     });
 
     return `<!DOCTYPE html>
@@ -761,6 +815,9 @@ export class PaperReaderPanel {
   <div id="root"></div>
   <script nonce="${nonce}">
     const showStartupError = error => {
+      if (document.body.classList.contains('reader-mounted')) {
+        return;
+      }
       const status = document.getElementById('startupStatus');
       if (status) {
         status.className = 'startup-state startup-error';
@@ -811,6 +868,10 @@ function getLocalResourceRoots(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
     extensionUri,
     vscode.Uri.file(path.dirname(pdfUri.fsPath))
   ];
+}
+
+function ensureTrailingSlash(value: string) {
+  return value.endsWith('/') ? value : `${value}/`;
 }
 
 function normalizeArgosLanguage(value: string, fallback: string) {

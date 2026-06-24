@@ -59,6 +59,14 @@ textarea {
   overflow: hidden;
 }
 
+.shell.sidebar-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.shell.sidebar-hidden .side-panel {
+  display: none;
+}
+
 .reader {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -87,6 +95,12 @@ textarea {
   padding: 5px 8px;
 }
 
+.reader-toolbar .sidebar-toggle {
+  flex: 0 0 auto;
+  min-width: 88px;
+  white-space: nowrap;
+}
+
 .page-jump {
   display: inline-flex;
   align-items: center;
@@ -109,7 +123,9 @@ textarea {
 }
 
 .reader-status {
-  margin-left: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
   color: var(--muted);
   font-size: 12px;
   overflow: hidden;
@@ -136,6 +152,15 @@ textarea {
   max-width: 100%;
 }
 
+.pdf-host .pdf-scale-in-progress :is(
+  .PdfHighlighter__highlight-layer,
+  .PdfHighlighter__note-layer,
+  .PdfHighlighter__config-layer
+) {
+  will-change: transform;
+  pointer-events: none;
+}
+
 .pdf-host .textLayer {
   position: absolute;
   inset: 0;
@@ -153,6 +178,17 @@ textarea {
   cursor: text;
   transform-origin: 0 0;
   user-select: text;
+}
+
+.pdf-host .textLayer :is(.reader-margin-text, .reader-figure-text) {
+  user-select: none !important;
+}
+
+.pdf-host .allow-non-body-text-selection .textLayer :is(
+  .reader-margin-text,
+  .reader-figure-text
+) {
+  user-select: text !important;
 }
 
 .pdf-host .annotationLayer {
@@ -190,8 +226,24 @@ textarea {
   background: var(--panel-bg);
 }
 
-.side-panel header {
+.side-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.side-panel-header > div {
+  min-width: 0;
+}
+
+.side-panel-close {
+  flex: 0 0 auto;
+  min-width: 30px;
+  padding: 3px 8px;
+  font-size: 20px;
+  line-height: 1.2;
 }
 
 .side-tabs {
@@ -273,6 +325,11 @@ label {
 .undo-button {
   color: var(--vscode-button-secondaryForeground);
   background: var(--vscode-button-secondaryBackground);
+}
+
+.danger-button {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-errorForeground, #b42318);
 }
 
 .edit-status,

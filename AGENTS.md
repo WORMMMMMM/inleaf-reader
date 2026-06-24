@@ -17,17 +17,17 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - The Webview owns reader UI, PDF interaction, annotation editing controls, wordbook controls, and `postMessage` events back to the extension host.
 - Selection actions are unified around `Translate`: a single English word returns dictionary details and a `Save to Wordbook` action; multi-word text returns sentence translation. Do not add a separate `Word` selection entry point.
 - Extension-host errors from message handlers must be surfaced to both the Webview (via `stateError` messages) and the VS Code notification API (`vscode.window.showErrorMessage`).
-- Runtime user data belongs in `.reading-extension/` next to the PDF, not in VS Code global storage.
+- Runtime user data belongs in `.reading-extension/` next to the PDF, not in VS Code global storage. VS Code global storage may contain only a lightweight PDF-content-fingerprint-to-path index used to recover sidecars after a file is moved or renamed; never store annotations, vocabulary, or progress there.
 - Preserve backward compatibility for existing annotation JSON whenever possible.
 
 ## Important Files
 
 - `src/extension.ts`: Registers reader and DeepSeek credential commands. DeepSeek keys are accepted through a password input and stored only in VS Code SecretStorage.
 - `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config on first open, handles Webview messages, calls local or DeepSeek translation, and delegates storage. When switching PDFs, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML. All message handlers are wrapped in try/catch so filesystem errors surface to both the Webview status bar and a VS Code error notification. Local translation runs through a long-lived daemon process for speed; single English words trigger dictionary lookup via ECDICT.
-- `src/readerStorage.ts`: Reads/writes annotations, wordbook, progress, Markdown export, and annotated PDF export.
+- `src/readerStorage.ts`: Reads/writes annotations, wordbook, progress, Markdown export, and annotated PDF export. On first access it uses the PDF identity index to copy missing sidecars from a previously known path without overwriting current data.
+- `src/pdfIdentity.ts`: Computes a sampled PDF content fingerprint and defines the lightweight location index and sidecar path mapping used for move/rename recovery.
 - `src/annotationTypes.ts`: Shared persisted data types. Update this carefully when changing the annotation schema.
 - `src/annotationExports.ts`: Markdown and annotated PDF export logic.
-- `src/wordReview.ts`: Vocabulary review scheduling helpers.
 - `webview/src/main.tsx`: React reader UI and PDF/highlight integration. Handles `navigateTo` messages for in-place PDF switching, `stateError` messages for surfaced extension-host errors, and `wordDetails` in translation results for dictionary display.
 - `webview/src/styles.css`: Reader layout and visual styling, including dictionary result block.
 - `webview/src/vscodeApi.ts`: Webview access to VS Code API and injected config.
@@ -35,7 +35,7 @@ This repository is a VS Code extension for a personal paper-reading workflow. It
 - `scripts/argos_translate_daemon.py`: Long-lived translation daemon with dictionary support. Loads Argos Translate model and ECDICT dictionary once at startup, then serves requests as JSON lines over stdin/stdout. Supports `mode: "translate"` and `mode: "dict"`.
 - `scripts/ecdict_compact.json`: Optional uncompressed ECDICT output used only for inspection; do not commit it.
 - `scripts/ecdict_compact.json.gz`: Gzipped compact ECDICT dictionary (~22MB, 770,611 entries) used by the daemon for single-word lookups and committed for offline distribution.
-- `scripts/test-annotation-exports.mjs`: Regression tests for exports, schema compatibility, and word review.
+- `scripts/test-annotation-exports.mjs`: Regression tests for exports and schema compatibility.
 - `media/reader-app.js` and `media/reader-app.css`: Generated Webview bundle. Do not edit manually; rebuild with `npm run build:webview` or `npm run compile`.
 - `project_map.md`: File-by-file repository map. Update it when adding or changing major files.
 
@@ -102,6 +102,7 @@ For reader changes, manually verify at least one normal text PDF:
 - Text selection works with real text PDFs.
 - Creating, editing, deleting, and undoing annotations autosaves.
 - Closing and reopening restores annotations, wordbook entries, and progress.
+- Saved words can be viewed and deleted from the Wordbook tab.
 - `Translate locally` returns a result for English selected text in <1s after first call.
 - Selecting a single English word and clicking `Translate locally` shows dictionary entry with phonetic, Chinese definitions, and English definitions.
 - Selecting a sentence and clicking `Translate` shows sentence translation without wordbook controls.

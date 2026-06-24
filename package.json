@@ -84,7 +84,7 @@
   "scripts": {
     "build:webview": "vite build --config vite.webview.config.ts",
     "compile": "npm run build:webview && tsc -p ./",
-    "test": "npm run compile && node scripts/test-annotation-exports.mjs",
+    "test": "npm run compile && node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs",
     "watch": "tsc -watch -p ./",
     "watch:webview": "vite build --watch --config vite.webview.config.ts"
   },

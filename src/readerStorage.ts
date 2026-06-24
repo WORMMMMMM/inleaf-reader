@@ -2,7 +2,16 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyAnnotationsToPdf, formatAnnotationsMarkdown } from './annotationExports';
 import { AnnotationRecord } from './annotationTypes';
-import { advanceWordReview, createInitialWordReview } from './wordReview';
+import {
+  addLocationToIndex,
+  createPdfLocation,
+  fingerprintPdf,
+  getSidecarPaths,
+  PdfLocation,
+  PdfLocationIndex,
+  PDF_LOCATION_INDEX_KEY,
+  SIDECAR_KINDS
+} from './pdfIdentity';
 
 export type { AnnotationKind, AnnotationRecord, AnnotationRect } from './annotationTypes';
 
@@ -37,17 +46,29 @@ export interface ProgressRecord {
   updatedAt: string;
 }
 
+export interface StoragePreparationResult {
+  recoveredFrom?: string;
+  recoveredFiles: number;
+}
+
 export class ReaderStorage {
   private readonly storageDir: vscode.Uri;
   private readonly baseName: string;
+  private readonly location: PdfLocation;
+  private preparation?: Promise<StoragePreparationResult>;
 
-  constructor(private readonly pdfUri: vscode.Uri) {
+  constructor(
+    private readonly pdfUri: vscode.Uri,
+    private readonly globalState: vscode.Memento
+  ) {
     this.baseName = path.basename(pdfUri.fsPath);
     this.storageDir = vscode.Uri.file(path.join(path.dirname(pdfUri.fsPath), '.reading-extension'));
+    this.location = createPdfLocation(pdfUri.fsPath);
   }
 
-  async ensureStorageDir() {
-    await vscode.workspace.fs.createDirectory(this.storageDir);
+  prepare() {
+    this.preparation ??= this.prepareInternal();
+    return this.preparation;
   }
 
   async readAnnotations(): Promise<AnnotationRecord[]> {
@@ -127,7 +148,7 @@ export class ReaderStorage {
     ]);
     const exportedBytes = await applyAnnotationsToPdf(pdfBytes, annotations);
     const uri = this.fileUri('annotated.pdf');
-    await this.ensureStorageDir();
+    await this.prepare();
     await vscode.workspace.fs.writeFile(uri, exportedBytes);
     return uri;
   }
@@ -138,26 +159,18 @@ export class ReaderStorage {
     words.unshift({
       ...input,
       id: cryptoRandomId(),
-      review: input.review ?? createInitialWordReview(),
       createdAt: now,
       updatedAt: now
     });
     await this.writeJson(this.fileUri('wordbook'), words);
   }
 
-  async updateWordReview(id: string, remembered: boolean) {
+  async deleteWord(id: string) {
     const words = await this.readWords();
-    const word = words.find(item => item.id === id);
-    if (!word) {
-      return;
-    }
-
-    const now = new Date();
-
-    word.review = advanceWordReview(word.review, remembered, now);
-    word.updatedAt = now.toISOString();
-
-    await this.writeJson(this.fileUri('wordbook'), words);
+    await this.writeJson(
+      this.fileUri('wordbook'),
+      words.filter(item => item.id !== id)
+    );
   }
 
   async saveProgress(progress: ProgressRecord) {
@@ -174,6 +187,7 @@ export class ReaderStorage {
   }
 
   private async readJson<T>(uri: vscode.Uri, fallback: T): Promise<T> {
+    await this.prepare();
     try {
       const bytes = await vscode.workspace.fs.readFile(uri);
       return JSON.parse(Buffer.from(bytes).toString('utf8')) as T;
@@ -183,16 +197,97 @@ export class ReaderStorage {
   }
 
   private async writeJson(uri: vscode.Uri, value: unknown) {
-    await this.ensureStorageDir();
+    await this.prepare();
     const bytes = Buffer.from(JSON.stringify(value, null, 2), 'utf8');
     await vscode.workspace.fs.writeFile(uri, bytes);
   }
 
   private async writeText(uri: vscode.Uri, value: string) {
-    await this.ensureStorageDir();
+    await this.prepare();
     await vscode.workspace.fs.writeFile(uri, Buffer.from(value, 'utf8'));
   }
 
+  private async prepareInternal(): Promise<StoragePreparationResult> {
+    await vscode.workspace.fs.createDirectory(this.storageDir);
+
+    let fingerprint: string;
+    try {
+      fingerprint = await fingerprintPdf(this.pdfUri.fsPath);
+    } catch {
+      return { recoveredFiles: 0 };
+    }
+
+    const index = this.globalState.get<PdfLocationIndex>(PDF_LOCATION_INDEX_KEY, {});
+    const candidates = (index[fingerprint] ?? [])
+      .filter(candidate => path.resolve(candidate.pdfPath) !== this.location.pdfPath)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+
+    let recoveredFrom: string | undefined;
+    let recoveredFiles = 0;
+    for (const candidate of candidates) {
+      const copied = await this.copyMissingSidecars(candidate);
+      if (copied > 0) {
+        recoveredFrom ??= candidate.pdfPath;
+        recoveredFiles += copied;
+      }
+    }
+
+    await this.globalState.update(
+      PDF_LOCATION_INDEX_KEY,
+      addLocationToIndex(index, fingerprint, this.location)
+    );
+    return { recoveredFrom, recoveredFiles };
+  }
+
+  private async copyMissingSidecars(sourceLocation: PdfLocation) {
+    const destinationPaths = getSidecarPaths(this.location);
+    const possibleSources = [
+      sourceLocation,
+      {
+        ...sourceLocation,
+        storageDir: this.location.storageDir
+      }
+    ].filter(
+      (candidate, index, locations) =>
+        locations.findIndex(
+          location =>
+            location.storageDir === candidate.storageDir &&
+            location.baseName === candidate.baseName
+        ) === index
+    );
+    let copied = 0;
+
+    for (const sourceLocationCandidate of possibleSources) {
+      const sourcePaths = getSidecarPaths(sourceLocationCandidate);
+      for (const kind of SIDECAR_KINDS) {
+        const source = vscode.Uri.file(sourcePaths[kind]);
+        const destination = vscode.Uri.file(destinationPaths[kind]);
+        if (!(await uriExists(source)) || (await uriExists(destination))) {
+          continue;
+        }
+
+        try {
+          await vscode.workspace.fs.copy(source, destination, { overwrite: false });
+          copied += 1;
+        } catch (error) {
+          if (!(await uriExists(destination))) {
+            throw error;
+          }
+        }
+      }
+    }
+
+    return copied;
+  }
+}
+
+async function uriExists(uri: vscode.Uri) {
+  try {
+    await vscode.workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function cryptoRandomId() {

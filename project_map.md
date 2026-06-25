@@ -6,6 +6,9 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `README.md`: User-facing overview, setup commands, current MVP, and roadmap.
 - `LICENSE`: MIT License for Reading Extension's original source code.
+- `assets/reading-extension-hero.png`: Generated README and Marketplace hero image illustrating the PDF reader, annotation, translation, vocabulary, and editor workflow without product logos or readable fake text.
+- `assets/reading-extension-logo.png`: High-resolution generated project logo combining a paper/book, annotation highlight, and AI-assistance sparkle.
+- `assets/reading-extension-icon.png`: 256×256 Marketplace icon derived from the project logo and referenced by `package.json`.
 - `AGENTS.md`: Development handoff guide for future human or AI agents. It defines the product goal, architecture rules, important files, runtime data contract, local translation expectations, validation commands, and git hygiene.
 - `package.json`: VS Code extension manifest, contributed command, configuration, scripts, and npm dependencies including the React Webview, `react-pdf-highlighter-plus`, pdf.js, and PDF export helpers.
 - `package-lock.json`: Locked dependency graph for reproducible installs.

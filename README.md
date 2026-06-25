@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="assets/reading-extension-logo.png" width="160" alt="Reading Extension logo">
+</p>
+
 # Reading Extension
 
 A local-first PDF reader for VS Code — annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.
+
+![Reading Extension interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
 
 ## Why I Built This
 

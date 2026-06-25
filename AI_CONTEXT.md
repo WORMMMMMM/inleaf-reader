@@ -167,6 +167,12 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   user installation; source builds refresh them through `npm run compile`.
   Argos Python and its `en -> zh` model have separate macOS/Linux and Windows
   installation instructions.
+- `assets/reading-extension-hero.png` is the generated public README hero image.
+  It presents a polished, brand-neutral editor/PDF-reader mockup with
+  highlights, annotation controls, translation, vocabulary, and code tooling.
+- `assets/reading-extension-logo.png` is the high-resolution project logo;
+  `assets/reading-extension-icon.png` is its 256px Marketplace variant and is
+  wired through the extension manifest's `icon` field.
 - The repository is licensed under MIT through the root `LICENSE`; third-party
   components and bundled assets retain their respective licenses.
 - Generated `media/reader-app.js` and `media/reader-app.css` are included.

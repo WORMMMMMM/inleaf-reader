@@ -4,6 +4,7 @@
   "description": "A local-first VS Code PDF reader with annotations, translation, vocabulary capture, and portable sidecar data.",
   "version": "0.0.1",
   "publisher": "ziming",
+  "icon": "assets/reading-extension-icon.png",
   "license": "MIT",
   "preview": true,
   "repository": {

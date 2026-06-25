@@ -1,10 +1,9 @@
-<p align="center">
-  <img src="assets/reading-extension-logo.png" width="160" alt="Reading Extension logo">
-</p>
-
-# Reading Extension
-
-A local-first PDF reader for VS Code — annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.
+<div align="center">
+  <img src="assets/reading-extension-logo.png" width="112" alt="Reading Extension logo">
+  <h1>Reading Extension</h1>
+  <p><strong>A local-first PDF reader for VS Code</strong></p>
+  <p>Annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.</p>
+</div>
 
 ![Reading Extension interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
 
@@ -96,20 +95,6 @@ code --install-extension reading-extension-0.0.1.vsix
 
 Or use **Extensions: Install from VSIX...** from the Command Palette.
 
-### Build from source
-
-```bash
-git clone https://github.com/WORMMMMMM/reading-extension.git
-cd reading-extension
-npm install
-npm test
-npx @vscode/vsce package \
-  --no-dependencies \
-  --allow-missing-repository \
-  --out reading-extension-0.0.1.vsix
-code --install-extension ./reading-extension-0.0.1.vsix --force
-```
-
 ## Bundled Runtime Assets
 
 If you install Reading Extension from the Marketplace or from the provided
@@ -128,23 +113,6 @@ This compressed dictionary currently contains about 770,000 English entries.
 It is loaded locally when you translate a single English word. Dictionary
 lookups do not require Python, a network connection, or an API key.
 
-To verify a source checkout:
-
-```bash
-test -f scripts/ecdict_compact.json.gz
-```
-
-Maintainers can rebuild the dictionary from the upstream MIT-licensed ECDICT
-CSV:
-
-```bash
-python3 scripts/build_ecdict_compact.py
-```
-
-The script downloads the upstream CSV and regenerates
-`scripts/ecdict_compact.json.gz`. Internet access is required only while
-rebuilding it, not while using the packaged dictionary.
-
 ### PDF.js CMaps and standard fonts
 
 PDFs may use character maps or refer to standard fonts without embedding every
@@ -158,25 +126,6 @@ media/pdfjs-dist/standard_fonts/
 The current package contains the complete PDF.js set of 169 Adobe CMaps and 16
 standard-font resource files. They are used automatically when a PDF needs
 them. Fonts embedded inside a PDF still come from the PDF itself.
-
-When building from source, install npm dependencies and run:
-
-```bash
-npm install
-npm run compile
-```
-
-`npm run compile` automatically runs `npm run copy:pdfjs-assets`, which
-refreshes `media/pdfjs-dist/` from the installed `pdfjs-dist` npm package.
-
-Verify the generated assets with:
-
-```bash
-find media/pdfjs-dist/cmaps -type f | wc -l
-find media/pdfjs-dist/standard_fonts -type f | wc -l
-```
-
-The expected counts are 169 CMap files and 16 standard-font files.
 
 ### What is not bundled
 
@@ -338,44 +287,10 @@ Review the privacy terms of any external translation service before using it wit
 | `Reading Extension: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
 | `Reading Extension: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
 
-## Development
-
-Requirements:
-
-- Node.js and npm
-- VS Code 1.90 or newer
-- Python with Argos Translate only if local neural translation is being tested
-
-```bash
-npm install
-npm run compile
-npm test
-```
-
-Press `F5` in VS Code to launch an Extension Development Host.
-
-Important generated files:
-
-- `media/reader-app.js` and `media/reader-app.css`
-- `media/pdfjs-dist/`
-- `out/extension.js`
-
-Do not edit generated files directly.
-
 ## Contributing
 
-Issues and pull requests are welcome:
-
-- Repository: https://github.com/WORMMMMMM/reading-extension
-- Issues: https://github.com/WORMMMMMM/reading-extension/issues
-
-Please run the following checks before submitting code:
-
-```bash
-npm test
-./node_modules/.bin/tsc -p tsconfig.webview.json --noEmit
-node --check media/reader-app.js
-```
+Issues and pull requests are welcome on
+[GitHub](https://github.com/WORMMMMMM/reading-extension).
 
 ## Acknowledgements
 

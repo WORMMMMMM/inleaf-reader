@@ -160,16 +160,20 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   surfacing.
 - `README.md` is shared by GitHub and the VS Code Marketplace. It now includes
   product motivation, features, installation, quick start, translation setup,
-  settings, privacy disclosures, limitations, development, and contribution
-  guidance. `README2.md` remains the user's editable working draft.
+  settings, privacy disclosures, limitations, and a short contribution link.
+  `README2.md` remains the user's editable working draft. The public README
+  intentionally omits internal development/build instructions; those remain
+  in `AGENTS.md`, `AI_CONTEXT.md`, and `project_map.md`.
 - The README explicitly distinguishes bundled runtime assets from optional
   dependencies: ECDICT, 169 PDF.js CMaps, and 16 standard-font files require no
   user installation; source builds refresh them through `npm run compile`.
   Argos Python and its `en -> zh` model have separate macOS/Linux and Windows
   installation instructions.
-- `assets/reading-extension-hero.png` is the generated public README hero image.
-  It presents a polished, brand-neutral editor/PDF-reader mockup with
-  highlights, annotation controls, translation, vocabulary, and code tooling.
+- `assets/reading-extension-hero.png` is the public README product screenshot,
+  showing the reader, Wordbook sidebar, PDF content, and adjacent AI tooling in
+  a real VS Code-style workflow.
+- The README header uses a compact centered stack: 112px logo, product name,
+  short category line, and one-sentence value proposition above the screenshot.
 - `assets/reading-extension-logo.png` is the high-resolution project logo;
   `assets/reading-extension-icon.png` is its 256px Marketplace variant and is
   wired through the extension manifest's `icon` field.

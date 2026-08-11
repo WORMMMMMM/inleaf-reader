@@ -1,19 +1,19 @@
 {
   "name": "reading-extension",
-  "displayName": "Reading Extension",
-  "description": "A local-first VS Code PDF reader with annotations, translation, vocabulary capture, and portable sidecar data.",
-  "version": "0.0.1",
+  "displayName": "Inleaf Reader",
+  "description": "A local-first VS Code PDF reader designed for focused reading, with annotations, translation, vocabulary capture, and portable sidecar data.",
+  "version": "0.0.7",
   "publisher": "ziming",
   "icon": "assets/reading-extension-icon.png",
   "license": "MIT",
   "preview": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/WORMMMMMM/reading-extension.git"
+    "url": "https://github.com/WORMMMMMM/inleaf-reader.git"
   },
-  "homepage": "https://github.com/WORMMMMMM/reading-extension#readme",
+  "homepage": "https://github.com/WORMMMMMM/inleaf-reader#readme",
   "bugs": {
-    "url": "https://github.com/WORMMMMMM/reading-extension/issues"
+    "url": "https://github.com/WORMMMMMM/inleaf-reader/issues"
   },
   "keywords": [
     "pdf",
@@ -21,7 +21,9 @@
     "reader",
     "annotation",
     "translation",
-    "wordbook"
+    "wordbook",
+    "focus",
+    "flow"
   ],
   "engines": {
     "vscode": "^1.90.0"
@@ -33,26 +35,75 @@
   "activationEvents": [
     "onCommand:readingExtension.openReader",
     "onCommand:readingExtension.setDeepSeekApiKey",
-    "onCommand:readingExtension.clearDeepSeekApiKey"
+    "onCommand:readingExtension.clearDeepSeekApiKey",
+    "onCommand:readingExtension.diagnoseTranslation"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "readingExtension.openReader",
-        "title": "Reading Extension: Open Paper Reader"
+        "title": "Inleaf Reader: Open Paper Reader",
+        "icon": {
+          "light": "assets/reading-extension-toolbar-light.svg",
+          "dark": "assets/reading-extension-toolbar-dark.svg"
+        }
       },
       {
         "command": "readingExtension.setDeepSeekApiKey",
-        "title": "Reading Extension: Set DeepSeek API Key"
+        "title": "Inleaf Reader: Set DeepSeek API Key"
       },
       {
         "command": "readingExtension.clearDeepSeekApiKey",
-        "title": "Reading Extension: Clear DeepSeek API Key"
+        "title": "Inleaf Reader: Clear DeepSeek API Key"
+      },
+      {
+        "command": "readingExtension.diagnoseTranslation",
+        "title": "Inleaf Reader: Diagnose Translation Setup"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "readingExtension.openReader",
+          "when": "resourceExtname == .pdf",
+          "group": "navigation@20"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "readingExtension.openReader",
+          "when": "resourceExtname == .pdf",
+          "group": "navigation@20"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "readingExtension.gettingStarted",
+        "title": "Get started with Inleaf Reader",
+        "description": "Open a PDF, capture a selection, and choose a translation mode.",
+        "steps": [
+          {
+            "id": "openPdf",
+            "title": "Open a PDF in the reader",
+            "description": "Run [Open Paper Reader](command:readingExtension.openReader), or right-click a PDF in the Explorer."
+          },
+          {
+            "id": "selectText",
+            "title": "Select and annotate",
+            "description": "Select text in a real-text PDF, then highlight, underline, add a note, translate, or save a word."
+          },
+          {
+            "id": "translation",
+            "title": "Check translation setup",
+            "description": "The dictionary works offline. Run [Diagnose Translation Setup](command:readingExtension.diagnoseTranslation) before using Argos sentence translation."
+          }
+        ]
       }
     ],
     "configuration": {
-      "title": "Reading Extension",
+      "title": "Inleaf Reader",
       "properties": {
         "readingExtension.libreTranslateEndpoint": {
           "type": "string",
@@ -85,7 +136,7 @@
         },
         "readingExtension.translationFallbackToLibreTranslate": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "When Argos local translation fails, fall back to the configured LibreTranslate endpoint."
         },
         "readingExtension.translationSource": {
@@ -104,9 +155,13 @@
   "scripts": {
     "build:webview": "vite build --config vite.webview.config.ts",
     "copy:pdfjs-assets": "node scripts/copy_pdfjs_assets.mjs",
-    "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap",
+    "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap && esbuild src/ecdictWorker.ts --bundle --platform=node --format=cjs --outfile=out/ecdictWorker.js --sourcemap",
     "compile": "npm run copy:pdfjs-assets && npm run build:webview && npm run build:extension",
-    "test": "npm run compile && node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs",
+    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-webview-worker.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
+    "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json --noEmit",
+    "check": "npm run compile && npm run test:unit && npm run typecheck && node --check media/reader-app.js",
+    "test": "npm run check",
+    "package:vsix": "npm run compile && npx --yes @vscode/vsce package",
     "watch": "tsc -watch -p ./",
     "watch:webview": "vite build --watch --config vite.webview.config.ts"
   },

@@ -1,31 +1,26 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { WorkerMessageHandler } from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import {
   AreaHighlight,
   MonitoredHighlightContainer,
   PdfHighlighter,
   PdfLoader,
   TextHighlight,
+  scaledPositionToViewport,
   useHighlightContainerContext,
   type Highlight,
   type PdfHighlighterUtils,
   type PdfScaleValue,
   type PdfSelection,
   type ScaledPosition,
-  type Tip
+  type Tip,
+  type ViewportPosition
 } from 'react-pdf-highlighter-plus';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import 'react-pdf-highlighter-plus/style/style.css';
 import './styles.css';
-import { readerConfig, vscode } from './vscodeApi';
+import { readerConfig, setActiveDocumentId, vscode } from './vscodeApi';
 import type { AnnotationKind, AnnotationRecord, AnnotationRect, ReaderStatePayload, WordDetails, WordRecord } from './types';
-
-type PdfjsGlobal = typeof globalThis & {
-  pdfjsWorker?: { WorkerMessageHandler: unknown };
-};
-
-(globalThis as PdfjsGlobal).pdfjsWorker = { WorkerMessageHandler };
 
 type ReaderHighlight = Highlight & {
   annotation?: AnnotationRecord;
@@ -81,15 +76,17 @@ interface SelectionToolbarContextValue {
 
 const SelectionToolbarContext = React.createContext<SelectionToolbarContextValue | undefined>(undefined);
 
-type IncomingMessage =
+type IncomingMessage = (
   | { type: 'state'; payload: ReaderStatePayload }
-  | { type: 'navigateTo'; payload: { pdfUrl: string; paperName: string } }
+  | { type: 'statePatch'; payload: { annotations?: AnnotationRecord[]; words?: WordRecord[] } }
+  | { type: 'navigateTo'; payload: { pdfUrl: string; paperName: string; documentId: string } }
   | { type: 'translationResult'; payload: { sourceText: string; translatedText?: string; wordDetails?: WordDetails; error?: string } }
-  | { type: 'translationSettings'; payload: { mode: TranslationMode; hasDeepSeekApiKey: boolean } }
+  | { type: 'translationSettings'; payload: { mode: TranslationMode; provider: string; hasDeepSeekApiKey: boolean; dictionaryReady: boolean; argosPythonFound: boolean } }
   | { type: 'exportResult'; payload: { path?: string; error?: string } }
   | { type: 'clipboardResult'; payload: { message?: string; error?: string } }
   | { type: 'annotationActionResult'; payload: { message?: string; error?: string } }
-  | { type: 'stateError'; payload: { message: string } };
+  | { type: 'stateError'; payload: { message: string } }
+) & { documentId?: string };
 
 const colorOptions = [
   { label: 'Yellow', value: '#ffd654' },
@@ -109,12 +106,6 @@ const defaultState: ReaderStatePayload = {
 function App() {
   const [state, setState] = useState<ReaderStatePayload>(defaultState);
   const [selectedText, setSelectedText] = useState('');
-  const [selectionPosition, setSelectionPosition] = useState<ScaledPosition | undefined>();
-  const [note, setNote] = useState('');
-  const [tags, setTags] = useState('');
-  const [color, setColor] = useState('#ffd654');
-  const [kind, setKind] = useState<AnnotationKind>('highlight');
-  const [editingId, setEditingId] = useState<string | undefined>();
   const [translationOutput, setTranslationOutput] = useState('');
   const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
   const [translationSourceText, setTranslationSourceText] = useState('');
@@ -122,6 +113,9 @@ function App() {
     readerConfig.translationProvider === 'deepseek' ? 'deepseek' : 'local'
   );
   const [hasDeepSeekApiKey, setHasDeepSeekApiKey] = useState(false);
+  const [translationProvider, setTranslationProvider] = useState(readerConfig.translationProvider || 'argos');
+  const [dictionaryReady, setDictionaryReady] = useState(false);
+  const [argosPythonFound, setArgosPythonFound] = useState(false);
   const [annotationQuery, setAnnotationQuery] = useState('');
   const [tagQuery, setTagQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -134,15 +128,20 @@ function App() {
   const [activeId, setActiveId] = useState<string | undefined>();
   const [lastDeleted, setLastDeleted] = useState<AnnotationRecord | undefined>();
   const [pdfUrl, setPdfUrl] = useState(readerConfig.pdfUrl);
+  const [pdfWorkerSrc, setPdfWorkerSrc] = useState<string | undefined>();
+  const [pdfWorkerError, setPdfWorkerError] = useState<string | undefined>();
   const [paperName, setPaperName] = useState(readerConfig.paperName);
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('overview');
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const highlighterRef = useRef<PdfHighlighterUtils | null>(null);
-  const editDebounceRef = useRef<number | undefined>(undefined);
   const progressDebounceRef = useRef<number | undefined>(undefined);
+  const pendingProgressRef = useRef<number | undefined>(undefined);
+  const pageIndicatorTimerRef = useRef<number | undefined>(undefined);
+  const pendingVisiblePageRef = useRef<number | undefined>(undefined);
   const zoomCommitRef = useRef<number | undefined>(undefined);
   const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
   const documentReadyRef = useRef(false);
+  const documentIdRef = useRef(readerConfig.documentId);
   const selectionRef = useRef({ selectedText: '', selectionPosition: undefined as ScaledPosition | undefined, currentPage: 1 });
   const pdfDocumentSource = useMemo(() => ({
     url: pdfUrl,
@@ -150,20 +149,45 @@ function App() {
     cMapPacked: true,
     standardFontDataUrl: readerConfig.pdfStandardFontDataUrl,
     useWorkerFetch: false,
+    disableStream: true,
+    disableAutoFetch: true,
+    rangeChunkSize: 1024 * 1024,
+    canvasMaxAreaInBytes: 64 * 1024 * 1024,
+    enableHWA: true,
     disableFontFace: true,
     useSystemFonts: false
   }), [pdfUrl]);
 
   const saveReadingProgress = useCallback((page: number) => {
+    pendingProgressRef.current = page;
     window.clearTimeout(progressDebounceRef.current);
     progressDebounceRef.current = window.setTimeout(() => {
       vscode.postMessage({ type: 'saveProgress', payload: { page } });
+      pendingProgressRef.current = undefined;
     }, 350);
   }, []);
 
+  const flushReadingProgress = useCallback(() => {
+    window.clearTimeout(progressDebounceRef.current);
+    if (pendingProgressRef.current !== undefined) {
+      vscode.postMessage({ type: 'saveProgress', payload: { page: pendingProgressRef.current } });
+      pendingProgressRef.current = undefined;
+    }
+  }, []);
+
   const handleVisiblePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
     saveReadingProgress(page);
+    pendingVisiblePageRef.current = page;
+    if (pageIndicatorTimerRef.current !== undefined) {
+      return;
+    }
+    pageIndicatorTimerRef.current = window.setTimeout(() => {
+      pageIndicatorTimerRef.current = undefined;
+      if (pendingVisiblePageRef.current !== undefined) {
+        setCurrentPage(pendingVisiblePageRef.current);
+        pendingVisiblePageRef.current = undefined;
+      }
+    }, 80);
   }, [saveReadingProgress]);
 
   const handleHighlighterUtils = useCallback((utils: PdfHighlighterUtils) => {
@@ -208,9 +232,37 @@ function App() {
   useEffect(() => {
     document.body.classList.add('reader-mounted');
     return () => {
-      window.clearTimeout(progressDebounceRef.current);
+      flushReadingProgress();
+      window.clearTimeout(pageIndicatorTimerRef.current);
       window.clearTimeout(zoomCommitRef.current);
       document.body.classList.remove('reader-mounted');
+    };
+  }, [flushReadingProgress]);
+
+  useEffect(() => {
+    let disposed = false;
+    let workerBlobUrl: string | undefined;
+
+    createPdfWorkerBlobUrl(readerConfig.pdfWorkerUrl)
+      .then(url => {
+        if (disposed) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        workerBlobUrl = url;
+        setPdfWorkerSrc(url);
+      })
+      .catch(error => {
+        if (!disposed) {
+          setPdfWorkerError(error instanceof Error ? error.message : String(error));
+        }
+      });
+
+    return () => {
+      disposed = true;
+      if (workerBlobUrl) {
+        URL.revokeObjectURL(workerBlobUrl);
+      }
     };
   }, []);
 
@@ -256,14 +308,29 @@ function App() {
     vscode.postMessage({ type: 'ready' });
     const listener = (event: MessageEvent<IncomingMessage>) => {
       const message = event.data;
+      if (message.type !== 'navigateTo' && message.documentId && message.documentId !== documentIdRef.current) {
+        return;
+      }
       if (message.type === 'state') {
         setState(message.payload);
         if (message.payload.progress?.page) {
           setCurrentPage(message.payload.progress.page);
         }
       }
+      if (message.type === 'statePatch') {
+        setState(current => ({
+          ...current,
+          annotations: message.payload.annotations ?? current.annotations,
+          words: message.payload.words ?? current.words
+        }));
+      }
       if (message.type === 'navigateTo') {
-        window.clearTimeout(progressDebounceRef.current);
+        flushReadingProgress();
+        window.clearTimeout(pageIndicatorTimerRef.current);
+        pageIndicatorTimerRef.current = undefined;
+        pendingVisiblePageRef.current = undefined;
+        documentIdRef.current = message.payload.documentId;
+        setActiveDocumentId(message.payload.documentId);
         setPdfUrl(message.payload.pdfUrl);
         setPaperName(message.payload.paperName);
         setState(defaultState);
@@ -288,7 +355,10 @@ function App() {
       }
       if (message.type === 'translationSettings') {
         setTranslationMode(message.payload.mode);
+        setTranslationProvider(message.payload.provider);
         setHasDeepSeekApiKey(message.payload.hasDeepSeekApiKey);
+        setDictionaryReady(message.payload.dictionaryReady);
+        setArgosPythonFound(message.payload.argosPythonFound);
       }
       if (message.type === 'exportResult') {
         setStatus(message.payload.error ? `Export failed: ${message.payload.error}` : `Exported: ${message.payload.path}`);
@@ -299,7 +369,7 @@ function App() {
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
-  }, []);
+  }, [flushReadingProgress]);
 
   useEffect(() => {
     if (!state.progress?.page || !pageTotal) {
@@ -308,34 +378,6 @@ function App() {
     const timer = window.setTimeout(() => goToPage(state.progress.page || 1, false), 250);
     return () => window.clearTimeout(timer);
   }, [pageTotal, state.progress?.page]);
-
-  useEffect(() => {
-    if (!editingId) {
-      return;
-    }
-    window.clearTimeout(editDebounceRef.current);
-    editDebounceRef.current = window.setTimeout(() => {
-      const page = selectionPosition?.boundingRect.pageNumber || currentPage;
-      vscode.postMessage({
-        type: 'updateAnnotation',
-        payload: {
-          id: editingId,
-          patch: {
-            page,
-            selectedText,
-            note,
-            tags: normalizeTags(tags),
-            color,
-            kind,
-            highlighterPosition: selectionPosition,
-            rects: selectionPosition ? highlighterPositionToRects(selectionPosition) : undefined
-          }
-        }
-      });
-      setStatus('Annotation autosaved.');
-    }, 550);
-    return () => window.clearTimeout(editDebounceRef.current);
-  }, [color, currentPage, editingId, kind, note, selectedText, selectionPosition, tags]);
 
   const highlights = useMemo(
     () => state.annotations.map(annotationToHighlight).filter(Boolean) as ReaderHighlight[],
@@ -386,7 +428,6 @@ function App() {
     ghost.content.text = text;
     ghost.position = cleanPosition;
     setSelectedText(text);
-    setSelectionPosition(cleanPosition);
     setCurrentPage(cleanPosition.boundingRect.pageNumber);
     setTranslationSourceText('');
     setTranslationOutput('');
@@ -399,56 +440,53 @@ function App() {
     setStatus('Selection captured.');
   }
 
-  function saveAnnotation() {
-    const pos = selectionPosition;
-    const page = pos?.boundingRect.pageNumber || currentPage;
-    const payload = {
-      page,
-      selectedText,
-      note,
-      tags: normalizeTags(tags),
-      color,
-      kind,
-      highlighterPosition: pos,
-      rects: pos ? highlighterPositionToRects(pos) : undefined
-    };
-    if (!payload.selectedText.trim() && !payload.note.trim()) {
-      setStatus('Add selected text or a note before saving.');
+  function editAnnotation(annotation: AnnotationRecord, viewportPosition?: ViewportPosition) {
+    const utils = highlighterRef.current;
+    const viewer = utils?.getViewer();
+    const storedPosition = annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects);
+    const tipPosition = viewportPosition || (
+      storedPosition && viewer
+        ? scaledPositionToViewport(storedPosition, viewer)
+        : undefined
+    );
+    if (!utils || !tipPosition) {
+      setStatus('This annotation cannot be edited inline because its position is unavailable.');
       return;
     }
-    if (editingId) {
-      vscode.postMessage({ type: 'updateAnnotation', payload: { id: editingId, patch: payload } });
-      setStatus('Annotation saved.');
-    } else {
-      vscode.postMessage({ type: 'saveAnnotation', payload });
-      setStatus('Annotation saved automatically.');
-    }
-    clearAnnotationDraft();
-    highlighterRef.current?.removeGhostHighlight();
-  }
-
-  function editAnnotation(annotation: AnnotationRecord) {
-    setSidebarVisible(true);
-    setActiveSidebarTab('annotations');
-    setEditingId(annotation.id);
     setActiveId(annotation.id);
-    setSelectedText(annotation.selectedText || '');
-    setNote(annotation.note || '');
-    setTags((annotation.tags || []).join(', '));
-    setColor(annotation.color || '#ffd654');
-    setKind(annotation.kind || 'highlight');
-    setSelectionPosition(annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects));
-    setCurrentPage(annotation.page || annotation.highlighterPosition?.boundingRect.pageNumber || 1);
     focusAnnotation(annotation);
+    utils.toggleEditInProgress(true);
+    utils.setTip({
+      position: tipPosition,
+      content: (
+        <InlineAnnotationEditor
+          annotation={annotation}
+          onCancel={closeInlineAnnotationEditor}
+          onSave={patch => {
+            vscode.postMessage({ type: 'updateAnnotation', payload: { id: annotation.id, patch } });
+            setStatus('Annotation saved.');
+            closeInlineAnnotationEditor();
+          }}
+        />
+      )
+    });
+    window.requestAnimationFrame(() => utils.updateTipPosition());
   }
 
   function deleteAnnotation(annotation: AnnotationRecord) {
     setLastDeleted(annotation);
     vscode.postMessage({ type: 'deleteAnnotation', payload: { id: annotation.id } });
-    if (editingId === annotation.id) {
-      clearAnnotationDraft();
+    if (activeId === annotation.id) {
+      closeInlineAnnotationEditor();
     }
     setStatus('Annotation deleted. Use undo to restore it.');
+  }
+
+  function closeInlineAnnotationEditor() {
+    const utils = highlighterRef.current;
+    utils?.setTip(null);
+    utils?.toggleEditInProgress(false);
+    setActiveId(undefined);
   }
 
   function restoreLastDeleted() {
@@ -460,14 +498,7 @@ function App() {
   }
 
   function clearAnnotationDraft() {
-    window.clearTimeout(editDebounceRef.current);
-    setEditingId(undefined);
     setSelectedText('');
-    setSelectionPosition(undefined);
-    setNote('');
-    setTags('');
-    setColor('#ffd654');
-    setKind('highlight');
     setActiveId(undefined);
     selectionRef.current = { selectedText: '', selectionPosition: undefined, currentPage: 1 };
   }
@@ -546,7 +577,6 @@ function App() {
     });
     highlighterRef.current?.removeGhostHighlight();
     setActiveSidebarTab('wordbook');
-    setSidebarVisible(true);
     setStatus('Word saved.');
   }, []);
 
@@ -608,35 +638,42 @@ function App() {
           <span className="reader-status">{status}</span>
         </div>
         <div className="pdf-host">
-          <PdfLoader
-            key={pdfUrl}
-            document={pdfDocumentSource}
-            beforeLoad={progress => <div className="loading">Loading PDF {progress.loaded ? `${Math.round(progress.loaded / 1024)} KB` : ''}</div>}
-            errorMessage={error => <div className="loading error">Could not load PDF: {error.message}</div>}
-            onError={error => {
-              if (!isExpectedPdfCancellation(error)) {
-                setStatus(`Could not load PDF: ${error.message}`);
-              }
-            }}
-          >
-            {pdfDocument => (
-              <PdfDocumentView
-                activeId={activeId}
-                highlights={highlights}
-                pdfDocument={pdfDocument}
-                selectionTip={selectionTip}
-                zoom={zoom}
-                onDelete={deleteAnnotation}
-                onDocumentReady={handleDocumentReady}
-                onOpen={editAnnotation}
-                onPageChange={handleVisiblePageChange}
-                onPinchZoom={handlePinchZoom}
-                onSelection={handleSelection}
-                onStyleChange={handleStyleChange}
-                utilsRef={handleHighlighterUtils}
-              />
-            )}
-          </PdfLoader>
+          {pdfWorkerError ? (
+            <div className="loading error">Could not start PDF worker: {pdfWorkerError}</div>
+          ) : pdfWorkerSrc ? (
+            <PdfLoader
+              key={pdfUrl}
+              document={pdfDocumentSource}
+              workerSrc={pdfWorkerSrc}
+              beforeLoad={progress => <div className="loading">Loading PDF {progress.loaded ? `${Math.round(progress.loaded / 1024)} KB` : ''}</div>}
+              errorMessage={error => <div className="loading error">Could not load PDF: {error.message}</div>}
+              onError={error => {
+                if (!isExpectedPdfCancellation(error)) {
+                  setStatus(`Could not load PDF: ${error.message}`);
+                }
+              }}
+            >
+              {pdfDocument => (
+                <PdfDocumentView
+                  activeId={activeId}
+                  highlights={highlights}
+                  pdfDocument={pdfDocument}
+                  selectionTip={selectionTip}
+                  zoom={zoom}
+                  onDelete={deleteAnnotation}
+                  onDocumentReady={handleDocumentReady}
+                  onOpen={editAnnotation}
+                  onPageChange={handleVisiblePageChange}
+                  onPinchZoom={handlePinchZoom}
+                  onSelection={handleSelection}
+                  onStyleChange={handleStyleChange}
+                  utilsRef={handleHighlighterUtils}
+                />
+              )}
+            </PdfLoader>
+          ) : (
+            <div className="loading">Starting PDF worker...</div>
+          )}
         </div>
       </section>
     </SelectionToolbarContext.Provider>
@@ -668,7 +705,7 @@ function App() {
       <aside className="side-panel" aria-hidden={!sidebarVisible}>
         <header className="side-panel-header">
           <div>
-            <p className="eyebrow">Reading Extension</p>
+            <p className="eyebrow">Inleaf Reader</p>
             <h1>{paperName || state.paperName || readerConfig.paperName}</h1>
           </div>
           <button
@@ -709,7 +746,7 @@ function App() {
               <dl className="meta-list">
                 <div>
                   <dt>Provider</dt>
-                  <dd>{translationMode === 'deepseek' ? 'DeepSeek AI' : 'Local Argos'}</dd>
+                  <dd>{translationProvider === 'deepseek' ? 'DeepSeek AI' : translationProvider === 'libretranslate' ? 'LibreTranslate' : 'Local Argos'}</dd>
                 </div>
                 <div>
                   <dt>Languages</dt>
@@ -730,29 +767,6 @@ function App() {
 
         {activeSidebarTab === 'annotations' ? (
           <section className="side-tab-panel list-block">
-            {editingId ? (
-              <section className="tool-block edit-panel">
-                <h2>Editing Annotation</h2>
-                <div className="edit-status">Changes autosave while this panel is open.</div>
-                <label htmlFor="annotationColor">Highlight color</label>
-                <select id="annotationColor" value={color} onChange={event => setColor(event.target.value)}>
-                  {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                <label htmlFor="annotationKind">Annotation style</label>
-                <select id="annotationKind" value={kind} onChange={event => setKind(event.target.value as AnnotationKind)}>
-                  <option value="highlight">Highlight</option>
-                  <option value="underline">Underline</option>
-                </select>
-                <label htmlFor="annotationTags">Tags</label>
-                <input id="annotationTags" value={tags} onChange={event => setTags(event.target.value)} placeholder="method, question, todo" />
-                <textarea rows={4} value={note} onChange={event => setNote(event.target.value)} placeholder="Your annotation" />
-                <div className="actions">
-                  <button onClick={saveAnnotation}>Save now</button>
-                  <button className="secondary-button" onClick={clearAnnotationDraft}>Cancel edit</button>
-                </div>
-              </section>
-            ) : null}
-
             <section className="tool-block">
               <h2>Saved Annotations</h2>
               <input type="search" value={annotationQuery} onChange={event => setAnnotationQuery(event.target.value)} placeholder="Search annotations" />
@@ -827,7 +841,7 @@ function App() {
                   vscode.postMessage({ type: 'setTranslationMode', payload: { mode } });
                 }}
               >
-                <option value="local">Local translation (Argos + ECDICT)</option>
+                <option value="local">Offline dictionary + local translation</option>
                 <option value="deepseek">AI translation (DeepSeek V4 Flash)</option>
               </select>
               {translationMode === 'deepseek' ? (
@@ -843,7 +857,19 @@ function App() {
                   </button>
                 </>
               ) : (
-                <div className="provider-status ready">Translation stays on this machine.</div>
+                <>
+                  <div className={`provider-status ${dictionaryReady ? 'ready' : 'missing'}`}>
+                    {dictionaryReady ? 'Offline dictionary is ready.' : 'Offline dictionary is missing.'}
+                  </div>
+                  {translationProvider === 'argos' ? (
+                    <div className={`provider-status ${argosPythonFound ? 'ready' : 'missing'}`}>
+                      {argosPythonFound ? 'Argos Python was found.' : 'Argos is not configured for sentence translation.'}
+                    </div>
+                  ) : null}
+                  <button className="secondary-button" onClick={() => vscode.postMessage({ type: 'diagnoseTranslation' })}>
+                    Diagnose translation setup
+                  </button>
+                </>
               )}
             </section>
             <section className="tool-block">
@@ -885,7 +911,7 @@ function PdfDocumentView({
   zoom: PdfScaleValue;
   onDelete(annotation: AnnotationRecord): void;
   onDocumentReady(numPages: number): void;
-  onOpen(annotation: AnnotationRecord): void;
+  onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
   onPageChange(page: number): void;
   onPinchZoom(deltaY: number): void;
   onSelection(selection: PdfSelection): void;
@@ -928,13 +954,13 @@ function PdfDocumentView({
     if (!viewer || typeof event.pageNumber !== 'number') {
       return;
     }
+    if (!viewerContainerRef.current?.classList.contains('pdf-scale-in-progress')) {
+      return;
+    }
     window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
     highlightSyncFrameRef.current = window.requestAnimationFrame(() => {
       const pageView = viewer.getPageView(event.pageNumber! - 1);
       const pageElement = pageView?.div as HTMLElement | undefined;
-      if (pageElement) {
-        markPageSelectionRegions(pageElement);
-      }
       for (const layer of getHighlightLayers(pageElement || null)) {
         layer.style.transform = '';
         layer.style.transformOrigin = '';
@@ -956,6 +982,10 @@ function PdfDocumentView({
 
   const handlePointerDown = useCallback((event: PointerEvent) => {
     const target = event.target instanceof Element ? event.target : null;
+    const pageElement = target?.closest<HTMLElement>('.page');
+    if (pageElement) {
+      markPageSelectionRegions(pageElement);
+    }
     viewerContainerRef.current?.classList.toggle(
       'allow-non-body-text-selection',
       !!target?.closest('.reader-margin-text, .reader-figure-text')
@@ -985,7 +1015,6 @@ function PdfDocumentView({
       nextViewerContainer?.addEventListener('pointerdown', handlePointerDown, true);
       viewerContainerRef.current = nextViewerContainer;
       renderedHighlightScaleRef.current = nextViewer?.currentScale;
-      nextViewerContainer?.querySelectorAll<HTMLElement>('.page').forEach(markPageSelectionRegions);
     }
     utilsRef(utils);
   }, [handlePageChanging, handlePointerDown, handleWheel, utilsRef]);
@@ -1032,7 +1061,7 @@ function HighlightContainer({
   onDelete
 }: {
   activeId?: string;
-  onOpen(annotation: AnnotationRecord): void;
+  onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
   onStyleChange(annotation: AnnotationRecord, color: string, kind: AnnotationKind): void;
   onDelete(annotation: AnnotationRecord): void;
 }) {
@@ -1085,7 +1114,7 @@ function HighlightContainer({
         highlightColor={annotation.color || '#ffd654'}
         highlightStyle={(annotation.kind || 'highlight') === 'underline' ? 'underline' : 'highlight'}
         copyText={annotation.selectedText}
-        onClick={() => onOpen(annotation)}
+        onClick={() => onOpen(annotation, highlight.position)}
         onDelete={() => onDelete(annotation)}
         onStyleChange={style => {
           onStyleChange(
@@ -1387,11 +1416,17 @@ function groupTextSpansIntoLines(
   }> = [];
 
   for (const item of items) {
-    const line = lines.find(
-      candidate =>
+    let line: typeof lines[number] | undefined;
+    for (let index = lines.length - 1; index >= Math.max(0, lines.length - 8); index -= 1) {
+      const candidate = lines[index];
+      if (
         Math.abs((candidate.top + candidate.bottom) / 2 - (item.top + item.bottom) / 2) <
         Math.max(candidate.height, item.height) * 0.65
-    );
+      ) {
+        line = candidate;
+        break;
+      }
+    }
     if (line) {
       line.items.push(item);
       line.top = Math.min(line.top, item.top);
@@ -1615,6 +1650,124 @@ function doSaveAnnotation(
   return true;
 }
 
+function InlineAnnotationEditor({
+  annotation,
+  onCancel,
+  onSave
+}: {
+  annotation: AnnotationRecord;
+  onCancel(): void;
+  onSave(patch: {
+    selectedText: string;
+    note: string;
+    tags: string[];
+    color: string;
+    kind: AnnotationKind;
+  }): void;
+}) {
+  const [draftText, setDraftText] = useState(annotation.selectedText || '');
+  const [draftNote, setDraftNote] = useState(annotation.note || '');
+  const [draftTags, setDraftTags] = useState((annotation.tags || []).join(', '));
+  const [draftColor, setDraftColor] = useState(annotation.color || '#ffd654');
+  const [draftKind, setDraftKind] = useState<AnnotationKind>(annotation.kind || 'highlight');
+  const noteInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const canSave = !!(draftText.trim() || draftNote.trim());
+
+  useEffect(() => {
+    noteInputRef.current?.focus();
+  }, []);
+
+  function save() {
+    if (!canSave) {
+      noteInputRef.current?.focus();
+      return;
+    }
+    onSave({
+      selectedText: draftText.trim(),
+      note: draftNote.trim(),
+      tags: normalizeTags(draftTags),
+      color: draftColor,
+      kind: draftKind
+    });
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      save();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      onCancel();
+    }
+  }
+
+  return (
+    <div
+      className="selection-toolbar annotation-inline-editor"
+      onClick={event => event.stopPropagation()}
+      onKeyDown={handleKeyDown}
+      onMouseDown={event => event.stopPropagation()}
+      onPointerDown={event => event.stopPropagation()}
+    >
+      <div className="annotation-inline-title">Edit annotation</div>
+      <div className="selection-toolbar-row">
+        {colorOptions.map(option => (
+          <button
+            key={option.value}
+            className={`swatch${draftColor === option.value ? ' active' : ''}`}
+            style={{ background: option.value }}
+            title={option.label}
+            onClick={() => setDraftColor(option.value)}
+          />
+        ))}
+        <button
+          className={draftKind === 'highlight' ? 'active-command' : ''}
+          onClick={() => setDraftKind('highlight')}
+        >
+          HL
+        </button>
+        <button
+          className={draftKind === 'underline' ? 'active-command' : ''}
+          onClick={() => setDraftKind('underline')}
+        >
+          UL
+        </button>
+      </div>
+      <label>
+        Original text
+        <textarea
+          rows={2}
+          value={draftText}
+          onChange={event => setDraftText(event.target.value)}
+          placeholder="Selected PDF text"
+        />
+      </label>
+      <label>
+        Note
+        <textarea
+          ref={noteInputRef}
+          rows={3}
+          value={draftNote}
+          onChange={event => setDraftNote(event.target.value)}
+          placeholder="Write a note..."
+        />
+      </label>
+      <label>
+        Tags
+        <input
+          value={draftTags}
+          onChange={event => setDraftTags(event.target.value)}
+          placeholder="method, question, todo"
+        />
+      </label>
+      <div className="selection-note-actions">
+        <button onClick={onCancel}>Cancel</button>
+        <button onClick={save} disabled={!canSave}>Save</button>
+      </div>
+    </div>
+  );
+}
+
 function SelectionToolbar() {
   const context = React.useContext(SelectionToolbarContext);
   if (!context) {
@@ -1710,8 +1863,8 @@ function SelectionToolbar() {
             rows={3}
           />
           <div className="selection-note-actions">
-            <button onClick={saveNote} disabled={!noteText.trim()}>Save</button>
             <button onClick={() => setActiveEditor(undefined)}>Cancel</button>
+            <button onClick={saveNote} disabled={!noteText.trim()}>Save</button>
           </div>
         </div>
       ) : null}
@@ -1878,6 +2031,15 @@ function isExpectedPdfCancellation(reason: unknown) {
   const message = reason instanceof Error ? reason.message : String(reason || '');
   return /worker was (?:terminated|destroyed)/i.test(message)
     || /loading aborted/i.test(message);
+}
+
+async function createPdfWorkerBlobUrl(resourceUrl: string) {
+  const response = await fetch(resourceUrl);
+  if (!response.ok) {
+    throw new Error(`Worker resource request failed with HTTP ${response.status}.`);
+  }
+  const source = await response.arrayBuffer();
+  return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 }
 
 function getHighlightLayers(root: ParentNode | null) {

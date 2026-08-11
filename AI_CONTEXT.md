@@ -1,6 +1,6 @@
 # AI Context
 
-Last updated: 2026-06-24
+Last updated: 2026-08-08
 
 ## Why This Project Exists
 
@@ -9,6 +9,13 @@ papers and books convenient inside the editor while keeping annotations,
 vocabulary, and reading progress in portable sidecar files next to each PDF.
 The workflow should remain local-first, sync-friendly, stable, and usable
 beside coding AI extensions without requiring a paid API.
+
+The public product name is **Inleaf Reader** and its Chinese tagline is
+**“进入书本，进入心流”**. For upgrade and data compatibility, the internal
+extension id remains `ziming.reading-extension`, command and setting ids remain
+under `readingExtension.*`, and sidecars remain under `.reading-extension/`.
+The GitHub repository is `WORMMMMMM/inleaf-reader`; the local directory name may
+remain `reading-extension`.
 
 ## Product Priorities
 
@@ -38,8 +45,10 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   progress content is stored in that index.
 - `webview/src/main.tsx` owns the React reader UI, PDF interactions,
   annotation controls, translation display, and wordbook controls.
-- `scripts/argos_translate_daemon.py` is the normal local translation path. It
-  keeps Argos Translate and the ECDICT dictionary loaded between requests.
+- `scripts/argos_translate_daemon.py` is the normal local sentence-translation
+  path. It keeps Argos loaded and matches responses with request ids.
+- `src/ecdictClient.ts` and `src/ecdictWorker.ts` provide lazy, Python-free
+  offline dictionary lookup outside the extension-host main thread.
 - `scripts/ecdict_compact.json.gz` is the committed offline dictionary bundle.
   The current file is about 22 MB and contains 770,611 entries.
 - `media/reader-app.js` and `media/reader-app.css` are generated Webview assets
@@ -57,6 +66,10 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 
 ### Reader and persistence
 
+- The PDF editor-title action uses the theme-specific custom nested-book SVGs
+  under `assets/`. VS Code renders only the compact brand icon in the editor
+  toolbar while retaining `Inleaf Reader: Open Paper Reader` as the tooltip
+  and Command Palette title.
 - The Webview panel uses `retainContextWhenHidden: true`.
 - The page indicator and saved reading progress follow PDF.js `pagechanging`
   events, including continuous scrolling with a mouse wheel or trackpad.
@@ -68,6 +81,17 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 - Each PDF URL gets a fresh `PdfLoader` instance. Expected PDF.js worker
   termination during a document switch is ignored by runtime error boundaries
   instead of being shown as a reader startup failure.
+- PDF.js now loads `media/pdfjs-dist/pdf.worker.min.mjs` as a real Web Worker.
+  The Webview first fetches the extension resource, wraps its bytes in a
+  JavaScript `Blob`, and passes the resulting `blob:` URL to `PdfLoader`.
+  Direct module-worker loading from the VS Code extension-resource URL failed
+  in an installed VSIX. Parsing and image decoding remain off the Webview UI
+  thread; do not restore either that direct URL or the previous in-bundle
+  `WorkerMessageHandler` fake-worker setup.
+- Large documents disable eager auto-fetching, request 1 MiB ranges, cap a
+  single canvas image allocation at 64 MiB, and enable PDF.js hardware
+  acceleration when the Webview supports it. This specifically targets
+  image-heavy books such as the 172 MB, 189-page EasyRL PDF.
 - PDF loading uses `disableFontFace: true` and disables system-font fallback.
   PDF.js draws embedded glyphs with its built-in path renderer, avoiding
   Chromium/Webview failures with CID CFF fonts that can otherwise lose Chinese
@@ -82,10 +106,15 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   state commit until the gesture pauses. Existing highlight layers receive the
   same temporary scale transform and return to exact viewport coordinates when
   PDF.js finishes rendering the new text/page layer.
-- The right reader sidebar can be hidden from either the PDF toolbar or the
-  sidebar header, allowing the PDF to use the full Webview width. Translation
-  selects the Translation tab without forcing a hidden sidebar open. Annotation
-  editing and saving a word still reopen the relevant sidebar tab.
+- The right reader sidebar starts hidden and can be shown only from the PDF
+  toolbar. Translation, annotation editing, and word saving can update the
+  relevant background tab state but never make the panel visible.
+- Clicking an existing PDF highlight opens a tip-positioned inline editor next
+  to the highlight. It edits color, highlight/underline style, original text,
+  note, and tags, then saves through the normal `updateAnnotation` message.
+  Making original text editable provides a manual correction path for poor OCR.
+  The Annotations side list launches the same inline editor instead of owning a
+  separate editing form.
 - The sidebar toggle is placed before the flexible status text and cannot
   shrink, preventing VS Code's right-side UI from clipping the Show panel
   button.
@@ -97,10 +126,14 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   cross-page copy/translate/highlight selections. Starting a drag directly on
   margin text preserves the complete selection so those elements remain
   deliberately selectable.
-- Margin classification is cached on each PDF.js text layer, preventing
-  duplicate measurements when canvas and text-layer render events both fire.
-  Selection cleanup traverses only the pages between the Range start and end,
-  rather than every page currently rendered in the viewer.
+- Margin and figure classification runs lazily on pointer-down instead of from
+  PDF.js page/text-layer render events, then remains cached on that completed
+  text layer. This keeps repeated `getBoundingClientRect()` passes out of the
+  fast-scroll path. Selection cleanup traverses only the pages between the
+  Range start and end, rather than every page currently rendered in the viewer.
+- Fast `pagechanging` bursts still feed the debounced progress save, but update
+  the React page indicator at most once every 80 ms. Highlight-layer transform
+  synchronization also exits immediately unless a zoom render is active.
 - Completed text layers are also scanned for `Figure` / `Fig.` caption lines.
   A significant vertical gap before a caption defines the associated figure
   block; its text and caption are excluded when selection starts in body text.
@@ -124,6 +157,14 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   `navigateTo`, then accepts the following `state` payload.
 - Extension-host message errors are surfaced through both a Webview
   `stateError` message and `vscode.window.showErrorMessage`.
+- Every Webview request carries a document-session id. Stale requests are
+  rejected, except a debounced progress flush can still be routed to the
+  immediately previous PDF's captured `ReaderStorage`.
+- Annotation and word mutations are serialized per storage instance. JSON is
+  written by temp-file rename, retains a `.bak` previous version, and no longer
+  treats parse or permission errors as empty state.
+- Mutation responses use `statePatch`, avoiding the former reread of all three
+  JSON sidecars after every annotation or word change.
 
 ### Translation and dictionary
 
@@ -132,11 +173,12 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 - The Translation sidebar switches live between local Argos/ECDICT and
   DeepSeek AI, reports whether a key exists, and opens secure key setup without
   requiring the user to edit settings manually.
-- `Reading Extension: Set DeepSeek API Key` stores a newly generated key in
+- `Inleaf Reader: Set DeepSeek API Key` stores a newly generated key in
   VS Code SecretStorage and selects DeepSeek as the provider; the clear command
   deletes it and returns to Argos.
-- Normal Argos requests use a long-lived Python daemon instead of spawning a
-  one-shot process for every translation.
+- Normal Argos sentence requests use a long-lived Python daemon instead of
+  spawning a one-shot process for every translation.
+- ECDICT lookup no longer starts Python or imports Argos.
 - A single English word is routed to ECDICT lookup; multi-word text is routed
   to Argos neural translation.
 - Dictionary results can include phonetics, Chinese translations, English
@@ -152,6 +194,8 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   shown for a newer selection.
 - `scripts/build_ecdict_compact.py` rebuilds the committed gzip from upstream
   MIT-licensed ECDICT data.
+- The Translation tab reports dictionary and Argos-Python readiness and can
+  launch `Inleaf Reader: Diagnose Translation Setup`.
 
 ### Documentation and generated assets
 
@@ -173,28 +217,37 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
   showing the reader, Wordbook sidebar, PDF content, and adjacent AI tooling in
   a real VS Code-style workflow.
 - The README header uses a compact centered stack: 112px logo, product name,
-  short category line, and one-sentence value proposition above the screenshot.
-- `assets/reading-extension-logo.png` is the high-resolution project logo;
-  `assets/reading-extension-icon.png` is its 256px Marketplace variant and is
-  wired through the extension manifest's `icon` field.
+  the Chinese tagline “进入书本，进入心流”, a short category line, and a
+  one-sentence value proposition above the screenshot.
+- `assets/reading-extension-logo.png` is the high-resolution transparent
+  project logo. Its two nested open-book outlines express moving from a reading
+  space into a focused flow state. Its heavier strokes preserve the mark at
+  small sizes. `assets/reading-extension-icon.png` is its 256px Marketplace
+  variant and is wired through the extension manifest's `icon` field. The
+  matching light/dark toolbar SVGs are wired through the Open Reader command.
 - The repository is licensed under MIT through the root `LICENSE`; third-party
   components and bundled assets retain their respective licenses.
 - Generated `media/reader-app.js` and `media/reader-app.css` are included.
-- `npm run compile` also refreshes `media/pdfjs-dist` and bundles the extension
-  host into `out/extension.js`, allowing VSIX packaging without shipping the
-  full `node_modules` tree.
+- `media/reader-pdf_viewer.js` is a stable-name generated chunk used by the
+  Webview; Vite `codeSplitting: false` replaces the deprecated
+  `inlineDynamicImports` setting.
+- `npm run compile` also refreshes the PDF.js Worker, CMaps, and standard fonts
+  under `media/pdfjs-dist` and bundles the extension host into
+  `out/extension.js`, allowing VSIX packaging without shipping the full
+  `node_modules` tree.
 
 ## Known Risks and Items to Verify
 
 1. Manually switch between two PDFs that already have different sidecars.
    Confirm the second PDF immediately receives its own annotations, wordbook,
    and saved page rather than showing empty or stale state.
-2. Confirm that autosave messages cannot land in the wrong PDF's
-   `ReaderStorage` during a rapid PDF switch.
-3. Test daemon startup, shutdown, timeout, and restart behavior. The current
-   request matching relies on daemon responses arriving in request order.
-4. Test one known dictionary word, one missing word, and one sentence. Confirm
-   missing words fall through to translation as intended.
+2. Confirm that document-session ids reject stale autosave messages during a
+   rapid PDF switch and that the pending old-page progress flush reaches only
+   the old PDF.
+3. Test daemon startup, shutdown, timeout, and restart behavior. Responses now
+   carry request ids, including after one request times out.
+4. Manually test one known dictionary word, one missing word, and one sentence.
+   The known/missing worker paths have automated coverage.
 5. Inspect the large generated `media/reader-app.js` diff only through the
    corresponding Webview source and build output; do not edit it manually.
 6. Complete the manual checks in `AGENTS.md` using a normal text PDF. Scanned
@@ -202,36 +255,44 @@ in `AGENTS.md`. The file-by-file architecture map lives in `project_map.md`.
 7. Move and rename a PDF that has been opened once by this build, leaving its
    old sidecars behind, and confirm annotations, words, and progress are copied
    to the new sidecar names. Existing destination files must remain unchanged.
+8. Open `EasyRL_v1.0.6.pdf`, rapidly scrub through image-heavy pages, and
+   compare scrolling with the previous fake-worker build. Also verify that
+   beginning a text selection still excludes cached margins and figure blocks.
 
 ## Validation Status
 
 Update this section whenever checks are rerun.
 
-- `npm test`: passed on 2026-06-24; this ran `npm run compile`, rebuilt
-  `media/reader-app.js` and `media/reader-app.css`, and passed the annotation
-  export and PDF identity regression suites.
-- `./node_modules/.bin/tsc -p tsconfig.webview.json --noEmit`: passed on
-  2026-06-24.
-- `node --check media/reader-app.js`: passed on 2026-06-24.
-- VSIX packaging: passed on 2026-06-24 with 201 files and a 24.53 MB package.
-  Verified that the package contains the bundled extension host, Webview,
-  169 CMaps, 16 standard-font files, translation scripts, and ECDICT, while
-  excluding `node_modules` and `.venv-translate`.
-- Normal VS Code installation: `ziming.reading-extension@0.0.1` installed and
-  its runtime files verified under the VS Code extensions directory.
-- Non-blocking build warning: Vite reports that `inlineDynamicImports` is
-  deprecated and recommends `codeSplitting: false`.
+- `npm test`: passed on 2026-08-08 for version 0.0.7 after the Inleaf Reader
+  rebrand. It rebuilt generated assets and passed
+  annotation export, PDF identity, serialized/atomic storage, and Python-free
+  ECDICT worker regressions, passed the Webview Worker loading and inline
+  annotation editor contracts, verified the editor-title command icon,
+  type-checked extension and Webview code, and syntax-checked the generated
+  Webview entry.
+- Argos daemon smoke test: passed on 2026-07-11 against the local `en -> zh`
+  model; request id `7` was echoed with a sentence translation.
+- VSIX packaging: passed on 2026-08-08 for version 0.0.7 with 204 files and a
+  25.67 MB package.
+  Verified `out/extension.js`, `out/ecdictWorker.js`, the stable PDF viewer
+  chunk, the 1.31 MB real PDF.js Worker, 169 CMaps, 16 fonts, translation
+  scripts, and ECDICT; auxiliary build modules, `node_modules`, and
+  `.venv-translate` are excluded.
+- Moving PDF.js out of the main Webview bundle reduced `reader-app.js` from
+  about 4.19 MB to 2.60 MB uncompressed (about 38%).
+- Isolated VS Code CLI installation: `ziming.reading-extension@0.0.7`
+  successfully installed while displaying `Inleaf Reader`. The packaged and
+  installed command titles, configuration title, Chinese tagline, toolbar
+  SVGs, and compatibility-preserving internal extension id were verified.
+- The prior Vite `inlineDynamicImports` deprecation warning is resolved.
 - Manual VS Code Extension Development Host checks: not completed yet.
 
 ## Recommended Next Steps
 
-1. Perform the two-PDF navigation test first because it motivated the latest
-   interruption.
-2. Exercise dictionary lookup and sentence translation against the local
-   `.venv-translate`.
-3. Address the Vite deprecation warning separately if the required config
-   change is small and behavior-preserving.
-4. Push the current commit only after the manual reader checks pass.
+1. Perform the two-PDF navigation and rapid-switch checks in an Extension
+   Development Host using PDFs with different sidecars.
+2. Complete the remaining manual reader UI checklist in `AGENTS.md`.
+3. Push only after those visual/manual checks pass.
 
 ## Handoff Rule
 

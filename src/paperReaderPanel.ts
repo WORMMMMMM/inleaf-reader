@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import { formatAnnotationMarkdownSnippet } from './annotationExports';
+import { EcdictClient } from './ecdictClient';
 import {
   AnnotationRecord,
   ProgressRecord,
@@ -16,7 +17,7 @@ export interface WordDetails {
   definitions: { pos: string; meaning: string; translation?: string }[];
 }
 
-type ReaderMessage =
+type ReaderMessage = (
   | { type: 'ready' }
   | { type: 'saveAnnotation'; payload: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | {
@@ -37,7 +38,9 @@ type ReaderMessage =
   | { type: 'saveProgress'; payload: ProgressRecord }
   | { type: 'setTranslationMode'; payload: { mode: 'local' | 'deepseek' } }
   | { type: 'configureDeepSeek' }
-  | { type: 'translate'; payload: { text: string } };
+  | { type: 'diagnoseTranslation' }
+  | { type: 'translate'; payload: { text: string } }
+) & { documentId: string };
 
 export class PaperReaderPanel {
   static readonly deepSeekApiKeySecret = 'readingExtension.deepSeekApiKey';
@@ -45,13 +48,17 @@ export class PaperReaderPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private storage: ReaderStorage;
+  private documentId = getNonce();
+  private readonly storageSessions = new Map<string, ReaderStorage>();
   private disposables: vscode.Disposable[] = [];
   private translationDaemon: cp.ChildProcess | undefined;
+  private daemonStartup?: Promise<void>;
   private daemonReady = false;
   private daemonPending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
   private daemonRequestId = 0;
   private daemonBuffer = '';
   private readonly recoveryNotifications = new WeakSet<ReaderStorage>();
+  private readonly dictionary: EcdictClient;
 
   static createOrShow(
     extensionUri: vscode.Uri,
@@ -95,7 +102,9 @@ export class PaperReaderPanel {
     private pdfUri: vscode.Uri
   ) {
     this.panel = panel;
+    this.dictionary = new EcdictClient(extensionUri);
     this.storage = new ReaderStorage(pdfUri, globalState);
+    this.storageSessions.set(this.documentId, this.storage);
     this.panel.webview.html = this.getHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage(
@@ -115,9 +124,18 @@ export class PaperReaderPanel {
   }
 
   private async navigateTo(pdfUri: vscode.Uri) {
+    const documentId = getNonce();
+    this.documentId = documentId;
     this.pdfUri = pdfUri;
     const storage = new ReaderStorage(pdfUri, this.globalState);
     this.storage = storage;
+    this.storageSessions.set(documentId, storage);
+    while (this.storageSessions.size > 2) {
+      const oldest = this.storageSessions.keys().next().value as string | undefined;
+      if (oldest) {
+        this.storageSessions.delete(oldest);
+      }
+    }
     this.panel.title = `Reader: ${path.basename(pdfUri.fsPath)}`;
     this.panel.webview.options = {
       ...this.panel.webview.options,
@@ -130,9 +148,11 @@ export class PaperReaderPanel {
     const pdfWebviewUri = this.panel.webview.asWebviewUri(pdfUri);
     await this.panel.webview.postMessage({
       type: 'navigateTo',
+      documentId,
       payload: {
         pdfUrl: pdfWebviewUri.toString(),
-        paperName: path.basename(pdfUri.fsPath)
+        paperName: path.basename(pdfUri.fsPath),
+        documentId
       }
     });
     await this.postState();
@@ -140,6 +160,12 @@ export class PaperReaderPanel {
 
   private async handleMessage(message: ReaderMessage) {
     try {
+      if (message.documentId !== this.documentId) {
+        if (message.type === 'saveProgress') {
+          await this.storageSessions.get(message.documentId)?.saveProgress(message.payload);
+        }
+        return;
+      }
       await this.dispatchMessage(message);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -152,25 +178,25 @@ export class PaperReaderPanel {
   }
 
   private async dispatchMessage(message: ReaderMessage) {
+    const storage = this.storage;
+    const documentId = message.documentId;
     switch (message.type) {
       case 'ready':
         await this.postState();
         break;
       case 'saveAnnotation':
-        await this.storage.addAnnotation(message.payload);
-        await this.postState();
+        await this.postStatePatch({ annotations: await storage.addAnnotation(message.payload) }, documentId);
         break;
       case 'updateAnnotation':
-        await this.storage.updateAnnotation(message.payload.id, message.payload.patch);
-        await this.postState();
+        await this.postStatePatch({
+          annotations: await storage.updateAnnotation(message.payload.id, message.payload.patch)
+        }, documentId);
         break;
       case 'deleteAnnotation':
-        await this.storage.deleteAnnotation(message.payload.id);
-        await this.postState();
+        await this.postStatePatch({ annotations: await storage.deleteAnnotation(message.payload.id) }, documentId);
         break;
       case 'restoreAnnotation':
-        await this.storage.restoreAnnotation(message.payload);
-        await this.postState();
+        await this.postStatePatch({ annotations: await storage.restoreAnnotation(message.payload) }, documentId);
         await this.postAnnotationActionResult('Annotation restored.');
         break;
       case 'copyAnnotationMarkdown':
@@ -190,15 +216,13 @@ export class PaperReaderPanel {
         await this.exportAnnotatedPdf();
         break;
       case 'saveWord':
-        await this.saveWord(message.payload);
-        await this.postState();
+        await this.postStatePatch({ words: await this.saveWord(storage, message.payload) }, documentId);
         break;
       case 'deleteWord':
-        await this.storage.deleteWord(message.payload.id);
-        await this.postState();
+        await this.postStatePatch({ words: await storage.deleteWord(message.payload.id) }, documentId);
         break;
       case 'saveProgress':
-        await this.storage.saveProgress(message.payload);
+        await storage.saveProgress(message.payload);
         break;
       case 'setTranslationMode':
         await this.setTranslationMode(message.payload.mode);
@@ -207,8 +231,12 @@ export class PaperReaderPanel {
         await vscode.commands.executeCommand('readingExtension.setDeepSeekApiKey');
         await this.postTranslationSettings();
         break;
+      case 'diagnoseTranslation':
+        await vscode.commands.executeCommand('readingExtension.diagnoseTranslation');
+        await this.postTranslationSettings();
+        break;
       case 'translate':
-        await this.translate(message.payload.text);
+        await this.translate(message.payload.text, documentId);
         break;
     }
   }
@@ -231,6 +259,7 @@ export class PaperReaderPanel {
 
     await this.panel.webview.postMessage({
       type: 'state',
+      documentId: this.documentId,
       payload: {
         annotations,
         words,
@@ -239,6 +268,16 @@ export class PaperReaderPanel {
       }
     });
     await this.postTranslationSettings();
+  }
+
+  private async postStatePatch(
+    payload: { annotations?: AnnotationRecord[]; words?: WordRecord[] },
+    documentId: string
+  ) {
+    if (documentId !== this.documentId) {
+      return;
+    }
+    await this.panel.webview.postMessage({ type: 'statePatch', documentId, payload });
   }
 
   private async prepareStorage(storage: ReaderStorage) {
@@ -269,19 +308,27 @@ export class PaperReaderPanel {
   }
 
   private async postTranslationSettings() {
-    const provider = vscode.workspace
-      .getConfiguration('readingExtension')
-      .get<string>('translationProvider') || 'argos';
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const provider = config.get<string>('translationProvider') || 'argos';
+    const configuredPython = config.get<string>('argosPythonPath')?.trim();
+    const pythonPath = configuredPython || path.join(this.extensionUri.fsPath, '.venv-translate', 'bin', 'python');
     await this.panel.webview.postMessage({
       type: 'translationSettings',
+      documentId: this.documentId,
       payload: {
         mode: provider === 'deepseek' ? 'deepseek' : 'local',
-        hasDeepSeekApiKey: !!(await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret))
+        provider,
+        hasDeepSeekApiKey: !!(await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret)),
+        dictionaryReady: fs.existsSync(path.join(this.extensionUri.fsPath, 'scripts', 'ecdict_compact.json.gz')),
+        argosPythonFound: fs.existsSync(pythonPath)
       }
     });
   }
 
-  private async saveWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
+  private async saveWord(
+    storage: ReaderStorage,
+    input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>
+  ) {
     const word = input.word.trim();
     if (!word) {
       throw new Error('No word provided.');
@@ -306,19 +353,20 @@ export class PaperReaderPanel {
       }
     }
 
-    await this.storage.addWord(enriched);
+    return storage.addWord(enriched);
   }
 
-  private async translate(text: string) {
+  private async translate(text: string, documentId: string) {
     const trimmed = text.trim();
     if (!trimmed) {
-      await this.postTranslationResult('', '', undefined, 'Select or paste text before translating.');
+      await this.postTranslationResult(documentId, '', '', undefined, 'Select or paste text before translating.');
       return;
     }
 
     try {
       const result = await this.translateWithLocalProvider(trimmed);
       await this.postTranslationResult(
+        documentId,
         trimmed,
         result.translatedText,
         result.wordDetails,
@@ -326,7 +374,7 @@ export class PaperReaderPanel {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await this.postTranslationResult(trimmed, '', undefined, message);
+      await this.postTranslationResult(documentId, trimmed, '', undefined, message);
     }
   }
 
@@ -338,17 +386,18 @@ export class PaperReaderPanel {
     const config = vscode.workspace.getConfiguration('readingExtension');
     const provider = config.get<string>('translationProvider') || 'argos';
 
-    if (provider === 'deepseek') {
-      if (this.isSingleWord(text)) {
-        try {
-          const dictionaryResult = await this.lookupWordDetails(text);
-          if (dictionaryResult.wordDetails) {
-            return dictionaryResult;
-          }
-        } catch {
-          // DeepSeek remains available when the optional local dictionary cannot start.
+    if (this.isSingleWord(text)) {
+      try {
+        const dictionaryResult = await this.lookupWordDetails(text);
+        if (dictionaryResult.wordDetails) {
+          return dictionaryResult;
         }
+      } catch {
+        // Keep the configured sentence provider available if dictionary data is missing.
       }
+    }
+
+    if (provider === 'deepseek') {
       try {
         const translatedText = await this.translateWithDeepSeek(text);
         return { translatedText };
@@ -361,9 +410,10 @@ export class PaperReaderPanel {
     if (provider === 'argos') {
       try {
         return await this.translateWithDaemon(text);
-      } catch {
+      } catch (error) {
         if (config.get<boolean>('translationFallbackToLibreTranslate') === false) {
-          throw new Error('Local translation failed and fallback is disabled.');
+          const detail = error instanceof Error ? error.message : String(error);
+          throw new Error(`Local Argos translation failed: ${detail} Run “Inleaf Reader: Diagnose Translation Setup” for details.`);
         }
       }
     }
@@ -390,14 +440,12 @@ export class PaperReaderPanel {
     const config = vscode.workspace.getConfiguration('readingExtension');
     const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
     const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
-    const mode = this.isSingleWord(text) ? 'dict' : 'translate';
-
     await this.ensureDaemon();
     const result = await this.daemonRequest<{
       translatedText?: string;
       wordDetails?: WordDetails;
       error?: string;
-    }>({ text, source, target, mode });
+    }>({ text, source, target, mode: 'translate' });
 
     if (result.error) {
       throw new Error(result.error);
@@ -410,25 +458,24 @@ export class PaperReaderPanel {
     translatedText?: string;
     wordDetails?: WordDetails;
   }> {
-    const config = vscode.workspace.getConfiguration('readingExtension');
-    const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
-    const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
-
-    await this.ensureDaemon();
-    const result = await this.daemonRequest<{
-      translatedText?: string;
-      wordDetails?: WordDetails;
-      error?: string;
-    }>({ text, source, target, mode: 'dict' });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result;
+    const wordDetails = await this.dictionary.lookup(text);
+    return {
+      wordDetails,
+      translatedText: wordDetails ? compactWordTranslation(wordDetails) : undefined
+    };
   }
 
-  private async ensureDaemon() {
+  private ensureDaemon() {
+    if (this.translationDaemon && this.daemonReady) {
+      return Promise.resolve();
+    }
+    this.daemonStartup ??= this.startDaemon().finally(() => {
+      this.daemonStartup = undefined;
+    });
+    return this.daemonStartup;
+  }
+
+  private async startDaemon() {
     if (this.translationDaemon && this.daemonReady) {
       return;
     }
@@ -453,10 +500,11 @@ export class PaperReaderPanel {
     this.translationDaemon = cp.spawn(pythonPath, [daemonPath], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
+    const daemon = this.translationDaemon;
 
     let stderr = '';
     this.translationDaemon.stderr?.on('data', chunk => {
-      stderr += chunk.toString();
+      stderr = `${stderr}${chunk.toString()}`.slice(-16000);
     });
 
     this.translationDaemon.on('error', () => {
@@ -488,11 +536,9 @@ export class PaperReaderPanel {
             this.daemonReady = true;
             continue;
           }
-          // Resolve the oldest pending request
-          const next = this.daemonPending.entries().next();
-          if (next.done) continue;
-          const [id, pending] = next.value;
-          if (pending && id !== undefined) {
+          const id = Number(parsed.requestId);
+          const pending = this.daemonPending.get(id);
+          if (pending) {
             this.daemonPending.delete(id);
             pending.resolve(parsed);
           }
@@ -504,20 +550,31 @@ export class PaperReaderPanel {
 
     // Wait for ready signal
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        clearInterval(poll);
+        daemon.off('close', handleEarlyClose);
+        daemon.off('error', handleEarlyError);
+        error ? reject(error) : resolve();
+      };
+      const handleEarlyClose = () => finish(new Error(
+        `Translation daemon exited before it became ready.${stderr.trim() ? ` ${stderr.trim()}` : ''}`
+      ));
+      const handleEarlyError = (error: Error) => finish(error);
       const timeout = setTimeout(() => {
         this.killDaemon();
-        reject(new Error('Translation daemon failed to start within 60 seconds.'));
+        finish(new Error('Translation daemon failed to start within 60 seconds.'));
       }, 60000);
-
-      const checkReady = () => {
+      const poll = setInterval(() => {
         if (this.daemonReady) {
-          clearTimeout(timeout);
-          resolve();
-        } else {
-          setTimeout(checkReady, 100);
+          finish();
         }
-      };
-      checkReady();
+      }, 100);
+      daemon.once('close', handleEarlyClose);
+      daemon.once('error', handleEarlyError);
     });
   }
 
@@ -543,7 +600,7 @@ export class PaperReaderPanel {
         reject(new Error('Translation daemon request timed out.'));
       }, 30000);
 
-      this.translationDaemon?.stdin?.write(JSON.stringify(payload) + '\n');
+      this.translationDaemon?.stdin?.write(JSON.stringify({ ...payload, requestId: id }) + '\n');
     });
   }
 
@@ -561,6 +618,7 @@ export class PaperReaderPanel {
   }
 
   private postTranslationResult(
+    documentId: string,
     sourceText: string,
     translatedText?: string,
     wordDetails?: WordDetails,
@@ -568,6 +626,7 @@ export class PaperReaderPanel {
   ) {
     return this.panel.webview.postMessage({
       type: 'translationResult',
+      documentId,
       payload: { sourceText, translatedText, wordDetails, error }
     });
   }
@@ -575,7 +634,7 @@ export class PaperReaderPanel {
   private async translateWithDeepSeek(text: string) {
     const apiKey = await this.secrets.get(PaperReaderPanel.deepSeekApiKeySecret);
     if (!apiKey) {
-      throw new Error('DeepSeek API key is not configured. Run “Reading Extension: Set DeepSeek API Key”.');
+      throw new Error('DeepSeek API key is not configured. Run “Inleaf Reader: Set DeepSeek API Key”.');
     }
 
     const config = vscode.workspace.getConfiguration('readingExtension');
@@ -627,7 +686,7 @@ export class PaperReaderPanel {
       if (!response.ok) {
         const detail = data.error?.message?.trim();
         if (response.status === 401) {
-          throw new Error('DeepSeek rejected the API key. Run “Reading Extension: Set DeepSeek API Key” with a valid key.');
+          throw new Error('DeepSeek rejected the API key. Run “Inleaf Reader: Set DeepSeek API Key” with a valid key.');
         }
         throw new Error(detail || `DeepSeek returned HTTP ${response.status}.`);
       }
@@ -786,14 +845,19 @@ export class PaperReaderPanel {
     const standardFontDataUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'standard_fonts')
     );
+    const pdfWorkerUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'pdf.worker.min.mjs')
+    );
     const config = vscode.workspace.getConfiguration('readingExtension');
     const nonce = getNonce();
     const readerConfig = JSON.stringify({
+      documentId: this.documentId,
       pdfUrl: pdfWebviewUri.toString(),
       paperName: path.basename(this.pdfUri.fsPath),
       translationProvider: config.get<string>('translationProvider') || 'argos',
       translationSource: config.get<string>('translationSource') || 'auto',
       translationTarget: config.get<string>('translationTarget') || 'zh',
+      pdfWorkerUrl: pdfWorkerUri.toString(),
       pdfCMapUrl: ensureTrailingSlash(cMapUri.toString()),
       pdfStandardFontDataUrl: ensureTrailingSlash(standardFontDataUri.toString())
     });
@@ -802,10 +866,10 @@ export class PaperReaderPanel {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; img-src ${webview.cspSource} data:; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource}; worker-src ${webview.cspSource} blob: data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; img-src ${webview.cspSource} data:; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource} blob:; worker-src blob: data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="${styleUri}" rel="stylesheet">
-  <title>Reading Extension</title>
+  <title>Inleaf Reader</title>
 </head>
 <body>
   <main id="startupStatus" class="startup-state">
@@ -846,6 +910,7 @@ export class PaperReaderPanel {
 
   private dispose() {
     this.killDaemon();
+    this.dictionary.dispose();
     PaperReaderPanel.currentPanel = undefined;
     while (this.disposables.length) {
       const disposable = this.disposables.pop();

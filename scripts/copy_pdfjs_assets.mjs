@@ -12,7 +12,11 @@ await Promise.all([
   cp(path.join(sourceRoot, 'cmaps'), path.join(targetRoot, 'cmaps'), { recursive: true }),
   cp(path.join(sourceRoot, 'standard_fonts'), path.join(targetRoot, 'standard_fonts'), {
     recursive: true
-  })
+  }),
+  cp(
+    path.join(sourceRoot, 'build', 'pdf.worker.min.mjs'),
+    path.join(targetRoot, 'pdf.worker.min.mjs')
+  )
 ]);
 
-console.log('Copied PDF.js CMaps and standard fonts into media/pdfjs-dist.');
+console.log('Copied PDF.js worker, CMaps, and standard fonts into media/pdfjs-dist.');

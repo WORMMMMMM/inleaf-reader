@@ -1,17 +1,18 @@
 <div align="center">
-  <img src="assets/reading-extension-logo.png" width="112" alt="Reading Extension logo">
-  <h1>Reading Extension</h1>
-  <p><strong>A local-first PDF reader for VS Code</strong></p>
+  <img src="assets/reading-extension-logo.png" width="112" alt="Inleaf Reader logo">
+  <h1>Inleaf Reader</h1>
+  <p><strong>进入书本，进入心流</strong></p>
+  <p>A local-first PDF reader for VS Code</p>
   <p>Annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.</p>
 </div>
 
-![Reading Extension interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
+![Inleaf Reader interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
 
 ## Why I Built This
 
 I wanted to read papers without bouncing between a separate reader and my editor. Since I'm already using AI assistants like Codex and Claude Code in VS Code, it felt natural to keep my reading workflow in the same place.
 
-Reading Extension focuses on three things:
+Inleaf Reader focuses on three things:
 
 1. Annotate papers and books while you read.
 2. Save unfamiliar words to a simple wordbook.
@@ -23,11 +24,12 @@ Optional DeepSeek translation uses your own DeepSeek API key. Local translation 
 
 ### PDF reading
 
-- Open a PDF from the Command Palette, or open the reader while a PDF is already active.
+- Open a PDF from the Command Palette, the Explorer context menu, or the PDF editor title bar.
 - Continuous scrolling with synced page progress.
 - Trackpad scrolling and pinch-to-zoom.
 - Fit-page and fit-width controls.
-- Collapsible sidebar for a distraction-free reading view.
+- User-invoked sidebar that stays hidden until requested, for a distraction-free reading view.
+- PDF-anchored inline editing for existing annotations, including manual correction of OCR text.
 - Bundled PDF.js CMaps and standard fonts for better multilingual PDF support.
 
 ### Text selection
@@ -77,27 +79,42 @@ For a PDF named `paper.pdf`, the extension stores its data alongside the PDF:
 
 These are plain local files — you can sync them with Git, iCloud Drive, Dropbox, Syncthing, or any file sync tool.
 
+JSON updates use atomic replacement and keep the previous valid version as a
+`.bak` file. The backup is recovery data; the JSON file remains the active source.
+
 The extension computes a lightweight content fingerprint so it can recover sidecar files after a PDF is moved or renamed. Existing files at the new location are never overwritten.
 
 ## Installation
 
 ### VS Code Marketplace
 
-Once it's publicly released, search for **Reading Extension** in the VS Code Extensions view and hit **Install**.
+Once it's publicly released, search for **Inleaf Reader** in the VS Code Extensions view and hit **Install**.
 
 ### Install from a VSIX
 
-Download the latest `.vsix`, then run:
+Download the `.vsix` from the
+[latest GitHub release](https://github.com/WORMMMMMM/inleaf-reader/releases/latest), then run:
 
 ```bash
-code --install-extension reading-extension-0.0.1.vsix
+code --install-extension reading-extension-0.0.7.vsix
 ```
 
 Or use **Extensions: Install from VSIX...** from the Command Palette.
 
+## Quick Start
+
+1. Right-click a PDF in the Explorer and choose **Inleaf Reader: Open Paper Reader**.
+   The same action is available as the blue nested-book icon in the PDF editor title toolbar.
+2. Select text to open the floating annotation and translation toolbar.
+3. Single English words use the bundled offline dictionary immediately.
+4. For sentence translation, choose DeepSeek or configure Argos in the Translation panel.
+5. If translation is unavailable, run **Inleaf Reader: Diagnose Translation Setup**.
+
+The first reader launch also offers a short VS Code Getting Started walkthrough.
+
 ## Bundled Runtime Assets
 
-If you install Reading Extension from the Marketplace or from the provided
+If you install Inleaf Reader from the Marketplace or from the provided
 VSIX, the offline dictionary and PDF font resources are already included. You
 do not need to download or configure them manually.
 
@@ -110,22 +127,28 @@ scripts/ecdict_compact.json.gz
 ```
 
 This compressed dictionary currently contains about 770,000 English entries.
-It is loaded locally when you translate a single English word. Dictionary
-lookups do not require Python, a network connection, or an API key.
+It is loaded in a background Node worker when you translate a single English
+word. Dictionary lookups do not require Python, Argos, a network connection, or
+an API key. The worker is started lazily so the dictionary does not slow normal
+PDF startup.
 
-### PDF.js CMaps and standard fonts
+### PDF.js worker, CMaps, and standard fonts
 
 PDFs may use character maps or refer to standard fonts without embedding every
-required resource. Reading Extension therefore bundles:
+required resource. Inleaf Reader also keeps parsing and image decoding off
+the reader UI thread by bundling the matching PDF.js Web Worker:
 
 ```text
+media/pdfjs-dist/pdf.worker.min.mjs
 media/pdfjs-dist/cmaps/
 media/pdfjs-dist/standard_fonts/
 ```
 
 The current package contains the complete PDF.js set of 169 Adobe CMaps and 16
-standard-font resource files. They are used automatically when a PDF needs
-them. Fonts embedded inside a PDF still come from the PDF itself.
+standard-font resource files. The Webview fetches the packaged worker and starts
+it from a `blob:` URL, as required by VS Code's Webview worker sandbox. These
+resources are used automatically; no separate browser or PDF.js setup is
+required. Fonts embedded inside a PDF still come from the PDF itself.
 
 ### What is not bundled
 
@@ -134,14 +157,6 @@ included in the VSIX because Python environments and native dependencies are
 platform-specific. Install them separately only if you want local sentence or
 paragraph translation. Offline ECDICT word lookup and the bundled PDF
 resources work without Argos.
-
-## Quick Start
-
-1. Open the Command Palette.
-2. Run **Reading Extension: Open Paper Reader**.
-3. Select an existing PDF or open the command while a PDF is active.
-4. Select text to open the floating annotation and translation toolbar.
-5. Use the sidebar to view annotations, saved words, translation settings, and document status.
 
 ## Translation Setup
 
@@ -221,18 +236,18 @@ On Windows, the executable normally ends with:
 .reading-extension-argos\Scripts\python.exe
 ```
 
-Restart the reader after changing the setting. The first translation starts
+Restart the reader after changing the setting. The first sentence translation starts
 the local daemon and loads the model; later translations reuse that process.
 
 ### DeepSeek
 
 1. Generate a DeepSeek API key.
-2. Run **Reading Extension: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
+2. Run **Inleaf Reader: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
 3. Enter the key when prompted.
 
 The key is stored with VS Code SecretStorage — it's never written to settings, sidecar files, logs, or the Webview.
 
-Run **Reading Extension: Clear DeepSeek API Key** to remove it.
+Run **Inleaf Reader: Clear DeepSeek API Key** to remove it.
 
 ### LibreTranslate
 
@@ -283,18 +298,20 @@ Review the privacy terms of any external translation service before using it wit
 
 | Command | Description |
 | --- | --- |
-| `Reading Extension: Open Paper Reader` | Open the current PDF or select one from disk. |
-| `Reading Extension: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
-| `Reading Extension: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
+| `Inleaf Reader: Open Paper Reader` | Open the current PDF or select one from disk. |
+| `Inleaf Reader: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
+| `Inleaf Reader: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
+| `Inleaf Reader: Diagnose Translation Setup` | Report dictionary, Argos, fallback, and DeepSeek readiness. |
 
 ## Contributing
 
-Issues and pull requests are welcome on
-[GitHub](https://github.com/WORMMMMMM/reading-extension).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the local build, test, and manual
+reader-check workflow. Issues and pull requests are welcome on
+[GitHub](https://github.com/WORMMMMMM/inleaf-reader).
 
 ## Acknowledgements
 
-Reading Extension is built with open-source projects including:
+Inleaf Reader is built with open-source projects including:
 
 - [PDF.js](https://mozilla.github.io/pdf.js/)
 - [react-pdf-highlighter-plus](https://github.com/DanielArnould/react-pdf-highlighter-plus)
@@ -306,4 +323,4 @@ Third-party components and bundled assets remain subject to their respective lic
 
 ## License
 
-Reading Extension is released under the [MIT License](LICENSE).
+Inleaf Reader is released under the [MIT License](LICENSE).

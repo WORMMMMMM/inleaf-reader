@@ -56,6 +56,10 @@ export class ReaderStorage {
   private readonly baseName: string;
   private readonly location: PdfLocation;
   private preparation?: Promise<StoragePreparationResult>;
+  private annotationsCache?: Promise<AnnotationRecord[]>;
+  private wordsCache?: Promise<WordRecord[]>;
+  private progressCache?: Promise<ProgressRecord>;
+  private mutationQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly pdfUri: vscode.Uri,
@@ -72,65 +76,81 @@ export class ReaderStorage {
   }
 
   async readAnnotations(): Promise<AnnotationRecord[]> {
-    return this.readJson<AnnotationRecord[]>(this.fileUri('annotations'), []);
+    await this.mutationQueue;
+    return this.loadAnnotations();
   }
 
   async readWords(): Promise<WordRecord[]> {
-    return this.readJson<WordRecord[]>(this.fileUri('wordbook'), []);
+    await this.mutationQueue;
+    return this.loadWords();
   }
 
   async readProgress(): Promise<ProgressRecord> {
-    return this.readJson<ProgressRecord>(this.fileUri('progress'), {
-      updatedAt: new Date(0).toISOString()
-    });
+    await this.mutationQueue;
+    return this.loadProgress();
   }
 
   async addAnnotation(input: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'>) {
-    const now = new Date().toISOString();
-    const annotations = await this.readAnnotations();
-    annotations.unshift({
-      ...input,
-      color: input.color ?? '#ffd654',
-      kind: input.kind ?? 'highlight',
-      id: cryptoRandomId(),
-      createdAt: now,
-      updatedAt: now
+    return this.enqueueMutation(async () => {
+      this.annotationsCache = undefined;
+      const now = new Date().toISOString();
+      const annotations = await this.loadAnnotations();
+      const updated = [{
+        ...input,
+        color: input.color ?? '#ffd654',
+        kind: input.kind ?? 'highlight',
+        id: cryptoRandomId(),
+        createdAt: now,
+        updatedAt: now
+      }, ...annotations];
+      await this.writeJson(this.fileUri('annotations'), updated);
+      this.annotationsCache = Promise.resolve(updated);
+      return updated;
     });
-    await this.writeJson(this.fileUri('annotations'), annotations);
   }
 
   async updateAnnotation(
     id: string,
     patch: Partial<Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'>>
   ) {
-    const annotations = await this.readAnnotations();
-    const annotation = annotations.find(item => item.id === id);
-    if (!annotation) {
-      return;
-    }
-
-    Object.assign(annotation, patch, {
-      updatedAt: new Date().toISOString()
+    return this.enqueueMutation(async () => {
+      this.annotationsCache = undefined;
+      const annotations = await this.loadAnnotations();
+      const updated = annotations.map(annotation => annotation.id === id
+        ? { ...annotation, ...patch, updatedAt: new Date().toISOString() }
+        : annotation);
+      if (updated.every((annotation, index) => annotation === annotations[index])) {
+        return annotations;
+      }
+      await this.writeJson(this.fileUri('annotations'), updated);
+      this.annotationsCache = Promise.resolve(updated);
+      return updated;
     });
-    await this.writeJson(this.fileUri('annotations'), annotations);
   }
 
   async deleteAnnotation(id: string) {
-    const annotations = await this.readAnnotations();
-    await this.writeJson(
-      this.fileUri('annotations'),
-      annotations.filter(item => item.id !== id)
-    );
+    return this.enqueueMutation(async () => {
+      this.annotationsCache = undefined;
+      const annotations = await this.loadAnnotations();
+      const updated = annotations.filter(item => item.id !== id);
+      await this.writeJson(this.fileUri('annotations'), updated);
+      this.annotationsCache = Promise.resolve(updated);
+      return updated;
+    });
   }
 
   async restoreAnnotation(record: AnnotationRecord) {
-    const annotations = await this.readAnnotations();
-    if (annotations.some(item => item.id === record.id)) {
-      return;
-    }
-
-    annotations.unshift(record);
-    await this.writeJson(this.fileUri('annotations'), annotations);
+    return this.enqueueMutation(async () => {
+      this.annotationsCache = undefined;
+      const annotations = await this.loadAnnotations();
+      if (annotations.some(item => item.id === record.id)) {
+        return annotations;
+      }
+      const updated = [record, ...annotations];
+      await this.writeJson(this.fileUri('annotations'), updated);
+      this.annotationsCache = Promise.resolve(updated);
+      return updated;
+    });
   }
 
   async exportAnnotationsMarkdown() {
@@ -154,30 +174,73 @@ export class ReaderStorage {
   }
 
   async addWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
-    const now = new Date().toISOString();
-    const words = await this.readWords();
-    words.unshift({
-      ...input,
-      id: cryptoRandomId(),
-      createdAt: now,
-      updatedAt: now
+    return this.enqueueMutation(async () => {
+      this.wordsCache = undefined;
+      const now = new Date().toISOString();
+      const words = await this.loadWords();
+      const updated = [{
+        ...input,
+        id: cryptoRandomId(),
+        createdAt: now,
+        updatedAt: now
+      }, ...words];
+      await this.writeJson(this.fileUri('wordbook'), updated);
+      this.wordsCache = Promise.resolve(updated);
+      return updated;
     });
-    await this.writeJson(this.fileUri('wordbook'), words);
   }
 
   async deleteWord(id: string) {
-    const words = await this.readWords();
-    await this.writeJson(
-      this.fileUri('wordbook'),
-      words.filter(item => item.id !== id)
-    );
+    return this.enqueueMutation(async () => {
+      this.wordsCache = undefined;
+      const words = await this.loadWords();
+      const updated = words.filter(item => item.id !== id);
+      await this.writeJson(this.fileUri('wordbook'), updated);
+      this.wordsCache = Promise.resolve(updated);
+      return updated;
+    });
   }
 
   async saveProgress(progress: ProgressRecord) {
-    await this.writeJson(this.fileUri('progress'), {
-      ...progress,
-      updatedAt: new Date().toISOString()
+    return this.enqueueMutation(async () => {
+      this.progressCache = undefined;
+      const updated = { ...progress, updatedAt: new Date().toISOString() };
+      await this.writeJson(this.fileUri('progress'), updated, false);
+      this.progressCache = Promise.resolve(updated);
+      return updated;
     });
+  }
+
+  private loadAnnotations() {
+    this.annotationsCache ??= this.readJson<AnnotationRecord[]>(this.fileUri('annotations'), []).catch(error => {
+      this.annotationsCache = undefined;
+      throw error;
+    });
+    return this.annotationsCache;
+  }
+
+  private loadWords() {
+    this.wordsCache ??= this.readJson<WordRecord[]>(this.fileUri('wordbook'), []).catch(error => {
+      this.wordsCache = undefined;
+      throw error;
+    });
+    return this.wordsCache;
+  }
+
+  private loadProgress() {
+    this.progressCache ??= this.readJson<ProgressRecord>(this.fileUri('progress'), {
+      updatedAt: new Date(0).toISOString()
+    }).catch(error => {
+      this.progressCache = undefined;
+      throw error;
+    });
+    return this.progressCache;
+  }
+
+  private enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const next = this.mutationQueue.then(operation, operation);
+    this.mutationQueue = next.then(() => undefined, () => undefined);
+    return next;
   }
 
   private fileUri(kind: 'annotations' | 'annotations.md' | 'annotated.pdf' | 'wordbook' | 'progress') {
@@ -191,15 +254,36 @@ export class ReaderStorage {
     try {
       const bytes = await vscode.workspace.fs.readFile(uri);
       return JSON.parse(Buffer.from(bytes).toString('utf8')) as T;
-    } catch {
-      return fallback;
+    } catch (error) {
+      if (isFileNotFound(error)) {
+        return fallback;
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Could not read reader data at ${uri.fsPath}: ${detail}. ` +
+        `The previous valid version may be available at ${uri.fsPath}.bak.`
+      );
     }
   }
 
-  private async writeJson(uri: vscode.Uri, value: unknown) {
+  private async writeJson(uri: vscode.Uri, value: unknown, keepBackup = true) {
     await this.prepare();
     const bytes = Buffer.from(JSON.stringify(value, null, 2), 'utf8');
-    await vscode.workspace.fs.writeFile(uri, bytes);
+    const temporaryUri = vscode.Uri.file(`${uri.fsPath}.tmp-${cryptoRandomId()}`);
+    try {
+      await vscode.workspace.fs.writeFile(temporaryUri, bytes);
+      if (keepBackup && await uriExists(uri)) {
+        await vscode.workspace.fs.copy(uri, vscode.Uri.file(`${uri.fsPath}.bak`), { overwrite: true });
+      }
+      await vscode.workspace.fs.rename(temporaryUri, uri, { overwrite: true });
+    } catch (error) {
+      try {
+        await vscode.workspace.fs.delete(temporaryUri);
+      } catch {
+        // The temporary file may not have been created.
+      }
+      throw error;
+    }
   }
 
   private async writeText(uri: vscode.Uri, value: string) {
@@ -292,4 +376,8 @@ async function uriExists(uri: vscode.Uri) {
 
 function cryptoRandomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isFileNotFound(error: unknown) {
+  return error instanceof vscode.FileSystemError && error.code === 'FileNotFound';
 }

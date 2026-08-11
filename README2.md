@@ -1,17 +1,18 @@
 <div align="center">
-  <img src="assets/reading-extension-logo.png" width="112" alt="Reading Extension logo">
-  <h1>Reading Extension</h1>
-  <p><strong>A local-first PDF reader for VS Code</strong></p>
+  <img src="assets/reading-extension-logo.png" width="112" alt="Inleaf Reader logo">
+  <h1>Inleaf Reader</h1>
+  <p><strong>进入书本，进入心流</strong></p>
+  <p>A local-first PDF reader for VS Code</p>
   <p>Annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.</p>
 </div>
 
-![Reading Extension interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
+![Inleaf Reader interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
 
 ## Why I Built This
 
 I wanted to read papers without moving between a separate reading application and my coding tools. I already use assistants such as Codex and Claude Code in VS Code, so the editor is a natural place to keep the rest of my reading workflow too.
 
-Reading Extension focuses on three practical needs:
+Inleaf Reader focuses on three practical needs:
 
 1. Annotate papers and books while reading.
 2. Save unfamiliar words in a simple vocabulary list.
@@ -83,21 +84,21 @@ The extension computes a lightweight content fingerprint so it can recover missi
 
 ### VS Code Marketplace
 
-After the public release, search for **Reading Extension** in the VS Code Extensions view and select **Install**.
+After the public release, search for **Inleaf Reader** in the VS Code Extensions view and select **Install**.
 
 ### Install from a VSIX
 
 Download the latest `.vsix`, then run:
 
 ```bash
-code --install-extension reading-extension-0.0.1.vsix
+code --install-extension reading-extension-0.0.7.vsix
 ```
 
 You can also use **Extensions: Install from VSIX...** from the Command Palette.
 
 ## Bundled Runtime Assets
 
-If you install Reading Extension from the Marketplace or from the provided
+If you install Inleaf Reader from the Marketplace or from the provided
 VSIX, the offline dictionary and PDF font resources are already included. You
 do not need to download or configure them manually.
 
@@ -116,7 +117,7 @@ lookups do not require Python, a network connection, or an API key.
 ### PDF.js CMaps and standard fonts
 
 PDFs may use character maps or refer to standard fonts without embedding every
-required resource. Reading Extension therefore bundles:
+required resource. Inleaf Reader therefore bundles:
 
 ```text
 media/pdfjs-dist/cmaps/
@@ -138,7 +139,7 @@ resources work without Argos.
 ## Quick Start
 
 1. Open the Command Palette.
-2. Run **Reading Extension: Open Paper Reader**.
+2. Run **Inleaf Reader: Open Paper Reader**.
 3. Select an existing PDF or open the command while a PDF is active.
 4. Select text to open the floating annotation and translation toolbar.
 5. Use the sidebar to view annotations, saved words, translation settings, and document status.
@@ -227,12 +228,12 @@ the local daemon and loads the model; later translations reuse that process.
 ### DeepSeek
 
 1. Generate a DeepSeek API key.
-2. Run **Reading Extension: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
+2. Run **Inleaf Reader: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
 3. Enter the key in the secure password prompt.
 
 The key is stored with VS Code SecretStorage. It is not written to settings, sidecar files, logs, or the Webview.
 
-Use **Reading Extension: Clear DeepSeek API Key** to remove it.
+Use **Inleaf Reader: Clear DeepSeek API Key** to remove it.
 
 ### LibreTranslate
 
@@ -283,18 +284,18 @@ Review the privacy terms of any external translation service before using it wit
 
 | Command | Description |
 | --- | --- |
-| `Reading Extension: Open Paper Reader` | Open the current PDF or select one from disk. |
-| `Reading Extension: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
-| `Reading Extension: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
+| `Inleaf Reader: Open Paper Reader` | Open the current PDF or select one from disk. |
+| `Inleaf Reader: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
+| `Inleaf Reader: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
 
 ## Contributing
 
 Issues and pull requests are welcome on
-[GitHub](https://github.com/WORMMMMMM/reading-extension).
+[GitHub](https://github.com/WORMMMMMM/inleaf-reader).
 
 ## Acknowledgements
 
-Reading Extension is built with open-source projects including:
+Inleaf Reader is built with open-source projects including:
 
 - [PDF.js](https://mozilla.github.io/pdf.js/)
 - [react-pdf-highlighter-plus](https://github.com/DanielArnould/react-pdf-highlighter-plus)
@@ -306,4 +307,4 @@ Third-party components and bundled assets remain subject to their respective lic
 
 ## License
 
-Reading Extension is released under the [MIT License](LICENSE).
+Inleaf Reader is released under the [MIT License](LICENSE).

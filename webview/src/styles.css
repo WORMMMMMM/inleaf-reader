@@ -437,6 +437,8 @@ label {
 }
 
 .item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px;
@@ -637,6 +639,46 @@ label {
 .selection-toolbar .active-command {
   outline: 2px solid var(--vscode-focusBorder, #007fd4);
   outline-offset: 1px;
+}
+
+.annotation-inline-editor {
+  display: grid;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 48px));
+  gap: 8px;
+  overflow: auto;
+}
+
+.annotation-inline-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.annotation-inline-editor label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.annotation-inline-editor input,
+.annotation-inline-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.annotation-inline-editor textarea {
+  resize: vertical;
 }
 
 .selection-note-editor,

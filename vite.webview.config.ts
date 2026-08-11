@@ -8,6 +8,7 @@ export default defineConfig({
     'process.env.DRAGGABLE_DEBUG': 'false'
   },
   build: {
+    codeSplitting: false,
     emptyOutDir: false,
     outDir: 'media',
     sourcemap: false,
@@ -18,7 +19,7 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        inlineDynamicImports: true,
+        chunkFileNames: 'reader-[name].js',
         assetFileNames: assetInfo => assetInfo.name?.endsWith('.css') ? 'reader-app.css' : 'reader-app-[name][extname]'
       }
     }

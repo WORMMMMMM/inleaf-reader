@@ -123,7 +123,7 @@ function addNativeTextAnnotation(
     Subtype: PDFName.of('Text'),
     Rect: iconRect,
     Contents: PDFHexString.fromText(contents),
-    T: PDFHexString.fromText('Reading Extension'),
+    T: PDFHexString.fromText('Inleaf Reader'),
     Name: PDFName.of('Comment'),
     C: [color.r, color.g, color.b],
     M: PDFString.fromDate(modifiedAt),

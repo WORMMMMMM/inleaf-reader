@@ -1,9 +1,11 @@
 export interface ReaderConfig {
+  documentId: string;
   pdfUrl: string;
   paperName: string;
   translationProvider?: string;
   translationSource?: string;
   translationTarget?: string;
+  pdfWorkerUrl: string;
   pdfCMapUrl: string;
   pdfStandardFontDataUrl: string;
 }
@@ -21,5 +23,18 @@ declare global {
   }
 }
 
-export const vscode = window.acquireVsCodeApi();
 export const readerConfig = window.readerConfig;
+const rawVsCode = window.acquireVsCodeApi();
+let activeDocumentId = readerConfig.documentId;
+
+export function setActiveDocumentId(documentId: string) {
+  activeDocumentId = documentId;
+}
+
+export const vscode: VsCodeApi = {
+  postMessage(message: unknown) {
+    rawVsCode.postMessage({ ...(message as object), documentId: activeDocumentId });
+  },
+  getState: () => rawVsCode.getState(),
+  setState: state => rawVsCode.setState(state)
+};

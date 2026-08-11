@@ -1,4 +1,5 @@
 src/
+.gitignore
 webview/
 vite.webview.config.*
 tsconfig.webview.json
@@ -15,3 +16,6 @@ scripts/build_ecdict_compact.py
 scripts/copy_pdfjs_assets.mjs
 scripts/ecdict_compact.json
 node_modules/
+out/**
+!out/extension.js
+!out/ecdictWorker.js

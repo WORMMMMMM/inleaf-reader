@@ -36,6 +36,7 @@ type PdfEventBus = {
 };
 type PdfViewerInstance = {
   container: HTMLDivElement;
+  currentPageNumber: number;
   currentScale: number;
   currentScaleValue: string;
   getPageView(index: number): { div?: HTMLElement } | undefined;
@@ -75,6 +76,7 @@ export function PdfDocumentView({
   const pdfViewerRef = useRef<PdfViewerInstance | null>(null);
   const renderedHighlightScaleRef = useRef<number | undefined>(undefined);
   const highlightSyncFrameRef = useRef<number | undefined>(undefined);
+  const horizontalCenterFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -99,6 +101,15 @@ export function PdfDocumentView({
       layer.style.transformOrigin = '0 0';
       layer.style.transform = `scale(${nextScale / layerScale})`;
     }
+    window.cancelAnimationFrame(horizontalCenterFrameRef.current || 0);
+    horizontalCenterFrameRef.current = window.requestAnimationFrame(() => {
+      horizontalCenterFrameRef.current = undefined;
+      const currentViewer = pdfViewerRef.current;
+      if (!currentViewer) {
+        return;
+      }
+      centerCurrentPageHorizontally(currentViewer);
+    });
   }, []);
 
   const handleLayerRendered = useCallback((event: PdfLayerRenderedEvent) => {
@@ -182,6 +193,7 @@ export function PdfDocumentView({
     viewerContainerRef.current = null;
     pdfViewerRef.current = null;
     window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
+    window.cancelAnimationFrame(horizontalCenterFrameRef.current || 0);
   }, [handleLayerRendered, handlePageChanging, handlePointerDown, handleScaleChanging, handleWheel]);
 
   return (
@@ -204,6 +216,21 @@ export function PdfDocumentView({
       />
     </PdfHighlighter>
   );
+}
+
+function centerCurrentPageHorizontally(viewer: PdfViewerInstance) {
+  const pageElement = viewer.getPageView(viewer.currentPageNumber - 1)?.div;
+  if (!pageElement) {
+    return;
+  }
+
+  const { container } = viewer;
+  const containerRect = container.getBoundingClientRect();
+  const pageRect = pageElement.getBoundingClientRect();
+  const pageCenterInViewport = pageRect.left - containerRect.left + pageRect.width / 2;
+  const centeredScrollLeft = container.scrollLeft + pageCenterInViewport - container.clientWidth / 2;
+  const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+  container.scrollLeft = Math.min(maxScrollLeft, Math.max(0, centeredScrollLeft));
 }
 
 function HighlightContainer({

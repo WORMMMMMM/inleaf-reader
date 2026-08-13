@@ -91,7 +91,7 @@ VS Code command
 - `assets/inleaf-reader-hero.png`: Public product screenshot.
 - `assets/inleaf-reader-toolbar-light.svg`: Light-theme editor-title command icon.
 - `assets/inleaf-reader-toolbar-dark.svg`: Dark-theme editor-title command icon.
-- `LICENSE`: Apache License 2.0 terms for version 0.0.8 and later.
+- `LICENSE`: Apache License 2.0 terms for the project.
 - `NOTICE`: Project copyright and attribution notice distributed with releases.
 
 ## Generated Runtime Files

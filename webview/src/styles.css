@@ -149,7 +149,12 @@ textarea {
 }
 
 .pdf-host .pdfViewer {
-  max-width: 100%;
+  width: 100%;
+  min-width: 100%;
+}
+
+.pdf-host .pdfViewer .page {
+  margin-inline: auto;
 }
 
 .pdf-host .pdf-scale-in-progress :is(

@@ -49,7 +49,7 @@ then choose **Extensions: Install from VSIX...** in VS Code.
 You can also install it from a terminal:
 
 ```bash
-code --install-extension inleaf-reader-0.0.8.vsix
+code --install-extension inleaf-reader-0.0.10.vsix
 ```
 
 After installation, run **Developer: Reload Window** once if the reader command
@@ -229,11 +229,8 @@ licenses.
 
 ## License
 
-Inleaf Reader 0.0.8 and later is open-source software released under the
+Inleaf Reader is open-source software released under the
 [Apache License 2.0](LICENSE). You may use, modify, distribute, and use the
 software commercially under the license terms. The license also provides an
 explicit patent grant and requires applicable copyright and attribution
 notices to be preserved.
-
-Versions 0.0.7 and earlier remain available under the MIT License terms that
-were granted with those releases.

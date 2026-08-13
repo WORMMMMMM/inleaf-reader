@@ -87,6 +87,8 @@ function App() {
   const pendingProgressRef = useRef<number | undefined>(undefined);
   const pageIndicatorTimerRef = useRef<number | undefined>(undefined);
   const pendingVisiblePageRef = useRef<number | undefined>(undefined);
+  const zoomFrameRef = useRef<number | undefined>(undefined);
+  const pendingZoomScaleRef = useRef<number | undefined>(undefined);
   const zoomCommitRef = useRef<number | undefined>(undefined);
   const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
   const documentReadyRef = useRef(false);
@@ -144,6 +146,9 @@ function App() {
   }, []);
 
   const applyZoom = useCallback((value: PdfScaleValue) => {
+    window.cancelAnimationFrame(zoomFrameRef.current || 0);
+    zoomFrameRef.current = undefined;
+    pendingZoomScaleRef.current = undefined;
     window.clearTimeout(zoomCommitRef.current);
     setZoom(value);
     const viewer = highlighterRef.current?.getViewer();
@@ -154,15 +159,31 @@ function App() {
 
   const zoomByFactor = useCallback((factor: number, deferStateCommit = false) => {
     const viewer = highlighterRef.current?.getViewer();
-    const baseScale = viewer?.currentScale || 1;
+    const baseScale = pendingZoomScaleRef.current ?? viewer?.currentScale ?? 1;
     const nextScale = clampZoom(baseScale * factor);
-    if (viewer) {
-      viewer.currentScale = nextScale;
-    }
     if (!deferStateCommit) {
+      window.cancelAnimationFrame(zoomFrameRef.current || 0);
+      zoomFrameRef.current = undefined;
+      pendingZoomScaleRef.current = undefined;
+      if (viewer) {
+        viewer.currentScale = nextScale;
+      }
       window.clearTimeout(zoomCommitRef.current);
       setZoom(nextScale);
       return;
+    }
+
+    pendingZoomScaleRef.current = nextScale;
+    if (viewer && zoomFrameRef.current === undefined) {
+      zoomFrameRef.current = window.requestAnimationFrame(() => {
+        zoomFrameRef.current = undefined;
+        const pendingScale = pendingZoomScaleRef.current;
+        pendingZoomScaleRef.current = undefined;
+        const currentViewer = highlighterRef.current?.getViewer();
+        if (currentViewer && pendingScale !== undefined) {
+          currentViewer.currentScale = pendingScale;
+        }
+      });
     }
     if (zoomLabelRef.current) {
       zoomLabelRef.current.textContent = zoomLabel(nextScale);
@@ -183,7 +204,10 @@ function App() {
     return () => {
       flushReadingProgress();
       window.clearTimeout(pageIndicatorTimerRef.current);
+      window.cancelAnimationFrame(zoomFrameRef.current || 0);
       window.clearTimeout(zoomCommitRef.current);
+      zoomFrameRef.current = undefined;
+      pendingZoomScaleRef.current = undefined;
       document.body.classList.remove('reader-mounted');
     };
   }, [flushReadingProgress]);
@@ -857,14 +881,14 @@ function Bootstrap() {
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
-      if (isExpectedPdfCancellation(event.error || event.message)) {
+      if (isIgnorableWebviewError(event.error || event.message)) {
         event.preventDefault();
         return;
       }
       setError(event.message || String(event.error || 'Unknown Webview error'));
     };
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (isExpectedPdfCancellation(event.reason)) {
+      if (isIgnorableWebviewError(event.reason)) {
         event.preventDefault();
         return;
       }
@@ -890,10 +914,19 @@ function Bootstrap() {
   return <App />;
 }
 
+function isIgnorableWebviewError(reason: unknown) {
+  return isExpectedPdfCancellation(reason) || isResizeObserverLoopWarning(reason);
+}
+
 function isExpectedPdfCancellation(reason: unknown) {
   const message = reason instanceof Error ? reason.message : String(reason || '');
   return /worker was (?:terminated|destroyed)/i.test(message)
     || /loading aborted/i.test(message);
+}
+
+function isResizeObserverLoopWarning(reason: unknown) {
+  const message = reason instanceof Error ? reason.message : String(reason || '');
+  return /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/i.test(message.trim());
 }
 
 async function createPdfWorkerBlobUrl(resourceUrl: string) {

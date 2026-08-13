@@ -7,6 +7,8 @@ dist/
 vite.webview.config.js
 webview/src/*.js
 .DS_Store
+.inleaf-reader/
+# Previous releases may leave this directory beside user PDFs.
 .reading-extension/
 .vscode/
 scripts/ecdict.csv

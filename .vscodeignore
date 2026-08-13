@@ -8,9 +8,7 @@ tsconfig.json
 **/*.map
 .venv-translate/
 AGENTS.md
-AI_CONTEXT.md
 project_map.md
-README2.md
 scripts/test-*.mjs
 scripts/build_ecdict_compact.py
 scripts/copy_pdfjs_assets.mjs

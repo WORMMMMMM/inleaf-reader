@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [source, generatedBundle] = await Promise.all([
+const [mainSource, pdfViewSource, annotationWidgetsSource, generatedBundle] = await Promise.all([
   readFile(new URL('../webview/src/main.tsx', import.meta.url), 'utf8'),
+  readFile(new URL('../webview/src/components/PdfDocumentView.tsx', import.meta.url), 'utf8'),
+  readFile(new URL('../webview/src/components/AnnotationWidgets.tsx', import.meta.url), 'utf8'),
   readFile(new URL('../media/reader-app.js', import.meta.url), 'utf8')
 ]);
+const source = `${mainSource}\n${pdfViewSource}\n${annotationWidgetsSource}`;
 
 assert.match(source, /const \[sidebarVisible, setSidebarVisible\] = useState\(false\)/);
 assert.doesNotMatch(source, /setSidebarVisible\(true\)/);

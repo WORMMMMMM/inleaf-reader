@@ -1,10 +1,11 @@
 import { createHash } from 'crypto';
 import { open, stat } from 'fs/promises';
 import * as path from 'path';
+import { INLEAF_IDS } from './identity';
 
 const SAMPLE_BYTES = 1024 * 1024;
 
-export const PDF_LOCATION_INDEX_KEY = 'readingExtension.pdfLocationIndex.v1';
+export const PDF_LOCATION_INDEX_KEY = INLEAF_IDS.globalState.pdfLocationIndex;
 
 export type SidecarKind =
   | 'annotations'
@@ -36,7 +37,7 @@ export function createPdfLocation(pdfPath: string, updatedAt = new Date().toISOS
   const resolvedPath = path.resolve(pdfPath);
   return {
     pdfPath: resolvedPath,
-    storageDir: path.join(path.dirname(resolvedPath), '.reading-extension'),
+    storageDir: path.join(path.dirname(resolvedPath), INLEAF_IDS.sidecarDirectory),
     baseName: path.basename(resolvedPath),
     updatedAt
   };
@@ -56,7 +57,7 @@ export function getSidecarPaths(location: PdfLocation): SidecarPaths {
 export async function fingerprintPdf(pdfPath: string): Promise<string> {
   const fileStat = await stat(pdfPath);
   const hash = createHash('sha256');
-  hash.update('reading-extension-pdf-sample-v1\0');
+  hash.update(INLEAF_IDS.pdfFingerprintNamespace);
   hash.update(String(fileStat.size));
 
   const handle = await open(pdfPath, 'r');

@@ -1,10 +1,10 @@
 {
-  "name": "reading-extension",
+  "name": "inleaf-reader",
   "displayName": "Inleaf Reader",
-  "description": "A local-first VS Code PDF reader designed for focused reading, with annotations, translation, vocabulary capture, and portable sidecar data.",
+  "description": "Stay in flow while reading PDFs in VS Code, with portable AI-ready notes and your choice of AI tools.",
   "version": "0.0.7",
   "publisher": "ziming",
-  "icon": "assets/reading-extension-icon.png",
+  "icon": "assets/inleaf-reader-icon.png",
   "license": "MIT",
   "preview": true,
   "repository": {
@@ -23,7 +23,12 @@
     "translation",
     "wordbook",
     "focus",
-    "flow"
+    "flow",
+    "book",
+    "offline",
+    "local-first",
+    "ai",
+    "ai-ready"
   ],
   "engines": {
     "vscode": "^1.90.0"
@@ -33,46 +38,46 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:readingExtension.openReader",
-    "onCommand:readingExtension.setDeepSeekApiKey",
-    "onCommand:readingExtension.clearDeepSeekApiKey",
-    "onCommand:readingExtension.diagnoseTranslation"
+    "onCommand:inleafReader.openReader",
+    "onCommand:inleafReader.setDeepSeekApiKey",
+    "onCommand:inleafReader.clearDeepSeekApiKey",
+    "onCommand:inleafReader.diagnoseTranslation"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "readingExtension.openReader",
+        "command": "inleafReader.openReader",
         "title": "Inleaf Reader: Open Paper Reader",
         "icon": {
-          "light": "assets/reading-extension-toolbar-light.svg",
-          "dark": "assets/reading-extension-toolbar-dark.svg"
+          "light": "assets/inleaf-reader-toolbar-light.svg",
+          "dark": "assets/inleaf-reader-toolbar-dark.svg"
         }
       },
       {
-        "command": "readingExtension.setDeepSeekApiKey",
+        "command": "inleafReader.setDeepSeekApiKey",
         "title": "Inleaf Reader: Set DeepSeek API Key"
       },
       {
-        "command": "readingExtension.clearDeepSeekApiKey",
+        "command": "inleafReader.clearDeepSeekApiKey",
         "title": "Inleaf Reader: Clear DeepSeek API Key"
       },
       {
-        "command": "readingExtension.diagnoseTranslation",
+        "command": "inleafReader.diagnoseTranslation",
         "title": "Inleaf Reader: Diagnose Translation Setup"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "readingExtension.openReader",
+          "command": "inleafReader.openReader",
           "when": "resourceExtname == .pdf",
           "group": "navigation@20"
         }
       ],
       "editor/title": [
         {
-          "command": "readingExtension.openReader",
+          "command": "inleafReader.openReader",
           "when": "resourceExtname == .pdf",
           "group": "navigation@20"
         }
@@ -80,14 +85,14 @@
     },
     "walkthroughs": [
       {
-        "id": "readingExtension.gettingStarted",
+        "id": "inleafReader.gettingStarted",
         "title": "Get started with Inleaf Reader",
         "description": "Open a PDF, capture a selection, and choose a translation mode.",
         "steps": [
           {
             "id": "openPdf",
             "title": "Open a PDF in the reader",
-            "description": "Run [Open Paper Reader](command:readingExtension.openReader), or right-click a PDF in the Explorer."
+            "description": "Run [Open Paper Reader](command:inleafReader.openReader), or right-click a PDF in the Explorer."
           },
           {
             "id": "selectText",
@@ -97,7 +102,7 @@
           {
             "id": "translation",
             "title": "Check translation setup",
-            "description": "The dictionary works offline. Run [Diagnose Translation Setup](command:readingExtension.diagnoseTranslation) before using Argos sentence translation."
+            "description": "The dictionary works offline. Run [Diagnose Translation Setup](command:inleafReader.diagnoseTranslation) before using Argos sentence translation."
           }
         ]
       }
@@ -105,12 +110,12 @@
     "configuration": {
       "title": "Inleaf Reader",
       "properties": {
-        "readingExtension.libreTranslateEndpoint": {
+        "inleafReader.libreTranslateEndpoint": {
           "type": "string",
           "default": "http://localhost:5000/translate",
           "description": "Local LibreTranslate endpoint used by the in-panel translation button."
         },
-        "readingExtension.translationProvider": {
+        "inleafReader.translationProvider": {
           "type": "string",
           "default": "argos",
           "enum": [
@@ -120,7 +125,7 @@
           ],
           "description": "Translation provider. Argos and LibreTranslate can run locally; DeepSeek uses the configured API key from VS Code SecretStorage."
         },
-        "readingExtension.deepSeekModel": {
+        "inleafReader.deepSeekModel": {
           "type": "string",
           "default": "deepseek-v4-flash",
           "enum": [
@@ -129,22 +134,22 @@
           ],
           "description": "DeepSeek model used when the translation provider is DeepSeek."
         },
-        "readingExtension.argosPythonPath": {
+        "inleafReader.argosPythonPath": {
           "type": "string",
           "default": "",
           "description": "Optional Python path for local Argos Translate. Empty means .venv-translate/bin/python inside the extension folder."
         },
-        "readingExtension.translationFallbackToLibreTranslate": {
+        "inleafReader.translationFallbackToLibreTranslate": {
           "type": "boolean",
           "default": false,
           "description": "When Argos local translation fails, fall back to the configured LibreTranslate endpoint."
         },
-        "readingExtension.translationSource": {
+        "inleafReader.translationSource": {
           "type": "string",
           "default": "auto",
           "description": "Source language code used by translation providers that require it."
         },
-        "readingExtension.translationTarget": {
+        "inleafReader.translationTarget": {
           "type": "string",
           "default": "zh",
           "description": "Target language code used by the selected translation provider."

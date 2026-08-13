@@ -65,7 +65,7 @@ Module._load = function load(request, parent, isMain) {
 try {
   const require = createRequire(import.meta.url);
   const { ReaderStorage } = require('../out/readerStorage.js');
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'reading-extension-storage-'));
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'inleaf-reader-storage-'));
   const pdfPath = path.join(directory, 'paper.pdf');
   await writeFile(pdfPath, Buffer.from('%PDF test'));
   const values = new Map();
@@ -83,7 +83,7 @@ try {
     kind: 'highlight'
   })));
 
-  const sidecar = path.join(directory, '.reading-extension', 'paper.pdf.annotations.json');
+  const sidecar = path.join(directory, '.inleaf-reader', 'paper.pdf.annotations.json');
   const annotations = JSON.parse(await readFile(sidecar, 'utf8'));
   assert.equal(annotations.length, 12, 'serialized concurrent writes must retain every annotation');
   assert.ok((await stat(`${sidecar}.bak`)).size > 0, 'a previous valid JSON backup should be retained');
@@ -91,6 +91,33 @@ try {
   await writeFile(sidecar, '{broken json');
   const reopened = new ReaderStorage(Uri.file(pdfPath), memento);
   await assert.rejects(() => reopened.readAnnotations(), /Could not read reader data/);
+
+  const migrationDirectory = await mkdtemp(path.join(os.tmpdir(), 'inleaf-reader-migration-'));
+  const migrationPdf = path.join(migrationDirectory, 'legacy.pdf');
+  const legacySidecarDirectory = path.join(migrationDirectory, '.reading-extension');
+  const legacyAnnotations = [{
+    id: 'legacy-annotation',
+    selectedText: 'preserve existing notes',
+    note: 'migrated',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z'
+  }];
+  await writeFile(migrationPdf, Buffer.from('%PDF migration test'));
+  await mkdir(legacySidecarDirectory, { recursive: true });
+  await writeFile(
+    path.join(legacySidecarDirectory, 'legacy.pdf.annotations.json'),
+    JSON.stringify(legacyAnnotations)
+  );
+  const migratedStorage = new ReaderStorage(Uri.file(migrationPdf), memento);
+  assert.deepEqual(await migratedStorage.readAnnotations(), legacyAnnotations);
+  assert.deepEqual(
+    JSON.parse(await readFile(
+      path.join(migrationDirectory, '.inleaf-reader', 'legacy.pdf.annotations.json'),
+      'utf8'
+    )),
+    legacyAnnotations,
+    'legacy sidecars should be copied into the current storage directory'
+  );
 
   console.log('reader storage regression passed.');
 } finally {

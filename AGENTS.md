@@ -1,57 +1,89 @@
 # AGENTS.md
 
-This repository is the VS Code extension **Inleaf Reader**, with the Chinese tagline **“进入书本，进入心流”**. Its goal is a stable, convenient reader with automatic local persistence, annotation, translation, and vocabulary capture. Prefer practical reliability over originality.
-
-Keep the public product name as `Inleaf Reader`, but preserve the internal extension id `ziming.reading-extension`, command ids under `readingExtension.*`, settings namespace `readingExtension`, asset filenames, and `.reading-extension/` sidecar directory so existing installations and reading data continue to work.
+This repository contains **Inleaf Reader**, a VS Code reader with the tagline
+**“Your Books. Your AI. Your Flow.”** Optimize for a calm, continuous reading
+experience and practical reliability.
 
 ## Product Goal
 
-- Build a usable VS Code PDF reader for papers and books.
-- Keep annotation data, vocabulary, and reading progress in sidecar files next to the PDF so they can sync through Git or any file-sync tool.
-- Let the user work beside VS Code AI extensions such as Codex, Claude Code, or ChatGPT extensions.
-- Avoid paid AI API dependencies by default. DeepSeek is optional and must use
-  a user-provided key stored through VS Code SecretStorage.
+Inleaf Reader exists to help users enter and remain in a flow state while
+reading. Reading should not be interrupted by avoidable navigation, setup, or
+tool switching.
 
-## Architecture Rules
+- Make frequent reading actions immediate and easy to discover.
+- Treat annotation, translation, and vocabulary capture as current examples of
+  frequent actions, not as a closed definition of the product.
+- Allow different users and reading workflows to add other frequent actions
+  without forcing them into unrelated features.
+- Keep reading data structured, portable, and easy for AI tools to consume.
+- Let users work with the AI they already trust instead of requiring a bundled
+  paid AI service.
+- Help the reader ask questions, gather context, and continue reading without
+  leaving the document unnecessarily.
 
-- Do not rebuild a custom PDF renderer unless there is no alternative. PDF rendering, text selection, text layer behavior, scrolling, zooming, and highlight positioning should stay delegated to `react-pdf-highlighter-plus`.
-- The extension host owns file access, clipboard access, local translation process calls, optional AI API calls, SecretStorage access, and sidecar persistence.
-- The Webview owns reader UI, PDF interaction, annotation editing controls, wordbook controls, and `postMessage` events back to the extension host.
-- Selection actions are unified around `Translate`: a single English word returns dictionary details and a `Save to Wordbook` action; multi-word text returns sentence translation. Do not add a separate `Word` selection entry point.
-- The right-side panel is user-invoked only and hidden on reader startup. Annotation editing, translation, and word saving must not open it automatically. Clicking a saved PDF highlight opens the inline annotation editor next to that highlight.
-- Extension-host errors from message handlers must be surfaced to both the Webview (via `stateError` messages) and the VS Code notification API (`vscode.window.showErrorMessage`).
-- Runtime user data belongs in `.reading-extension/` next to the PDF, not in VS Code global storage. VS Code global storage may contain only a lightweight PDF-content-fingerprint-to-path index used to recover sidecars after a file is moved or renamed; never store annotations, vocabulary, or progress there.
-- Preserve backward compatibility for existing annotation JSON whenever possible.
+When product choices conflict, prefer the option that reduces interruption,
+preserves user control, and keeps data useful outside the extension.
 
-## Important Files
+## Identity Contract
 
-- `src/extension.ts`: Registers reader and DeepSeek credential commands. DeepSeek keys are accepted through a password input and stored only in VS Code SecretStorage.
-- `src/paperReaderPanel.ts`: Creates the Webview, injects resources/config on first open, handles document-session-tagged Webview messages, calls local or DeepSeek translation, and delegates storage. When switching PDFs, it sends a `navigateTo` message to the existing Webview instead of rebuilding the HTML. All message handlers are wrapped in try/catch so filesystem errors surface to both the Webview status bar and a VS Code error notification. Argos sentence translation runs through a long-lived daemon process.
-- `src/readerStorage.ts`: Reads/writes annotations, wordbook, progress, Markdown export, and annotated PDF export. JSON mutations are serialized, written through atomic temp-file replacement, and retain the previous version as `.bak`. On first access it uses the PDF identity index to copy missing sidecars from a previously known path without overwriting current data.
-- `src/ecdictClient.ts` and `src/ecdictWorker.ts`: Lazy background Node worker for the bundled ECDICT dictionary. Single-word lookup must remain independent of Python and Argos.
-- `src/pdfIdentity.ts`: Computes a sampled PDF content fingerprint and defines the lightweight location index and sidecar path mapping used for move/rename recovery.
-- `src/annotationTypes.ts`: Shared persisted data types. Update this carefully when changing the annotation schema.
-- `src/annotationExports.ts`: Markdown and annotated PDF export logic.
-- `webview/src/main.tsx`: React reader UI and PDF/highlight integration. Handles `navigateTo` messages for in-place PDF switching, `stateError` messages for surfaced extension-host errors, and `wordDetails` in translation results for dictionary display.
-- `webview/src/styles.css`: Reader layout and visual styling, including dictionary result block.
-- `webview/src/vscodeApi.ts`: Webview access to VS Code API and injected config.
-- `scripts/argos_translate.py`: One-shot Argos Translate helper. Reads JSON from stdin and writes JSON to stdout. Kept as a fallback.
-- `scripts/argos_translate_daemon.py`: Long-lived sentence-translation daemon. Loads Argos once and matches responses by explicit request id; it does not load ECDICT.
-- `scripts/ecdict_compact.json`: Optional uncompressed ECDICT output used only for inspection; do not commit it.
-- `scripts/ecdict_compact.json.gz`: Gzipped compact ECDICT dictionary (~22MB, 770,611 entries) used by the Node dictionary worker and committed for offline distribution.
-- `scripts/test-annotation-exports.mjs`: Regression tests for exports and schema compatibility.
-- `media/reader-app.js`, `media/reader-app.css`, and `media/reader-pdf_viewer.js`: Generated Webview assets. Do not edit manually; rebuild with `npm run build:webview` or `npm run compile`.
-- `media/pdfjs-dist/`: Generated runtime copy of the PDF.js Web Worker, CMaps, and standard fonts. Rebuilt from `node_modules/pdfjs-dist` by `npm run copy:pdfjs-assets` as part of `npm run compile`.
-- `project_map.md`: File-by-file repository map. Update it when adding or changing major files.
+- Product name: `Inleaf Reader`.
+- Extension id: `ziming.inleaf-reader`.
+- Package name: `inleaf-reader`.
+- Command ids and walkthrough ids use `inleafReader.*`.
+- Settings use the `inleafReader` namespace.
+- Runtime sidecars live under `.inleaf-reader/` beside the PDF.
+- Product assets use the `inleaf-reader-*` filename prefix.
+- Runtime identifiers are centralized in `src/identity.ts` and mirrored by
+  `package.json`; keep both surfaces consistent.
 
-The `readingExtension.openReader` command uses the theme-specific custom SVGs in `assets/reading-extension-toolbar-light.svg` and `assets/reading-extension-toolbar-dark.svg` so its `editor/title` menu contribution shows the nested-book brand mark. Keep the full command title for the Command Palette and hover tooltip.
+Do not introduce new identifiers based on the repository's former name. A
+small, explicit compatibility path may read legacy user data during migration,
+but all newly written state and all public surfaces must use the current
+identity.
+
+## Architecture and Dependency Direction
+
+```text
+src/extension.ts
+  -> PaperReaderPanel
+     -> ReaderStorage
+     -> TranslationService
+        -> EcdictClient
+        -> ArgosTranslationDaemon
+        -> remote translation providers
+
+webview/src/main.tsx
+  -> components/PdfDocumentView.tsx
+  -> components/AnnotationWidgets.tsx
+  -> annotationModel.ts
+  -> pdfSelection.ts
+```
+
+- `extension.ts` registers commands and owns extension activation only.
+- `PaperReaderPanel` coordinates document sessions, Webview messages,
+  clipboard/export operations, storage, and translation. It must not absorb
+  provider implementations or domain algorithms.
+- `ReaderStorage` owns filesystem persistence and recovery.
+- `TranslationService` is the single translation boundary. Provider choice,
+  local dictionary enrichment, local processes, and remote APIs stay behind
+  this interface.
+- The Webview owns reader UI and PDF interaction; the extension host owns file
+  access, clipboard access, processes, secrets, and external API calls.
+- `main.tsx` coordinates reader state and workflows. PDF-library integration,
+  reusable UI, and pure annotation/selection rules belong in their focused
+  modules.
+- PDF rendering, text layers, scrolling, zoom, and highlight positioning stay
+  delegated to `react-pdf-highlighter-plus` unless a proven limitation makes
+  that impossible.
+
+See `project_map.md` for the complete file-by-file navigation map.
 
 ## Runtime Data Contract
 
-For `paper.pdf`, the extension writes:
+For `paper.pdf`, newly written data is:
 
 ```text
-.reading-extension/
+.inleaf-reader/
   paper.pdf.annotations.json
   paper.pdf.annotations.md
   paper.pdf.annotated.pdf
@@ -59,73 +91,140 @@ For `paper.pdf`, the extension writes:
   paper.pdf.progress.json
 ```
 
-These files are intentionally plain local files. They should remain portable across machines.
-Atomic JSON updates may also leave `*.json.bak` recovery copies next to active sidecars.
+- Sidecars are intentionally plain local files that can be synchronized by
+  Git or ordinary file-sync tools and inspected by external AI tools.
+- Prefer explicit, stable fields and backward-compatible schema evolution.
+- Do not hide user reading data in proprietary blobs or VS Code global state.
+- Global state may contain only lightweight indexes needed to locate sidecars;
+  never place annotations, vocabulary, notes, or reading progress there.
+- JSON mutations must remain serialized and atomic. Keep `.bak` recovery copies
+  of the previous valid version where the current storage layer does so.
+- Existing destination data must never be overwritten during recovery or
+  migration.
 
-## Local Translation
+## Reading Interaction Contract
 
-- Default provider: Argos Translate through `.venv-translate/bin/python`.
-- Dictionary: `src/ecdictWorker.ts` lazily decompresses ECDICT off the extension-host main thread. It requires neither Python nor Argos.
-- Daemon: `scripts/argos_translate_daemon.py` runs as a long-lived process for sentence translation. It loads Argos once, serves JSON-line requests, and echoes request ids. The extension host manages daemon lifecycle automatically.
-- Fallback: `scripts/argos_translate.py` (one-shot mode, kept for backward compatibility).
-- Dictionary: Single English words are detected automatically (`/^[a-zA-Z'-]+$/`) and looked up in the compact ECDICT data (`scripts/ecdict_compact.json.gz`, generated from the MIT-licensed upstream ECDICT CSV). Dictionary results include phonetics, Chinese definitions, English definitions, part-of-speech labels, and word forms when available. Non-word text falls through to neural translation.
-- Current expected offline package: `en -> zh`.
-- LibreTranslate remains available as an HTTP fallback through `readingExtension.libreTranslateEndpoint`.
-- Argos quality is usable but limited.
-- Do not commit `.venv-translate/`; it is a local runtime dependency.
+- Frequent actions should be available at the point of reading with minimal
+  steps and without unnecessary panel changes.
+- The right-side panel is user-invoked and hidden on startup. Annotation edits,
+  translation, and word saving must not open it automatically.
+- Clicking a saved highlight opens its inline editor near the PDF content.
+- The original selected text remains editable so OCR mistakes can be corrected.
+- Selection uses one `Translate` action: single English words may show
+  dictionary details and `Save to Wordbook`; longer text shows translation.
+- New reading actions should be designed as composable capabilities rather
+  than hard-coded exceptions in the top-level UI.
+- Extension-host handler errors must reach both the Webview through
+  `stateError` and the user through `vscode.window.showErrorMessage`.
 
-## DeepSeek Translation
+## Translation Contract
 
-- Optional provider: DeepSeek's OpenAI-compatible Chat Completions endpoint.
-- Default model: `deepseek-v4-flash` with thinking disabled for lower-latency translation.
-- API keys must be stored through `Inleaf Reader: Set DeepSeek API Key`.
-- The Translation sidebar lets users switch directly between local translation
-  and DeepSeek AI translation, and opens the secure key input when needed.
-- Never put API keys in `package.json`, VS Code settings, sidecar files, logs, or the Webview.
-- Single English words continue to prefer the local ECDICT dictionary so structured word details and `Save to Wordbook` remain available.
+- Translation is one capability with interchangeable providers, not separate
+  product modules for local and hosted translation.
+- Single English words prefer the bundled ECDICT worker so dictionary details
+  and wordbook capture remain fast, offline, and independent of Python.
+- Sentence translation defaults to the long-lived Argos daemon when available;
+  do not spawn a new Python process for every normal request.
+- LibreTranslate and DeepSeek are optional providers behind
+  `TranslationService`.
+- Remote translation is opt-in. Never require a paid API for the core reading
+  and annotation experience.
+- API keys must be accepted through password inputs and stored only in VS Code
+  SecretStorage. Never expose them to the Webview, settings JSON, sidecars,
+  logs, or source files.
+- Translation responses remain tied to both the source text and active document
+  session so stale asynchronous results cannot replace newer work.
 
-## Development Commands
+## Code Quality Principles
 
-Run these before committing code changes:
+- Prefer cohesive modules organized around reasons to change, not arbitrary
+  file-size limits.
+- Keep orchestration thin and domain transformations pure where practical.
+- Use discriminated unions for cross-boundary messages and explicit types for
+  persisted or provider-facing data.
+- Depend on stable interfaces rather than reaching into another module's
+  internal state.
+- Avoid duplicated business rules, hidden mutation, broad `any` types, and
+  comments that merely restate code.
+- Do not fragment straightforward logic into many tiny files. Extract a module
+  when it creates a meaningful boundary, independent testability, or reuse.
+- Preserve user behavior and persisted data during refactors unless the product
+  change explicitly requires a migration.
+- Generated files under `media/` and `out/` are outputs, not source. Never edit
+  them manually.
+
+## Performance Constraints
+
+- Keep PDF parsing and image decoding in the packaged PDF.js Web Worker; never
+  restore an in-bundle fake worker.
+- VS Code Webviews cannot reliably start the packaged module worker directly
+  from an extension-resource URL. Fetch it, wrap it in a JavaScript `Blob`, and
+  give the `blob:` URL to `PdfLoader`.
+- Do not perform synchronous text-layer geometry scans in page-render or scroll
+  handlers. Selection-region analysis stays lazy and cached per text layer.
+- Preserve Webview state with `retainContextWhenHidden: true` and switch PDFs
+  through in-place `navigateTo` messages.
+- Avoid React state updates for every event in rapid scroll or zoom bursts when
+  a throttled visual update and debounced persistence are sufficient.
+
+## AI Reading Order
+
+For most tasks:
+
+1. Read this file for product and engineering constraints.
+2. Use `project_map.md` to locate the relevant boundary.
+3. Read only the coordinator, domain module, and contract involved in the task.
+4. Inspect the matching regression test before changing behavior.
+5. Run the smallest relevant checks during development, then `npm test` before
+   handing off the result.
+
+Treat source code and tests as the current implementation truth. Do not create
+another broad status document that duplicates this file or `project_map.md`.
+
+## Validation Requirements
+
+Fast inner-loop checks:
+
+```bash
+npm run test:unit
+npm run typecheck
+```
+
+Required before committing code changes:
 
 ```bash
 npm test
-./node_modules/.bin/tsc -p tsconfig.webview.json --noEmit
-node --check media/reader-app.js
 ```
 
-`npm run test:unit` and `npm run typecheck` are the faster inner-loop checks;
-`npm test` runs the full compile and validation pipeline.
+`npm test` rebuilds the Webview and extension, runs regression tests, checks
+both TypeScript projects, and validates generated JavaScript syntax. When
+source changes affect the installed extension, ensure the corresponding
+generated runtime assets are included.
 
-Use:
+Before a release, also package a VSIX, run an archive-integrity check, and
+confirm that only one public README is included.
 
-```bash
-npm run compile
-```
+## Manual QA
 
-to rebuild the Webview bundle and PDF.js runtime assets under `media/`, compile
-testable CommonJS modules under `out/`, and bundle the extension entrypoint with
-its Node dependencies into `out/extension.js`.
+Use at least one normal text PDF:
 
-## Manual Checks
+- Open the PDF and confirm the Webview is not blank.
+- Scroll rapidly and verify the reader remains responsive.
+- Switch quickly between two PDFs and confirm their progress and sidecars do
+  not cross document sessions.
+- Select text across pages and verify normal body selection excludes cached
+  margins and inferred figure blocks.
+- Create, edit, delete, and undo annotations without forcing the side panel open.
+- Close and reopen the reader and confirm annotations, wordbook entries, and
+  progress return.
+- Check a known dictionary word, a missing word, and a sentence translation.
+- If a remote provider is configured, confirm it works without exposing its
+  credential to the Webview.
 
-For reader changes, manually verify at least one normal text PDF:
+Scanned PDFs without a text layer are not expected to support selection unless
+OCR is added explicitly.
 
-- PDF opens without a blank Webview.
-- Page scale is reasonable at initial load.
-- Text selection works with real text PDFs.
-- Creating, editing, deleting, and undoing annotations autosaves.
-- Clicking an existing text highlight opens an inline editor near the PDF content; saving and cancelling must work without showing the right-side panel. The original selected text remains editable so OCR mistakes can be corrected.
-- Closing and reopening restores annotations, wordbook entries, and progress.
-- Saved words can be viewed and deleted from the Wordbook tab.
-- `Translate locally` returns a result for English selected text in <1s after first call.
-- Selecting a single English word and clicking `Translate locally` shows dictionary entry with phonetic, Chinese definitions, and English definitions.
-- Selecting a sentence and clicking `Translate` shows sentence translation without wordbook controls.
-- With DeepSeek configured, selecting a sentence and clicking `Translate` returns an AI translation without exposing the key to the Webview.
-
-For scanned PDFs, text selection may not work because there is no text layer. Do not treat that as a regression unless OCR has been added.
-
-## Git Hygiene
+## Git and Release Hygiene
 
 Do not commit:
 
@@ -134,24 +233,11 @@ Do not commit:
 - `node_modules/`
 - `out/`
 - user PDFs
-- runtime `.reading-extension/` sidecar data
+- runtime `.inleaf-reader/` data
 - packaged `*.vsix` files
-- `scripts/ecdict_compact.json` (large generated file, keep only the gzipped version)
-- `scripts/ecdict.csv` (downloaded source CSV)
+- uncompressed generated dictionary sources
 
-Generated `media/reader-app.js`, `media/reader-app.css`, `media/reader-pdf_viewer.js`, and `media/pdfjs-dist/pdf.worker.min.mjs` should be committed when their sources change, because the extension loads them at runtime.
-
-The generated dictionary gzip (`scripts/ecdict_compact.json.gz`) should be committed so the dictionary works without an internet connection. Rebuild it with `python3 scripts/build_ecdict_compact.py`.
-
-## Known Design Priorities
-
-- Stability first.
-- Auto-save first.
-- Sync-friendly sidecar files first.
-- Keep AI integration optional and cheap.
-- Avoid large refactors unless they directly improve reader stability or maintainability.
-- Large-PDF scrolling: keep PDF parsing and image decoding in the packaged PDF.js Web Worker. Do not reintroduce the in-bundle fake worker.
-- VS Code Webviews cannot reliably start a module Worker directly from an extension-resource URL. Fetch the packaged PDF.js worker, wrap its bytes in a JavaScript `Blob`, and pass the resulting `blob:` URL to `PdfLoader`.
-- Keep synchronous text-layer geometry scans out of page-render and scroll handlers. Selection-region analysis should run lazily when a selection starts and remain cached on that text layer.
-- Webview state preservation: use `retainContextWhenHidden: true` and in-place `navigateTo` messaging rather than rebuilding HTML when switching PDFs.
-- Translation speed: use a long-lived daemon process. Never spawn a one-shot Python process per translation request in the normal code path.
+Commit generated Webview assets under `media/` when their source changes,
+because the installed extension loads them at runtime. Commit the compressed
+ECDICT bundle required for offline dictionary lookup. Keep third-party licenses
+with redistributed assets.

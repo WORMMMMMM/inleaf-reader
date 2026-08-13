@@ -37,4 +37,4 @@ including opening a real-text PDF, selecting text, autosaving annotations,
 restoring progress, and testing both word and sentence translation paths.
 
 Do not commit `node_modules/`, `.venv-translate/`, `out/`, user PDFs, VSIX
-packages, or runtime `.reading-extension/` data.
+packages, or runtime `.inleaf-reader/` data.

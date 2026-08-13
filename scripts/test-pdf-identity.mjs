@@ -9,7 +9,7 @@ import {
   getSidecarPaths
 } from '../out/pdfIdentity.js';
 
-const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'reading-extension-identity-'));
+const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'inleaf-reader-identity-'));
 const originalPdf = path.join(temporaryDirectory, 'paper.pdf');
 const renamedPdf = path.join(temporaryDirectory, 'renamed.pdf');
 const contents = Buffer.alloc(3 * 1024 * 1024, 7);
@@ -26,7 +26,7 @@ assert.notEqual(await fingerprintPdf(renamedPdf), originalFingerprint);
 const originalLocation = createPdfLocation(originalPdf, '2026-06-20T00:00:00.000Z');
 const renamedLocation = createPdfLocation(renamedPdf, '2026-06-21T00:00:00.000Z');
 const paths = getSidecarPaths(renamedLocation);
-assert.equal(paths.wordbook, path.join(temporaryDirectory, '.reading-extension', 'renamed.pdf.wordbook.json'));
+assert.equal(paths.wordbook, path.join(temporaryDirectory, '.inleaf-reader', 'renamed.pdf.wordbook.json'));
 
 const index = addLocationToIndex({}, originalFingerprint, originalLocation);
 const updatedIndex = addLocationToIndex(index, originalFingerprint, renamedLocation);

@@ -1,317 +1,222 @@
 <div align="center">
-  <img src="assets/reading-extension-logo.png" width="112" alt="Inleaf Reader logo">
+  <img src="assets/inleaf-reader-logo.png" width="112" alt="Inleaf Reader logo">
   <h1>Inleaf Reader</h1>
-  <p><strong>进入书本，进入心流</strong></p>
-  <p>A local-first PDF reader for VS Code</p>
-  <p>Annotate, translate, build a vocabulary list, and keep your reading data right next to your PDFs.</p>
+  <p><strong>Your Books. Your AI. Your Flow.</strong></p>
+  <p>在 VS Code 里阅读 PDF，用你自己的 AI 随时提问，让思考不断流。</p>
 </div>
 
-![Inleaf Reader interface with a paper, highlights, annotations, translation, and vocabulary tools](assets/reading-extension-hero.png)
+![Inleaf Reader showing a PDF, highlights, annotations, translation, and vocabulary tools](assets/inleaf-reader-hero.png)
 
-## Why I Built This
+## What is Inleaf Reader?
 
-I wanted to read papers without bouncing between a separate reader and my editor. Since I'm already using AI assistants like Codex and Claude Code in VS Code, it felt natural to keep my reading workflow in the same place.
+Inleaf Reader turns VS Code into a focused reading space for papers and books.
+It keeps frequent actions close to the page and lets you use the AI tools you
+already trust beside your document. You can ask for background, investigate a
+question, annotate a passage, translate text, or save a word without repeatedly
+leaving the reading context.
 
-Inleaf Reader focuses on three things:
+Your reading data stays in ordinary files next to the PDF. This means it remains
+under your control, can be backed up or synchronized with the tools you already
+use, and is straightforward for AI tools to inspect and work with.
 
-1. Annotate papers and books while you read.
-2. Save unfamiliar words to a simple wordbook.
-3. Read alongside the AI and development tools already in VS Code.
+### At a glance
 
-Optional DeepSeek translation uses your own DeepSeek API key. Local translation is also available through Argos Translate.
+- **Read comfortably:** continuous scrolling, page progress, fit controls, and trackpad zoom.
+- **Bring your own AI:** work beside Codex, Claude Code, or another assistant instead of being locked into a paid reader-specific AI.
+- **Annotate in place:** highlight, underline, add notes and tags, then edit them beside the original text.
+- **Translate as you read:** use the bundled offline dictionary, local Argos Translate, DeepSeek, or LibreTranslate.
+- **Build a wordbook:** save useful English words and their structured definitions for each PDF.
+- **Keep data AI-ready:** annotations, vocabulary, exports, and progress use portable files beside the document.
+- **Stay focused:** the side panel starts hidden and appears only when you ask for it.
 
-## Features
+## Who is it for?
 
-### PDF reading
+Inleaf Reader is especially useful if you:
 
-- Open a PDF from the Command Palette, the Explorer context menu, or the PDF editor title bar.
-- Continuous scrolling with synced page progress.
-- Trackpad scrolling and pinch-to-zoom.
-- Fit-page and fit-width controls.
-- User-invoked sidebar that stays hidden until requested, for a distraction-free reading view.
-- PDF-anchored inline editing for existing annotations, including manual correction of OCR text.
-- Bundled PDF.js CMaps and standard fonts for better multilingual PDF support.
+- read papers or technical books while working in VS Code;
+- want annotations and progress to stay with the original PDF;
+- use coding assistants such as Codex or Claude Code beside your reading window;
+- prefer offline or user-controlled tools over a mandatory cloud account.
 
-### Text selection
+## Install
 
-- Select PDF text for translation, copying, highlighting, or notes.
-- Copy selected text with `Cmd+C` or `Ctrl+C`.
-- When selecting across pages, headers, footers, page numbers, side notices, and inferred figure blocks are automatically excluded — as long as your selection starts in the body text.
-- Need to include one of those? Just start the selection there.
+### From a VSIX
 
-### Annotations
+Download the VSIX from the
+[latest GitHub release](https://github.com/WORMMMMMM/inleaf-reader/releases/latest),
+then choose **Extensions: Install from VSIX...** in VS Code.
 
-- Create colored highlights and underlines.
-- Attach notes and tags to selected text.
-- Edit, delete, search, filter, sort, and jump to saved annotations.
-- Undo the last deletion.
-- Export annotations as Markdown.
-- Export a highlighted PDF with native note comments.
-- Everything autosaves — no save button needed.
-
-### Translation and dictionary
-
-- A single `Translate` action works for words, sentences, and paragraphs.
-- Look up single English words offline with the bundled ECDICT dictionary.
-- Shows phonetics, parts of speech, Chinese meanings, English definitions, and word forms when available.
-- Translate longer text locally with Argos Translate.
-- Optionally route academic text through DeepSeek.
-- Use a configured LibreTranslate server as an alternative or fallback.
-
-### Wordbook
-
-- Save dictionary lookups to a per-PDF wordbook.
-- View phonetics and structured definitions.
-- Delete entries you no longer need.
-
-### Portable local data
-
-For a PDF named `paper.pdf`, the extension stores its data alongside the PDF:
-
-```text
-.reading-extension/
-  paper.pdf.annotations.json
-  paper.pdf.annotations.md
-  paper.pdf.annotated.pdf
-  paper.pdf.wordbook.json
-  paper.pdf.progress.json
-```
-
-These are plain local files — you can sync them with Git, iCloud Drive, Dropbox, Syncthing, or any file sync tool.
-
-JSON updates use atomic replacement and keep the previous valid version as a
-`.bak` file. The backup is recovery data; the JSON file remains the active source.
-
-The extension computes a lightweight content fingerprint so it can recover sidecar files after a PDF is moved or renamed. Existing files at the new location are never overwritten.
-
-## Installation
-
-### VS Code Marketplace
-
-Once it's publicly released, search for **Inleaf Reader** in the VS Code Extensions view and hit **Install**.
-
-### Install from a VSIX
-
-Download the `.vsix` from the
-[latest GitHub release](https://github.com/WORMMMMMM/inleaf-reader/releases/latest), then run:
+You can also install it from a terminal:
 
 ```bash
-code --install-extension reading-extension-0.0.7.vsix
+code --install-extension inleaf-reader-0.0.7.vsix
 ```
 
-Or use **Extensions: Install from VSIX...** from the Command Palette.
+After installation, run **Developer: Reload Window** once if the reader command
+does not appear immediately.
 
-## Quick Start
+> **Moving from an earlier pre-Inleaf build?** VS Code treats the current
+> `ziming.inleaf-reader` identity as a separate extension. Install Inleaf Reader,
+> remove the earlier extension, and reopen each PDF once. Existing local
+> sidecars beside that PDF are copied into `.inleaf-reader/` without overwriting
+> current files. Provider settings and API keys should be configured again.
 
-1. Right-click a PDF in the Explorer and choose **Inleaf Reader: Open Paper Reader**.
-   The same action is available as the blue nested-book icon in the PDF editor title toolbar.
-2. Select text to open the floating annotation and translation toolbar.
-3. Single English words use the bundled offline dictionary immediately.
-4. For sentence translation, choose DeepSeek or configure Argos in the Translation panel.
-5. If translation is unavailable, run **Inleaf Reader: Diagnose Translation Setup**.
+### From the VS Code Marketplace
 
-The first reader launch also offers a short VS Code Getting Started walkthrough.
+When the public Marketplace release is available, search for **Inleaf Reader**
+in the Extensions view and select **Install**.
 
-## Bundled Runtime Assets
+## Start reading in three steps
 
-If you install Inleaf Reader from the Marketplace or from the provided
-VSIX, the offline dictionary and PDF font resources are already included. You
-do not need to download or configure them manually.
+1. Open a PDF in VS Code, then click the blue nested-book icon in the editor title bar. You can also right-click the PDF and choose **Inleaf Reader: Open Paper Reader**.
+2. Select text to highlight it, underline it, write a note, translate it, or save a word.
+3. Continue reading. Annotations and page progress are saved automatically—there is no separate Save button.
 
-### Offline ECDICT dictionary
+The right panel stays hidden at startup. Open it from the reader toolbar when
+you want to browse annotations, saved words, or translation settings.
 
-The extension package contains:
+## What happens to my data?
+
+For a document named `paper.pdf`, Inleaf Reader creates a `.inleaf-reader`
+folder beside it:
 
 ```text
-scripts/ecdict_compact.json.gz
+.inleaf-reader/
+  paper.pdf.annotations.json   # highlights, underlines, notes, and tags
+  paper.pdf.annotations.md     # Markdown export
+  paper.pdf.annotated.pdf      # PDF export with visible marks and comments
+  paper.pdf.wordbook.json      # saved words
+  paper.pdf.progress.json      # last reading position
 ```
 
-This compressed dictionary currently contains about 770,000 English entries.
-It is loaded in a background Node worker when you translate a single English
-word. Dictionary lookups do not require Python, Argos, a network connection, or
-an API key. The worker is started lazily so the dictionary does not slow normal
-PDF startup.
+These are normal local files. You can copy or synchronize them through Git,
+iCloud Drive, Dropbox, Syncthing, or another file-sync tool. JSON updates are
+written atomically, and the previous valid version may be kept as a `.bak`
+recovery file. Because the formats are structured and documented, an AI tool
+with access to your workspace can reuse your annotations and vocabulary without
+depending on a proprietary cloud database.
 
-### PDF.js worker, CMaps, and standard fonts
+If a PDF is moved or renamed, a lightweight content fingerprint helps Inleaf
+Reader find and copy its missing sidecar files. Existing files at the new
+location are never overwritten.
 
-PDFs may use character maps or refer to standard fonts without embedding every
-required resource. Inleaf Reader also keeps parsing and image decoding off
-the reader UI thread by bundling the matching PDF.js Web Worker:
+## Translation choices
 
-```text
-media/pdfjs-dist/pdf.worker.min.mjs
-media/pdfjs-dist/cmaps/
-media/pdfjs-dist/standard_fonts/
-```
+| Mode | Best for | Network or setup |
+| --- | --- | --- |
+| Bundled ECDICT | Looking up one English word | Offline, no setup |
+| Argos Translate | Local sentence and paragraph translation | Offline after installing Python and a language model |
+| DeepSeek | Higher-quality academic translation | Uses your own API key and sends selected text to DeepSeek |
+| LibreTranslate | A self-hosted or compatible translation service | Sends selected text to the endpoint you configure |
 
-The current package contains the complete PDF.js set of 169 Adobe CMaps and 16
-standard-font resource files. The Webview fetches the packaged worker and starts
-it from a `blob:` URL, as required by VS Code's Webview worker sandbox. These
-resources are used automatically; no separate browser or PDF.js setup is
-required. Fonts embedded inside a PDF still come from the PDF itself.
-
-### What is not bundled
-
-The Argos Translate Python runtime and neural translation model are not
-included in the VSIX because Python environments and native dependencies are
-platform-specific. Install them separately only if you want local sentence or
-paragraph translation. Offline ECDICT word lookup and the bundled PDF
-resources work without Argos.
-
-## Translation Setup
-
-### Offline dictionary
-
-The compressed ECDICT dictionary is bundled with the extension. Single English words can be looked up without network access or any extra setup.
-
-### Local Argos Translate
-
-The VSIX doesn't include a Python virtual environment — those are platform- and machine-specific.
-
-On macOS or Linux, create a virtual environment and install Argos Translate:
-
-```bash
-python3 -m venv ~/.reading-extension-argos
-source ~/.reading-extension-argos/bin/activate
-python -m pip install --upgrade pip
-python -m pip install argostranslate
-```
-
-On Windows PowerShell:
-
-```powershell
-py -m venv $HOME\.reading-extension-argos
-& $HOME\.reading-extension-argos\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install argostranslate
-```
-
-Install the English-to-Chinese model using the
-[official Argos package API](https://github.com/argosopentech/argos-translate):
-
-```bash
-python - <<'PY'
-import argostranslate.package
-
-argostranslate.package.update_package_index()
-packages = argostranslate.package.get_available_packages()
-package = next(
-    item for item in packages
-    if item.from_code == "en" and item.to_code == "zh"
-)
-argostranslate.package.install_from_path(package.download())
-print("Installed Argos en -> zh package")
-PY
-```
-
-On Windows PowerShell, run the same installation code with:
-
-```powershell
-@'
-import argostranslate.package
-
-argostranslate.package.update_package_index()
-packages = argostranslate.package.get_available_packages()
-package = next(
-    item for item in packages
-    if item.from_code == "en" and item.to_code == "zh"
-)
-argostranslate.package.install_from_path(package.download())
-print("Installed Argos en -> zh package")
-'@ | python
-```
-
-Then configure the virtual environment's Python executable:
-
-```json
-{
-  "readingExtension.translationProvider": "argos",
-  "readingExtension.argosPythonPath": "/Users/you/.reading-extension-argos/bin/python"
-}
-```
-
-On Windows, the executable normally ends with:
-
-```text
-.reading-extension-argos\Scripts\python.exe
-```
-
-Restart the reader after changing the setting. The first sentence translation starts
-the local daemon and loads the model; later translations reuse that process.
+Single English words always prefer the bundled ECDICT dictionary, which contains
+about 770,000 entries and can show phonetics, Chinese meanings, English
+definitions, parts of speech, and word forms. It loads in a background worker
+only when needed, so ordinary PDF startup does not wait for the dictionary.
 
 ### DeepSeek
 
-1. Generate a DeepSeek API key.
-2. Run **Inleaf Reader: Set DeepSeek API Key**, or select DeepSeek in the Translation sidebar.
-3. Enter the key when prompted.
-
-The key is stored with VS Code SecretStorage — it's never written to settings, sidecar files, logs, or the Webview.
+Run **Inleaf Reader: Set DeepSeek API Key** or select DeepSeek in the Translation
+panel. The key is stored in VS Code SecretStorage and is never written to the
+Webview, settings, sidecar files, or logs.
 
 Run **Inleaf Reader: Clear DeepSeek API Key** to remove it.
 
 ### LibreTranslate
 
-Configure a LibreTranslate-compatible endpoint:
+Set `inleafReader.translationProvider` to `libretranslate` and provide a
+compatible endpoint in `inleafReader.libreTranslateEndpoint`.
+
+<details>
+<summary><strong>Optional: set up local Argos Translate</strong></summary>
+
+The VSIX does not include Python or the Argos neural model because those
+dependencies are specific to each operating system.
+
+On macOS or Linux:
+
+```bash
+python3 -m venv ~/.inleaf-reader-argos
+source ~/.inleaf-reader-argos/bin/activate
+python -m pip install --upgrade pip argostranslate
+```
+
+On Windows PowerShell:
+
+```powershell
+py -m venv $HOME\.inleaf-reader-argos
+& $HOME\.inleaf-reader-argos\Scripts\Activate.ps1
+python -m pip install --upgrade pip argostranslate
+```
+
+Install the English-to-Chinese model with the
+[official Argos package API](https://github.com/argosopentech/argos-translate):
+
+```python
+import argostranslate.package
+
+argostranslate.package.update_package_index()
+packages = argostranslate.package.get_available_packages()
+package = next(
+    item for item in packages
+    if item.from_code == "en" and item.to_code == "zh"
+)
+argostranslate.package.install_from_path(package.download())
+```
+
+Then set `inleafReader.argosPythonPath` to that virtual environment's
+Python executable. For example:
 
 ```json
 {
-  "readingExtension.translationProvider": "libretranslate",
-  "readingExtension.libreTranslateEndpoint": "http://localhost:5000/translate"
+  "inleafReader.translationProvider": "argos",
+  "inleafReader.argosPythonPath": "/Users/you/.inleaf-reader-argos/bin/python"
 }
 ```
 
-## Settings
+The first sentence translation starts the local daemon and loads the model.
+Later requests reuse that process.
 
-| Setting | Purpose |
-| --- | --- |
-| `readingExtension.translationProvider` | Select `argos`, `libretranslate`, or `deepseek`. |
-| `readingExtension.argosPythonPath` | Python executable containing Argos Translate and language packages. |
-| `readingExtension.libreTranslateEndpoint` | LibreTranslate-compatible HTTP endpoint. |
-| `readingExtension.translationFallbackToLibreTranslate` | Fall back to LibreTranslate if local Argos translation fails. |
-| `readingExtension.translationSource` | Translation source language code; the default is `auto`. |
-| `readingExtension.translationTarget` | Translation target language code; the default is `zh`. |
-| `readingExtension.deepSeekModel` | DeepSeek model requested by the configured API account. |
+</details>
 
-## Data and Privacy
+If translation does not work, run
+**Inleaf Reader: Diagnose Translation Setup** to see what is available.
 
-- PDFs are read from paths you choose.
-- Annotations, words, exports, and reading progress stay in `.reading-extension/` next to each PDF.
-- A fingerprint-to-path index is stored in VS Code global state for move/rename recovery. It contains paths and timestamps, not annotation or wordbook content.
-- API keys are stored in VS Code SecretStorage.
-- ECDICT lookups are entirely offline.
-- Local Argos translation runs on your machine.
-- When DeepSeek is selected, the selected text and translation instruction are sent to the DeepSeek API.
-- When LibreTranslate is selected or used as a fallback, the selected text is sent to the configured endpoint.
-- The extension doesn't currently collect telemetry or analytics.
+## Privacy
 
-Review the privacy terms of any external translation service before using it with sensitive documents.
+- Inleaf Reader does not currently collect telemetry or analytics.
+- PDFs and all reading sidecars stay in paths you choose.
+- Offline ECDICT lookup and local Argos translation stay on your machine.
+- DeepSeek and LibreTranslate receive selected text only when you choose those providers.
+- A lightweight path index is stored in VS Code global state for move/rename recovery; annotation and wordbook content is not stored there.
 
-## Known Limitations
+Review the privacy terms of any external translation provider before sending
+sensitive text.
 
-- Scanned PDFs without a text layer can't be selected unless you run OCR separately.
-- Header, footer, and figure exclusion is heuristic — many PDFs don't provide reliable semantic structure.
-- Local Argos translation requires separate Python and language-package setup.
-- The current workflow is optimized for English-to-Chinese reading.
-- The extension is in early preview — keep important PDFs and sidecar data backed up.
+## Current limitations
+
+- Scanned PDFs without a text layer cannot be selected unless OCR is performed separately.
+- Header, footer, page-number, and figure exclusion is heuristic because many PDFs do not expose reliable document structure.
+- Argos Translate requires separate Python and language-model installation.
+- The current dictionary and local translation workflow are optimized for English-to-Chinese reading.
+- Inleaf Reader is still in preview; keep important PDFs and sidecar data backed up.
 
 ## Commands
 
-| Command | Description |
+| Command | What it does |
 | --- | --- |
-| `Inleaf Reader: Open Paper Reader` | Open the current PDF or select one from disk. |
-| `Inleaf Reader: Set DeepSeek API Key` | Store or replace the DeepSeek key securely. |
-| `Inleaf Reader: Clear DeepSeek API Key` | Remove the stored DeepSeek key. |
-| `Inleaf Reader: Diagnose Translation Setup` | Report dictionary, Argos, fallback, and DeepSeek readiness. |
+| `Inleaf Reader: Open Paper Reader` | Opens the active PDF or lets you choose one. |
+| `Inleaf Reader: Set DeepSeek API Key` | Stores or replaces a DeepSeek key securely. |
+| `Inleaf Reader: Clear DeepSeek API Key` | Removes the stored DeepSeek key. |
+| `Inleaf Reader: Diagnose Translation Setup` | Checks dictionary and translation readiness. |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the local build, test, and manual
-reader-check workflow. Issues and pull requests are welcome on
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, tests, and the manual
+reader checklist. Issues and pull requests are welcome on
 [GitHub](https://github.com/WORMMMMMM/inleaf-reader).
 
-## Acknowledgements
-
-Inleaf Reader is built with open-source projects including:
+## Built with
 
 - [PDF.js](https://mozilla.github.io/pdf.js/)
 - [react-pdf-highlighter-plus](https://github.com/DanielArnould/react-pdf-highlighter-plus)
@@ -319,8 +224,6 @@ Inleaf Reader is built with open-source projects including:
 - [Argos Translate](https://www.argosopentech.com/)
 - [ECDICT](https://github.com/skywind3000/ECDICT)
 
-Third-party components and bundled assets remain subject to their respective licenses.
-
-## License
-
-Inleaf Reader is released under the [MIT License](LICENSE).
+Third-party components and bundled assets remain subject to their respective
+licenses. Inleaf Reader's original source code is released under the
+[MIT License](LICENSE).

@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyAnnotationsToPdf, formatAnnotationsMarkdown } from './annotationExports';
 import { AnnotationRecord } from './annotationTypes';
+import { INLEAF_IDS } from './identity';
 import {
   addLocationToIndex,
   createPdfLocation,
@@ -51,6 +52,9 @@ export interface StoragePreparationResult {
   recoveredFiles: number;
 }
 
+// Read-only migration source for data written before the Inleaf identity change.
+const LEGACY_SIDECAR_DIRECTORY = '.reading-extension';
+
 export class ReaderStorage {
   private readonly storageDir: vscode.Uri;
   private readonly baseName: string;
@@ -66,7 +70,7 @@ export class ReaderStorage {
     private readonly globalState: vscode.Memento
   ) {
     this.baseName = path.basename(pdfUri.fsPath);
-    this.storageDir = vscode.Uri.file(path.join(path.dirname(pdfUri.fsPath), '.reading-extension'));
+    this.storageDir = vscode.Uri.file(path.join(path.dirname(pdfUri.fsPath), INLEAF_IDS.sidecarDirectory));
     this.location = createPdfLocation(pdfUri.fsPath);
   }
 
@@ -294,11 +298,20 @@ export class ReaderStorage {
   private async prepareInternal(): Promise<StoragePreparationResult> {
     await vscode.workspace.fs.createDirectory(this.storageDir);
 
+    const legacyLocation: PdfLocation = {
+      pdfPath: this.location.pdfPath,
+      storageDir: path.join(path.dirname(this.pdfUri.fsPath), LEGACY_SIDECAR_DIRECTORY),
+      baseName: this.baseName,
+      updatedAt: new Date(0).toISOString()
+    };
+    let recoveredFiles = await this.copyMissingSidecars(legacyLocation);
+    let recoveredFrom = recoveredFiles > 0 ? legacyLocation.storageDir : undefined;
+
     let fingerprint: string;
     try {
       fingerprint = await fingerprintPdf(this.pdfUri.fsPath);
     } catch {
-      return { recoveredFiles: 0 };
+      return { recoveredFrom, recoveredFiles };
     }
 
     const index = this.globalState.get<PdfLocationIndex>(PDF_LOCATION_INDEX_KEY, {});
@@ -306,8 +319,6 @@ export class ReaderStorage {
       .filter(candidate => path.resolve(candidate.pdfPath) !== this.location.pdfPath)
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 
-    let recoveredFrom: string | undefined;
-    let recoveredFiles = 0;
     for (const candidate of candidates) {
       const copied = await this.copyMissingSidecars(candidate);
       if (copied > 0) {

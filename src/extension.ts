@@ -3,13 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { INLEAF_IDS } from './identity';
 import { PaperReaderPanel } from './paperReaderPanel';
 
 const execFileAsync = promisify(execFile);
 
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.window.createOutputChannel('Inleaf Reader');
-  const openReader = vscode.commands.registerCommand('readingExtension.openReader', async (resource?: vscode.Uri) => {
+  const openReader = vscode.commands.registerCommand(INLEAF_IDS.commands.openReader, async (resource?: vscode.Uri) => {
     const activeUri = resource || activePdfUri();
     let pdfUri: vscode.Uri | undefined = isPdfUri(activeUri) ? activeUri : undefined;
 
@@ -38,8 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
       context.globalState,
       pdfUri
     );
-    if (!context.globalState.get<boolean>('readingExtension.onboardingShown')) {
-      await context.globalState.update('readingExtension.onboardingShown', true);
+    if (!context.globalState.get<boolean>(INLEAF_IDS.globalState.onboardingShown)) {
+      await context.globalState.update(INLEAF_IDS.globalState.onboardingShown, true);
       const action = await vscode.window.showInformationMessage(
         'Inleaf Reader is ready. Single-word lookup works offline; sentence translation can be configured separately.',
         'Getting Started',
@@ -48,16 +49,16 @@ export function activate(context: vscode.ExtensionContext) {
       if (action === 'Getting Started') {
         await vscode.commands.executeCommand(
           'workbench.action.openWalkthrough',
-          `${context.extension.id}#readingExtension.gettingStarted`,
+          `${context.extension.id}#${INLEAF_IDS.walkthrough}`,
           false
         );
       } else if (action === 'Diagnose Translation') {
-        await vscode.commands.executeCommand('readingExtension.diagnoseTranslation');
+        await vscode.commands.executeCommand(INLEAF_IDS.commands.diagnoseTranslation);
       }
     }
   });
 
-  const setDeepSeekApiKey = vscode.commands.registerCommand('readingExtension.setDeepSeekApiKey', async () => {
+  const setDeepSeekApiKey = vscode.commands.registerCommand(INLEAF_IDS.commands.setDeepSeekApiKey, async () => {
     const apiKey = await vscode.window.showInputBox({
       title: 'Set DeepSeek API Key',
       prompt: 'Stored in VS Code SecretStorage. When DeepSeek is selected, translated text is sent to the DeepSeek API.',
@@ -69,24 +70,24 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    await context.secrets.store(PaperReaderPanel.deepSeekApiKeySecret, apiKey.trim());
+    await context.secrets.store(INLEAF_IDS.secrets.deepSeekApiKey, apiKey.trim());
     await vscode.workspace
-      .getConfiguration('readingExtension')
+      .getConfiguration(INLEAF_IDS.configuration)
       .update('translationProvider', 'deepseek', vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage('DeepSeek API key stored securely. DeepSeek is now the translation provider.');
   });
 
-  const clearDeepSeekApiKey = vscode.commands.registerCommand('readingExtension.clearDeepSeekApiKey', async () => {
-    await context.secrets.delete(PaperReaderPanel.deepSeekApiKeySecret);
-    const config = vscode.workspace.getConfiguration('readingExtension');
+  const clearDeepSeekApiKey = vscode.commands.registerCommand(INLEAF_IDS.commands.clearDeepSeekApiKey, async () => {
+    await context.secrets.delete(INLEAF_IDS.secrets.deepSeekApiKey);
+    const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     if (config.get<string>('translationProvider') === 'deepseek') {
       await config.update('translationProvider', 'argos', vscode.ConfigurationTarget.Global);
     }
     vscode.window.showInformationMessage('DeepSeek API key removed from VS Code SecretStorage.');
   });
 
-  const diagnoseTranslation = vscode.commands.registerCommand('readingExtension.diagnoseTranslation', async () => {
-    const config = vscode.workspace.getConfiguration('readingExtension');
+  const diagnoseTranslation = vscode.commands.registerCommand(INLEAF_IDS.commands.diagnoseTranslation, async () => {
+    const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const configuredPython = config.get<string>('argosPythonPath')?.trim();
     const pythonPath = configuredPython || path.join(context.extensionUri.fsPath, '.venv-translate', 'bin', 'python');
     const dictionaryPath = path.join(context.extensionUri.fsPath, 'scripts', 'ecdict_compact.json.gz');
@@ -96,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
       `Offline dictionary: ${fs.existsSync(dictionaryPath) ? 'ready' : `missing (${dictionaryPath})`}`,
       `Argos Python: ${fs.existsSync(pythonPath) ? pythonPath : `not found (${pythonPath})`}`,
       `LibreTranslate fallback: ${config.get<boolean>('translationFallbackToLibreTranslate') ? 'enabled' : 'disabled'}`,
-      `DeepSeek API key: ${(await context.secrets.get(PaperReaderPanel.deepSeekApiKeySecret)) ? 'configured' : 'not configured'}`
+      `DeepSeek API key: ${(await context.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)) ? 'configured' : 'not configured'}`
     ];
 
     if (fs.existsSync(pythonPath)) {
@@ -122,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
       'Open Settings'
     );
     if (action === 'Open Settings') {
-      await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:ziming.reading-extension');
+      await vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${context.extension.id}`);
     }
   });
 

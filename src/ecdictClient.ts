@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Worker } from 'worker_threads';
-import type { WordDetails } from './paperReaderPanel';
+import type { WordDetails } from './translationTypes';
 
 export class EcdictClient implements vscode.Disposable {
   private worker?: Worker;

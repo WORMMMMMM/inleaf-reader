@@ -1,5 +1,9 @@
 # Contributing
 
+Unless you explicitly state otherwise, contributions intentionally submitted
+for inclusion in this project are provided under the
+[Apache License 2.0](LICENSE), as described in Section 5 of that license.
+
 ## Local setup
 
 ```bash

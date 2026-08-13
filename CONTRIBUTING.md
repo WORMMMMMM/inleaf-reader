@@ -1,5 +1,8 @@
 # Contributing
 
+By submitting a contribution, you agree to license it under the repository's
+current [PolyForm Noncommercial License 1.0.0](LICENSE).
+
 ## Local setup
 
 ```bash

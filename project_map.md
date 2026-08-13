@@ -91,7 +91,7 @@ VS Code command
 - `assets/inleaf-reader-hero.png`: Public product screenshot.
 - `assets/inleaf-reader-toolbar-light.svg`: Light-theme editor-title command icon.
 - `assets/inleaf-reader-toolbar-dark.svg`: Dark-theme editor-title command icon.
-- `LICENSE`: MIT license for original project code.
+- `LICENSE`: PolyForm Noncommercial 1.0.0 terms for version 0.0.8 and later.
 
 ## Generated Runtime Files
 

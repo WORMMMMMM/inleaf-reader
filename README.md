@@ -229,11 +229,11 @@ licenses.
 
 ## License
 
-Inleaf Reader 0.0.8 and later is source-available under the
-[PolyForm Noncommercial License 1.0.0](LICENSE). Personal, educational,
-research, and other noncommercial use is permitted. Commercial use requires
-separate written authorization from the copyright holder.
+Inleaf Reader 0.0.8 and later is open-source software released under the
+[Apache License 2.0](LICENSE). You may use, modify, distribute, and use the
+software commercially under the license terms. The license also provides an
+explicit patent grant and requires applicable copyright and attribution
+notices to be preserved.
 
 Versions 0.0.7 and earlier remain available under the MIT License terms that
-were granted with those releases. Changing the license for newer versions does
-not revoke rights already granted for earlier versions.
+were granted with those releases.

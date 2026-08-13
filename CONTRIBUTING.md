@@ -1,7 +1,8 @@
 # Contributing
 
-By submitting a contribution, you agree to license it under the repository's
-current [PolyForm Noncommercial License 1.0.0](LICENSE).
+Unless you explicitly state otherwise, contributions intentionally submitted
+for inclusion in this project are provided under the
+[Apache License 2.0](LICENSE), as described in Section 5 of that license.
 
 ## Local setup
 

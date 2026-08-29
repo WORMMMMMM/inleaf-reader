@@ -15,6 +15,7 @@ import './styles.css';
 import {
   AnnotationItem,
   AnnotationSummary,
+  InlineAnnotationActions,
   InlineAnnotationEditor,
   SelectionToolbar,
   SelectionToolbarContext,
@@ -394,7 +395,10 @@ function App() {
     setStatus('Selection captured.');
   }
 
-  function editAnnotation(annotation: AnnotationRecord, viewportPosition?: ViewportPosition) {
+  function resolveAnnotationTipPosition(
+    annotation: AnnotationRecord,
+    viewportPosition?: ViewportPosition
+  ) {
     const utils = highlighterRef.current;
     const viewer = utils?.getViewer();
     const storedPosition = annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects);
@@ -404,9 +408,41 @@ function App() {
         : undefined
     );
     if (!utils || !tipPosition) {
-      setStatus('This annotation cannot be edited inline because its position is unavailable.');
+      setStatus('This annotation cannot be opened inline because its position is unavailable.');
+      return undefined;
+    }
+    return { tipPosition, utils };
+  }
+
+  function openAnnotationActions(annotation: AnnotationRecord, viewportPosition?: ViewportPosition) {
+    const resolved = resolveAnnotationTipPosition(annotation, viewportPosition);
+    if (!resolved) {
       return;
     }
+    const { tipPosition, utils } = resolved;
+    setActiveId(annotation.id);
+    utils.toggleEditInProgress(true);
+    utils.setTip({
+      position: tipPosition,
+      content: (
+        <InlineAnnotationActions
+          onEdit={() => editAnnotation(annotation, tipPosition)}
+          onDelete={() => {
+            deleteAnnotation(annotation);
+            closeAnnotationTip();
+          }}
+        />
+      )
+    });
+    window.requestAnimationFrame(() => utils.updateTipPosition());
+  }
+
+  function editAnnotation(annotation: AnnotationRecord, viewportPosition?: ViewportPosition) {
+    const resolved = resolveAnnotationTipPosition(annotation, viewportPosition);
+    if (!resolved) {
+      return;
+    }
+    const { tipPosition, utils } = resolved;
     setActiveId(annotation.id);
     focusAnnotation(annotation);
     utils.toggleEditInProgress(true);
@@ -415,11 +451,11 @@ function App() {
       content: (
         <InlineAnnotationEditor
           annotation={annotation}
-          onCancel={closeInlineAnnotationEditor}
+          onCancel={closeAnnotationTip}
           onSave={patch => {
             vscode.postMessage({ type: 'updateAnnotation', payload: { id: annotation.id, patch } });
             setStatus('Annotation saved.');
-            closeInlineAnnotationEditor();
+            closeAnnotationTip();
           }}
         />
       )
@@ -431,12 +467,12 @@ function App() {
     setLastDeleted(annotation);
     vscode.postMessage({ type: 'deleteAnnotation', payload: { id: annotation.id } });
     if (activeId === annotation.id) {
-      closeInlineAnnotationEditor();
+      closeAnnotationTip();
     }
     setStatus('Annotation deleted. Use undo to restore it.');
   }
 
-  function closeInlineAnnotationEditor() {
+  function closeAnnotationTip() {
     const utils = highlighterRef.current;
     utils?.setTip(null);
     utils?.toggleEditInProgress(false);
@@ -615,7 +651,7 @@ function App() {
                   zoom={zoom}
                   onDelete={deleteAnnotation}
                   onDocumentReady={handleDocumentReady}
-                  onOpen={editAnnotation}
+                  onOpen={openAnnotationActions}
                   onPageChange={handleVisiblePageChange}
                   onPinchZoom={handlePinchZoom}
                   onSelection={handleSelection}

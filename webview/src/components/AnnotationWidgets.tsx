@@ -216,6 +216,26 @@ export function InlineAnnotationEditor({
   );
 }
 
+export function InlineAnnotationActions({
+  onDelete,
+  onEdit
+}: {
+  onDelete(): void;
+  onEdit(): void;
+}) {
+  return (
+    <div
+      className="selection-toolbar annotation-inline-actions"
+      onClick={event => event.stopPropagation()}
+      onMouseDown={event => event.stopPropagation()}
+      onPointerDown={event => event.stopPropagation()}
+    >
+      <button onClick={onEdit}>Edit</button>
+      <button className="danger-button" onClick={onDelete}>Delete</button>
+    </div>
+  );
+}
+
 export function SelectionToolbar() {
   const context = React.useContext(SelectionToolbarContext);
   if (!context) {

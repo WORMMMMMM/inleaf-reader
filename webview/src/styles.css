@@ -654,6 +654,12 @@ label {
   overflow: auto;
 }
 
+.annotation-inline-actions {
+  width: auto;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
 .annotation-inline-title {
   font-size: 13px;
   font-weight: 700;

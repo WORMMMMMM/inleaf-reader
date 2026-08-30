@@ -11,8 +11,15 @@ const source = `${mainSource}\n${pdfViewSource}\n${annotationWidgetsSource}`;
 
 assert.match(source, /const \[sidebarVisible, setSidebarVisible\] = useState\(false\)/);
 assert.doesNotMatch(source, /setSidebarVisible\(true\)/);
+assert.match(source, /function InlineAnnotationActions/);
 assert.match(source, /function InlineAnnotationEditor/);
 assert.match(source, /onOpen\(annotation, highlight\.position\)/);
+assert.match(source, /onOpen=\{openAnnotationActions\}/);
+assert.match(source, /onEdit=\{\(\) => editAnnotation\(annotation, tipPosition\)\}/);
+assert.match(
+  source,
+  /<button onClick=\{onEdit\}>Edit<\/button>\s*<button className="danger-button" onClick=\{onDelete\}>Delete<\/button>/
+);
 assert.match(source, /utils\.setTip\(/);
 assert.match(source, /Original text/);
 assert.match(
@@ -25,6 +32,7 @@ assert.match(
 );
 assert.doesNotMatch(source, /Changes autosave while this panel is open/);
 assert.match(generatedBundle, /Starting PDF worker/);
+assert.match(generatedBundle, /annotation-inline-actions/);
 assert.match(generatedBundle, /Edit annotation/);
 assert.doesNotMatch(generatedBundle, /Changes autosave while this panel is open/);
 

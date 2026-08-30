@@ -108,7 +108,8 @@ For `paper.pdf`, newly written data is:
   steps and without unnecessary panel changes.
 - The right-side panel is user-invoked and hidden on startup. Annotation edits,
   translation, and word saving must not open it automatically.
-- Clicking a saved highlight opens its inline editor near the PDF content.
+- Clicking a saved highlight opens inline `Edit` and `Delete` actions near the
+  PDF content. `Edit` then opens the inline annotation editor.
 - The original selected text remains editable so OCR mistakes can be corrected.
 - Selection uses one `Translate` action: single English words may show
   dictionary details and `Save to Wordbook`; longer text shows translation.

@@ -5,7 +5,7 @@
   <p>在 VS Code 里阅读 PDF，用你自己的 AI 随时提问，让思考不断流。</p>
 </div>
 
-![Inleaf Reader showing a highlighted PDF with compact reading controls](assets/inleaf-reader-hero.png)
+![Inleaf Reader open beside an AI assistant, with PDF highlights and annotations](assets/inleaf-reader-example.png)
 
 ## What is Inleaf Reader?
 

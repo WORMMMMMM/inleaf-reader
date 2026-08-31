@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyAnnotationsToPdf, formatAnnotationsMarkdown } from './annotationExports';
 import { AnnotationRecord } from './annotationTypes';
+import type { ProgressRecord, WordRecord } from './readerDataTypes';
 import { INLEAF_IDS } from './identity';
 import {
   addLocationToIndex,
@@ -13,43 +14,28 @@ import {
   PDF_LOCATION_INDEX_KEY,
   SIDECAR_KINDS
 } from './pdfIdentity';
+import {
+  decodeAnnotations,
+  decodeProgress,
+  decodeWords,
+  DecodedSidecar,
+  encodeAnnotations,
+  encodeProgress,
+  encodeWords
+} from './sidecarSchemas';
 
 export type { AnnotationKind, AnnotationRecord, AnnotationRect } from './annotationTypes';
-
-export interface WordRecord {
-  id: string;
-  word: string;
-  translation?: string;
-  phonetic?: string;
-  definitions?: WordDefinition[];
-  sentence?: string;
-  note?: string;
-  page?: number;
-  review?: WordReview;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WordReview {
-  level: number;
-  nextReviewAt: string;
-  lastReviewedAt?: string;
-}
-
-export interface WordDefinition {
-  pos: string;
-  meaning: string;
-  translation?: string;
-}
-
-export interface ProgressRecord {
-  page?: number;
-  updatedAt: string;
-}
+export type { ProgressRecord, WordDefinition, WordRecord, WordReview } from './readerDataTypes';
 
 export interface StoragePreparationResult {
   recoveredFrom?: string;
   recoveredFiles: number;
+}
+
+export interface DataRecoveryNotice {
+  backupPath: string;
+  corruptPath: string;
+  restoredPath: string;
 }
 
 // Read-only migration source for data written before the Inleaf identity change.
@@ -64,6 +50,7 @@ export class ReaderStorage {
   private wordsCache?: Promise<WordRecord[]>;
   private progressCache?: Promise<ProgressRecord>;
   private mutationQueue: Promise<void> = Promise.resolve();
+  private dataRecoveryNotices: DataRecoveryNotice[] = [];
 
   constructor(
     private readonly pdfUri: vscode.Uri,
@@ -94,6 +81,10 @@ export class ReaderStorage {
     return this.loadProgress();
   }
 
+  consumeDataRecoveryNotices() {
+    return this.dataRecoveryNotices.splice(0);
+  }
+
   async addAnnotation(input: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'>) {
     return this.enqueueMutation(async () => {
       this.annotationsCache = undefined;
@@ -107,7 +98,7 @@ export class ReaderStorage {
         createdAt: now,
         updatedAt: now
       }, ...annotations];
-      await this.writeJson(this.fileUri('annotations'), updated);
+      await this.writeJson(this.fileUri('annotations'), encodeAnnotations(updated));
       this.annotationsCache = Promise.resolve(updated);
       return updated;
     });
@@ -126,7 +117,7 @@ export class ReaderStorage {
       if (updated.every((annotation, index) => annotation === annotations[index])) {
         return annotations;
       }
-      await this.writeJson(this.fileUri('annotations'), updated);
+      await this.writeJson(this.fileUri('annotations'), encodeAnnotations(updated));
       this.annotationsCache = Promise.resolve(updated);
       return updated;
     });
@@ -137,7 +128,7 @@ export class ReaderStorage {
       this.annotationsCache = undefined;
       const annotations = await this.loadAnnotations();
       const updated = annotations.filter(item => item.id !== id);
-      await this.writeJson(this.fileUri('annotations'), updated);
+      await this.writeJson(this.fileUri('annotations'), encodeAnnotations(updated));
       this.annotationsCache = Promise.resolve(updated);
       return updated;
     });
@@ -151,7 +142,7 @@ export class ReaderStorage {
         return annotations;
       }
       const updated = [record, ...annotations];
-      await this.writeJson(this.fileUri('annotations'), updated);
+      await this.writeJson(this.fileUri('annotations'), encodeAnnotations(updated));
       this.annotationsCache = Promise.resolve(updated);
       return updated;
     });
@@ -188,7 +179,7 @@ export class ReaderStorage {
         createdAt: now,
         updatedAt: now
       }, ...words];
-      await this.writeJson(this.fileUri('wordbook'), updated);
+      await this.writeJson(this.fileUri('wordbook'), encodeWords(updated));
       this.wordsCache = Promise.resolve(updated);
       return updated;
     });
@@ -199,7 +190,7 @@ export class ReaderStorage {
       this.wordsCache = undefined;
       const words = await this.loadWords();
       const updated = words.filter(item => item.id !== id);
-      await this.writeJson(this.fileUri('wordbook'), updated);
+      await this.writeJson(this.fileUri('wordbook'), encodeWords(updated));
       this.wordsCache = Promise.resolve(updated);
       return updated;
     });
@@ -209,14 +200,19 @@ export class ReaderStorage {
     return this.enqueueMutation(async () => {
       this.progressCache = undefined;
       const updated = { ...progress, updatedAt: new Date().toISOString() };
-      await this.writeJson(this.fileUri('progress'), updated, false);
+      await this.writeJson(this.fileUri('progress'), encodeProgress(updated));
       this.progressCache = Promise.resolve(updated);
       return updated;
     });
   }
 
   private loadAnnotations() {
-    this.annotationsCache ??= this.readJson<AnnotationRecord[]>(this.fileUri('annotations'), []).catch(error => {
+    this.annotationsCache ??= this.readSidecar(
+      this.fileUri('annotations'),
+      [],
+      decodeAnnotations,
+      encodeAnnotations
+    ).catch(error => {
       this.annotationsCache = undefined;
       throw error;
     });
@@ -224,7 +220,12 @@ export class ReaderStorage {
   }
 
   private loadWords() {
-    this.wordsCache ??= this.readJson<WordRecord[]>(this.fileUri('wordbook'), []).catch(error => {
+    this.wordsCache ??= this.readSidecar(
+      this.fileUri('wordbook'),
+      [],
+      decodeWords,
+      encodeWords
+    ).catch(error => {
       this.wordsCache = undefined;
       throw error;
     });
@@ -232,9 +233,12 @@ export class ReaderStorage {
   }
 
   private loadProgress() {
-    this.progressCache ??= this.readJson<ProgressRecord>(this.fileUri('progress'), {
-      updatedAt: new Date(0).toISOString()
-    }).catch(error => {
+    this.progressCache ??= this.readSidecar(
+      this.fileUri('progress'),
+      { updatedAt: new Date(0).toISOString() },
+      decodeProgress,
+      encodeProgress
+    ).catch(error => {
       this.progressCache = undefined;
       throw error;
     });
@@ -253,21 +257,58 @@ export class ReaderStorage {
     return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${stem}.${extension}`);
   }
 
-  private async readJson<T>(uri: vscode.Uri, fallback: T): Promise<T> {
+  private async readSidecar<T>(
+    uri: vscode.Uri,
+    fallback: T,
+    decode: (input: unknown) => DecodedSidecar<T>,
+    encode: (value: T) => unknown
+  ): Promise<T> {
     await this.prepare();
     try {
-      const bytes = await vscode.workspace.fs.readFile(uri);
-      return JSON.parse(Buffer.from(bytes).toString('utf8')) as T;
+      const decoded = decode(await this.readJsonValue(uri));
+      if (decoded.migrated) {
+        await this.writeJson(uri, encode(decoded.value));
+      }
+      return decoded.value;
     } catch (error) {
       if (isFileNotFound(error)) {
         return fallback;
       }
-      const detail = error instanceof Error ? error.message : String(error);
+      return this.recoverSidecar(uri, decode, encode, error);
+    }
+  }
+
+  private async recoverSidecar<T>(
+    uri: vscode.Uri,
+    decode: (input: unknown) => DecodedSidecar<T>,
+    encode: (value: T) => unknown,
+    primaryError: unknown
+  ) {
+    const backupUri = vscode.Uri.file(`${uri.fsPath}.bak`);
+    try {
+      const backup = decode(await this.readJsonValue(backupUri));
+      const corruptUri = vscode.Uri.file(`${uri.fsPath}.corrupt-${recoveryTimestamp()}`);
+      await vscode.workspace.fs.rename(uri, corruptUri, { overwrite: false });
+      await this.writeJson(uri, encode(backup.value), false);
+      this.dataRecoveryNotices.push({
+        backupPath: backupUri.fsPath,
+        corruptPath: corruptUri.fsPath,
+        restoredPath: uri.fsPath
+      });
+      return backup.value;
+    } catch (backupError) {
+      const primaryDetail = errorMessage(primaryError);
+      const backupDetail = errorMessage(backupError);
       throw new Error(
-        `Could not read reader data at ${uri.fsPath}: ${detail}. ` +
-        `The previous valid version may be available at ${uri.fsPath}.bak.`
+        `Could not read reader data at ${uri.fsPath}: ${primaryDetail} ` +
+        `Recovery from ${backupUri.fsPath} also failed: ${backupDetail}`
       );
     }
+  }
+
+  private async readJsonValue(uri: vscode.Uri) {
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    return JSON.parse(Buffer.from(bytes).toString('utf8')) as unknown;
   }
 
   private async writeJson(uri: vscode.Uri, value: unknown, keepBackup = true) {
@@ -391,4 +432,12 @@ function cryptoRandomId() {
 
 function isFileNotFound(error: unknown) {
   return error instanceof vscode.FileSystemError && error.code === 'FileNotFound';
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function recoveryTimestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
 }

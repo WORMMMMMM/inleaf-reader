@@ -11,9 +11,10 @@ export interface TranslationResult {
 }
 
 export interface TranslationSettings {
-  mode: 'local' | 'deepseek';
-  provider: string;
+  provider: TranslationProvider;
+  deepSeekModel: DeepSeekModel;
   hasDeepSeekApiKey: boolean;
   dictionaryReady: boolean;
   argosPythonFound: boolean;
 }
+import type { DeepSeekModel, TranslationProvider } from './translationContract';

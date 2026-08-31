@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build the compact ECDICT dictionary used by the reader.
+"""Build the sharded ECDICT dictionary used by the reader.
 
 The source CSV comes from https://github.com/skywind3000/ECDICT (MIT).
-By default this script downloads the upstream CSV and writes a gzipped JSON
-dictionary next to the translation daemon.
+By default this script downloads the upstream CSV and writes 64 compressed
+JSON shards. The reader loads only the shard needed for a lookup.
 """
 
 from __future__ import annotations
@@ -18,7 +18,8 @@ from pathlib import Path
 
 
 DEFAULT_URL = "https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv"
-DEFAULT_OUTPUT = Path(__file__).with_name("ecdict_compact.json.gz")
+DEFAULT_OUTPUT = Path(__file__).with_name("ecdict")
+DEFAULT_BUCKET_COUNT = 64
 
 
 def main() -> int:
@@ -31,23 +32,29 @@ def main() -> int:
     parser.add_argument(
         "--output",
         default=str(DEFAULT_OUTPUT),
-        help="Output .json.gz path.",
+        help="Output directory for the compressed shards.",
     )
-    parser.add_argument(
-        "--plain-json",
-        default="",
-        help="Optional plain JSON output path for inspection. Do not commit it.",
-    )
+    parser.add_argument("--bucket-count", type=int, default=DEFAULT_BUCKET_COUNT)
     args = parser.parse_args()
 
-    rows = read_csv_rows(args.source)
-    compact = build_compact_dictionary(rows)
-    write_gzip_json(Path(args.output), compact)
-    if args.plain_json:
-      write_plain_json(Path(args.plain_json), compact)
+    compact = read_compact_source(args.source)
+    output = Path(args.output)
+    write_shards(output, compact, args.bucket_count)
 
-    print(f"Wrote {len(compact)} entries to {args.output}")
+    print(f"Wrote {len(compact)} entries across {args.bucket_count} shards to {args.output}")
     return 0
+
+
+def read_compact_source(source: str) -> dict[str, dict[str, object]]:
+    source_path = Path(source)
+    if source_path.suffixes[-2:] == [".json", ".gz"]:
+        with gzip.open(source_path, "rt", encoding="utf-8") as fh:
+            payload = json.load(fh)
+        if not isinstance(payload, dict):
+            raise ValueError("Compact ECDICT source must be a JSON object")
+        return payload
+
+    return build_compact_dictionary(read_csv_rows(source))
 
 
 def read_csv_rows(source: str):
@@ -143,15 +150,45 @@ def to_int(value: str | None) -> int:
         return 0
 
 
-def write_gzip_json(path: Path, payload: object):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with gzip.open(path, "wt", encoding="utf-8", compresslevel=9) as fh:
-        json.dump(payload, fh, ensure_ascii=False, separators=(",", ":"))
+def write_shards(
+    output: Path,
+    compact: dict[str, dict[str, object]],
+    bucket_count: int,
+):
+    if bucket_count < 1 or bucket_count > 256:
+        raise ValueError("bucket-count must be between 1 and 256")
+    output.mkdir(parents=True, exist_ok=True)
+    for previous_shard in output.glob("*.json.gz"):
+        previous_shard.unlink()
+    buckets: list[dict[str, dict[str, object]]] = [dict() for _ in range(bucket_count)]
+    for word, entry in compact.items():
+        buckets[fnv1a(word.lower()) % bucket_count][word] = entry
+
+    for index, bucket in enumerate(buckets):
+        shard_path = output / f"{index:02x}.json.gz"
+        with gzip.open(shard_path, "wt", encoding="utf-8", compresslevel=9) as fh:
+            json.dump(bucket, fh, ensure_ascii=False, separators=(",", ":"))
+
+    manifest = {
+        "format": "inleaf-ecdict-shards",
+        "version": 1,
+        "bucketCount": bucket_count,
+        "entryCount": len(compact),
+        "source": "https://github.com/skywind3000/ECDICT",
+        "license": "MIT",
+    }
+    (output / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
-def write_plain_json(path: Path, payload: object):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+def fnv1a(value: str) -> int:
+    result = 0x811C9DC5
+    for byte in value.encode("utf-8"):
+        result ^= byte
+        result = (result * 0x01000193) & 0xFFFFFFFF
+    return result
 
 
 if __name__ == "__main__":

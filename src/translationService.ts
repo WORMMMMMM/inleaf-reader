@@ -3,8 +3,13 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { ArgosTranslationDaemon } from './argosTranslationDaemon';
 import { EcdictClient } from './ecdictClient';
+import {
+  requireDeepSeekModel,
+  requireTranslationProvider,
+  TranslationProvider
+} from './translationContract';
 import { INLEAF_IDS } from './identity';
-import type { WordRecord } from './readerStorage';
+import type { WordRecord } from './readerDataTypes';
 import type { TranslationResult, TranslationSettings, WordDetails } from './translationTypes';
 
 /**
@@ -31,12 +36,12 @@ export class TranslationService implements vscode.Disposable {
 
   async getSettings(): Promise<TranslationSettings> {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
-    const provider = config.get<string>('translationProvider') || 'argos';
+    const provider = configuredProvider(config);
     return {
-      mode: provider === 'deepseek' ? 'deepseek' : 'local',
       provider,
+      deepSeekModel: requireDeepSeekModel(config.get('deepSeekModel')),
       hasDeepSeekApiKey: !!(await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)),
-      dictionaryReady: fs.existsSync(this.extensionPath('scripts', 'ecdict_compact.json.gz')),
+      dictionaryReady: fs.existsSync(this.extensionPath('scripts', 'ecdict', 'manifest.json')),
       argosPythonFound: fs.existsSync(this.argosPythonPath(config))
     };
   }
@@ -48,7 +53,7 @@ export class TranslationService implements vscode.Disposable {
     }
 
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
-    const provider = config.get<string>('translationProvider') || 'argos';
+    const provider = configuredProvider(config);
 
     if (isSingleEnglishWord(trimmed)) {
       try {
@@ -154,7 +159,7 @@ export class TranslationService implements vscode.Disposable {
       throw new Error('DeepSeek API key is not configured. Run “Inleaf Reader: Set DeepSeek API Key”.');
     }
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
-    const model = config.get<string>('deepSeekModel') || 'deepseek-v4-flash';
+      const model = requireDeepSeekModel(config.get('deepSeekModel'));
     const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
@@ -258,6 +263,10 @@ export class TranslationService implements vscode.Disposable {
   private extensionPath(...segments: string[]) {
     return path.join(this.extensionUri.fsPath, ...segments);
   }
+}
+
+function configuredProvider(config: vscode.WorkspaceConfiguration): TranslationProvider {
+  return requireTranslationProvider(config.get('translationProvider'));
 }
 
 export function isSingleEnglishWord(text: string) {

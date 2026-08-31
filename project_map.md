@@ -32,18 +32,26 @@ VS Code command
   sessions, messages, clipboard/export actions, storage, and translation.
 - `src/readerMessages.ts`: Webview-to-extension discriminated message union.
 - `src/readerStorage.ts`: Reads and atomically writes annotations, wordbook, and
-  progress sidecars; exports Markdown/PDF; recovers data after PDF moves.
+  progress sidecars; exports Markdown/PDF; recovers invalid data and data after
+  PDF moves.
+- `src/sidecarSchemas.ts`: Versioned sidecar decoding, runtime validation, and
+  legacy-format migration.
 - `src/pdfIdentity.ts`: Samples PDF content for identity fingerprints and maps
   sidecar paths for move/rename recovery.
 - `src/annotationTypes.ts`: Persisted annotation schema and PDF geometry types.
+- `src/readerDataTypes.ts`: Provider-neutral wordbook and progress records used
+  across storage, translation, and message boundaries.
 - `src/annotationExports.ts`: Pure Markdown formatting and annotated-PDF export.
 - `src/translationService.ts`: Translation facade and provider routing; also
   enriches wordbook entries and reports provider readiness.
 - `src/translationTypes.ts`: Provider-neutral translation and dictionary types.
+- `src/translationContract.ts`: Shared provider/model identifiers and strict
+  runtime configuration validation used by both host and Webview.
 - `src/argosTranslationDaemon.ts`: Persistent Argos process client using a
   request-id JSON-lines protocol.
 - `src/ecdictClient.ts`: Lazy worker client for offline dictionary lookup.
-- `src/ecdictWorker.ts`: Background ECDICT decompression and lookup worker.
+- `src/ecdictWorker.ts`: Background ECDICT shard loading, bounded caching, and
+  lookup worker.
 
 ## Webview
 
@@ -67,9 +75,8 @@ VS Code command
 
 - `scripts/argos_translate_daemon.py`: Normal long-lived Argos sentence
   translation process.
-- `scripts/argos_translate.py`: One-shot compatibility fallback.
-- `scripts/ecdict_compact.json.gz`: Bundled compressed offline dictionary.
-- `scripts/build_ecdict_compact.py`: Rebuilds the compact dictionary.
+- `scripts/ecdict/`: Bundled compressed offline dictionary manifest and shards.
+- `scripts/build_ecdict_compact.py`: Rebuilds the sharded dictionary.
 - `scripts/copy_pdfjs_assets.mjs`: Refreshes the packaged PDF.js worker, CMaps,
   and standard fonts.
 - `scripts/test-*.mjs`: Contract and regression tests for storage, exports,
@@ -85,7 +92,7 @@ VS Code command
 - `package-lock.json`: Reproducible dependency lockfile.
 - `tsconfig.json`: Extension-host TypeScript configuration.
 - `tsconfig.webview.json`: Webview TypeScript configuration.
-- `vite.webview.config.ts`: Webview production bundle configuration.
+- `vite.webview.config.mts`: Webview production bundle configuration.
 - `assets/inleaf-reader-logo.png`: High-resolution transparent product logo.
 - `assets/inleaf-reader-icon.png`: Marketplace extension icon.
 - `assets/inleaf-reader-hero.png`: Public product screenshot.
@@ -93,6 +100,8 @@ VS Code command
 - `assets/inleaf-reader-toolbar-dark.svg`: Dark-theme editor-title command icon.
 - `LICENSE`: Apache License 2.0 terms for the project.
 - `NOTICE`: Project copyright and attribution notice distributed with releases.
+- `THIRD_PARTY_NOTICES.md`: Licenses and attribution for bundled dependencies
+  and dictionary data.
 
 ## Generated Runtime Files
 

@@ -34,7 +34,7 @@ export class EcdictClient implements vscode.Disposable {
       this.worker?.postMessage({
         id,
         word,
-        dictionaryPath: path.join(this.extensionUri.fsPath, 'scripts', 'ecdict_compact.json.gz')
+        dictionaryPath: path.join(this.extensionUri.fsPath, 'scripts', 'ecdict')
       });
     });
   }

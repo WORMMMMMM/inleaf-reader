@@ -35,7 +35,7 @@ import {
   type AnnotationSortMode,
   type ReaderHighlight
 } from './annotationModel';
-import type { IncomingMessage, SidebarTab, TranslationMode } from './messages';
+import type { IncomingMessage, SidebarTab, TranslationProvider } from './messages';
 import {
   extractSelectedPdfText,
   filterNonBodyRects,
@@ -59,11 +59,9 @@ function App() {
   const [translationOutput, setTranslationOutput] = useState('');
   const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
   const [translationSourceText, setTranslationSourceText] = useState('');
-  const [translationMode, setTranslationMode] = useState<TranslationMode>(
-    readerConfig.translationProvider === 'deepseek' ? 'deepseek' : 'local'
-  );
+  const [translationProvider, setTranslationProvider] = useState<TranslationProvider>(readerConfig.translationProvider);
+  const [deepSeekModel, setDeepSeekModel] = useState('deepseek-v4-flash');
   const [hasDeepSeekApiKey, setHasDeepSeekApiKey] = useState(false);
-  const [translationProvider, setTranslationProvider] = useState(readerConfig.translationProvider || 'argos');
   const [dictionaryReady, setDictionaryReady] = useState(false);
   const [argosPythonFound, setArgosPythonFound] = useState(false);
   const [annotationQuery, setAnnotationQuery] = useState('');
@@ -282,7 +280,7 @@ function App() {
     vscode.postMessage({ type: 'ready' });
     const listener = (event: MessageEvent<IncomingMessage>) => {
       const message = event.data;
-      if (message.type !== 'navigateTo' && message.documentId && message.documentId !== documentIdRef.current) {
+      if (message.type !== 'navigateTo' && message.documentId !== documentIdRef.current) {
         return;
       }
       if (message.type === 'state') {
@@ -328,8 +326,8 @@ function App() {
         setActiveSidebarTab('translation');
       }
       if (message.type === 'translationSettings') {
-        setTranslationMode(message.payload.mode);
         setTranslationProvider(message.payload.provider);
+        setDeepSeekModel(message.payload.deepSeekModel);
         setHasDeepSeekApiKey(message.payload.hasDeepSeekApiKey);
         setDictionaryReady(message.payload.dictionaryReady);
         setArgosPythonFound(message.payload.argosPythonFound);
@@ -821,19 +819,20 @@ function App() {
           <section className="side-tab-panel">
             <section className="tool-block">
               <h2>Translation Mode</h2>
-              <label htmlFor="translationMode">Choose how selected text is translated</label>
+              <label htmlFor="translationProvider">Choose how selected text is translated</label>
               <select
-                id="translationMode"
-                value={translationMode}
+                id="translationProvider"
+                value={translationProvider}
                 onChange={event => {
-                  const mode = event.target.value as TranslationMode;
-                  vscode.postMessage({ type: 'setTranslationMode', payload: { mode } });
+                  const provider = event.target.value as TranslationProvider;
+                  vscode.postMessage({ type: 'setTranslationProvider', payload: { provider } });
                 }}
               >
-                <option value="local">Offline dictionary + local translation</option>
-                <option value="deepseek">AI translation (DeepSeek V4 Flash)</option>
+                <option value="argos">Argos Translate (local)</option>
+                <option value="libretranslate">LibreTranslate (configured endpoint)</option>
+                <option value="deepseek">DeepSeek ({deepSeekModel})</option>
               </select>
-              {translationMode === 'deepseek' ? (
+              {translationProvider === 'deepseek' ? (
                 <>
                   <div className={`provider-status ${hasDeepSeekApiKey ? 'ready' : 'missing'}`}>
                     {hasDeepSeekApiKey ? 'DeepSeek API Key is configured.' : 'DeepSeek API Key is required.'}

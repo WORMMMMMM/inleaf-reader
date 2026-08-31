@@ -9,6 +9,9 @@ tsconfig.json
 .venv-translate/
 AGENTS.md
 project_map.md
+CONTRIBUTING.md
+.nvmrc
+package-lock.json
 scripts/test-*.mjs
 scripts/build_ecdict_compact.py
 scripts/copy_pdfjs_assets.mjs

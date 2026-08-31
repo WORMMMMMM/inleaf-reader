@@ -5,7 +5,7 @@
   <p>在 VS Code 里阅读 PDF，用你自己的 AI 随时提问，让思考不断流。</p>
 </div>
 
-![Inleaf Reader showing a PDF, highlights, annotations, translation, and vocabulary tools](assets/inleaf-reader-hero.png)
+![Inleaf Reader showing a highlighted PDF with compact reading controls](assets/inleaf-reader-hero.png)
 
 ## What is Inleaf Reader?
 
@@ -49,7 +49,7 @@ then choose **Extensions: Install from VSIX...** in VS Code.
 You can also install it from a terminal:
 
 ```bash
-code --install-extension inleaf-reader-0.0.10.vsix
+code --install-extension inleaf-reader-0.0.11.vsix
 ```
 
 After installation, run **Developer: Reload Window** once if the reader command
@@ -77,24 +77,41 @@ you want to browse annotations, saved words, or translation settings.
 
 ## What happens to my data?
 
-For a document named `paper.pdf`, Inleaf Reader creates a `.inleaf-reader`
-folder beside it:
+For a document named `paper.pdf`, Inleaf Reader automatically maintains these
+versioned JSON files in a `.inleaf-reader` folder beside it:
 
 ```text
 .inleaf-reader/
   paper.pdf.annotations.json   # highlights, underlines, notes, and tags
-  paper.pdf.annotations.md     # Markdown export
-  paper.pdf.annotated.pdf      # PDF export with visible marks and comments
   paper.pdf.wordbook.json      # saved words
   paper.pdf.progress.json      # last reading position
 ```
 
+The following files are created only when you choose the matching export
+action:
+
+```text
+paper.pdf.annotations.md     # Markdown export
+paper.pdf.annotated.pdf      # PDF export with visible marks and comments
+```
+
 These are normal local files. You can copy or synchronize them through Git,
 iCloud Drive, Dropbox, Syncthing, or another file-sync tool. JSON updates are
-written atomically, and the previous valid version may be kept as a `.bak`
-recovery file. Because the formats are structured and documented, an AI tool
+written atomically, validated when read, and versioned with `schemaVersion`.
+Previous valid JSON is kept as a `.bak` recovery file. If the current file is
+invalid, Inleaf Reader restores the backup and preserves the unreadable copy
+with a `.corrupt-<timestamp>` suffix. Legacy array-based sidecars are migrated
+automatically. Because the formats are structured and documented, an AI tool
 with access to your workspace can reuse your annotations and vocabulary without
 depending on a proprietary cloud database.
+
+The top-level JSON shapes are intentionally simple:
+
+```json
+{ "schemaVersion": 1, "annotations": [] }
+{ "schemaVersion": 1, "words": [] }
+{ "schemaVersion": 1, "progress": { "page": 12, "updatedAt": "..." } }
+```
 
 If a PDF is moved or renamed, a lightweight content fingerprint helps Inleaf
 Reader find and copy its missing sidecar files. Existing files at the new
@@ -111,8 +128,10 @@ location are never overwritten.
 
 Single English words always prefer the bundled ECDICT dictionary, which contains
 about 770,000 entries and can show phonetics, Chinese meanings, English
-definitions, parts of speech, and word forms. It loads in a background worker
-only when needed, so ordinary PDF startup does not wait for the dictionary.
+definitions, parts of speech, and word forms. The dictionary is split into
+compressed shards; a background worker loads only the shard needed for the
+current word, so ordinary PDF startup and lookup do not require the full
+dictionary in memory.
 
 ### DeepSeek
 
@@ -219,13 +238,13 @@ reader checklist. Issues and pull requests are welcome on
 ## Built with
 
 - [PDF.js](https://mozilla.github.io/pdf.js/)
-- [react-pdf-highlighter-plus](https://github.com/DanielArnould/react-pdf-highlighter-plus)
+- [react-pdf-highlighter-plus](https://github.com/QuocVietHa08/react-pdf-highlighter-plus)
 - [pdf-lib](https://pdf-lib.js.org/)
 - [Argos Translate](https://www.argosopentech.com/)
 - [ECDICT](https://github.com/skywind3000/ECDICT)
 
 Third-party components and bundled assets remain subject to their respective
-licenses.
+licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
 
 ## License
 

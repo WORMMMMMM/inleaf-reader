@@ -91,6 +91,10 @@ For `paper.pdf`, newly written data is:
   paper.pdf.progress.json
 ```
 
+The three JSON files are maintained automatically. Markdown and annotated-PDF
+files are optional exports and must not be described as automatic sidecars in
+public documentation.
+
 - Sidecars are intentionally plain local files that can be synchronized by
   Git or ordinary file-sync tools and inspected by external AI tools.
 - Prefer explicit, stable fields and backward-compatible schema evolution.
@@ -99,6 +103,10 @@ For `paper.pdf`, newly written data is:
   never place annotations, vocabulary, notes, or reading progress there.
 - JSON mutations must remain serialized and atomic. Keep `.bak` recovery copies
   of the previous valid version where the current storage layer does so.
+- JSON sidecars use a versioned top-level document, are validated at runtime,
+  and accept the legacy unversioned shape only through an explicit migration.
+- If current JSON is invalid and a valid `.bak` exists, restore it and preserve
+  the unreadable file with a `.corrupt-<timestamp>` suffix.
 - Existing destination data must never be overwritten during recovery or
   migration.
 
@@ -124,6 +132,9 @@ For `paper.pdf`, newly written data is:
   product modules for local and hosted translation.
 - Single English words prefer the bundled ECDICT worker so dictionary details
   and wordbook capture remain fast, offline, and independent of Python.
+- ECDICT is stored as compressed hash shards. Load only the shard required for
+  a lookup and keep the worker cache bounded; never parse the entire dictionary
+  into memory.
 - Sentence translation defaults to the long-lived Argos daemon when available;
   do not spawn a new Python process for every normal request.
 - LibreTranslate and DeepSeek are optional providers behind
@@ -240,5 +251,6 @@ Do not commit:
 
 Commit generated Webview assets under `media/` when their source changes,
 because the installed extension loads them at runtime. Commit the compressed
-ECDICT bundle required for offline dictionary lookup. Keep third-party licenses
-with redistributed assets.
+ECDICT shards required for offline dictionary lookup. Keep
+`THIRD_PARTY_NOTICES.md` and asset-specific license files with redistributed
+dependencies and data.

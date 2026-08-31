@@ -77,6 +77,7 @@ export function PdfDocumentView({
   const renderedHighlightScaleRef = useRef<number | undefined>(undefined);
   const highlightSyncFrameRef = useRef<number | undefined>(undefined);
   const horizontalCenterFrameRef = useRef<number | undefined>(undefined);
+  const pendingHighlightLayersRef = useRef(new Set<HTMLElement>());
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -95,8 +96,10 @@ export function PdfDocumentView({
       return;
     }
     const renderedScale = renderedHighlightScaleRef.current || viewer.currentScale || nextScale;
-    viewerContainerRef.current?.classList.add('pdf-scale-in-progress');
-    for (const layer of getHighlightLayers(viewerContainerRef.current)) {
+    const layers = getHighlightLayers(viewerContainerRef.current);
+    pendingHighlightLayersRef.current = new Set(layers);
+    viewerContainerRef.current?.classList.toggle('pdf-scale-in-progress', layers.length > 0);
+    for (const layer of layers) {
       const layerScale = Number(layer.dataset.renderedScale) || renderedScale;
       layer.style.transformOrigin = '0 0';
       layer.style.transform = `scale(${nextScale / layerScale})`;
@@ -128,9 +131,12 @@ export function PdfDocumentView({
         layer.style.transform = '';
         layer.style.transformOrigin = '';
         layer.dataset.renderedScale = String(viewer.currentScale);
+        pendingHighlightLayersRef.current.delete(layer);
       }
       renderedHighlightScaleRef.current = viewer.currentScale;
-      viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
+      if (pendingHighlightLayersRef.current.size === 0) {
+        viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
+      }
     });
   }, []);
 
@@ -190,6 +196,11 @@ export function PdfDocumentView({
     eventBusRef.current = null;
     viewerContainerRef.current?.removeEventListener('wheel', handleWheel);
     viewerContainerRef.current?.removeEventListener('pointerdown', handlePointerDown, true);
+    for (const layer of pendingHighlightLayersRef.current) {
+      layer.style.transform = '';
+      layer.style.transformOrigin = '';
+    }
+    pendingHighlightLayersRef.current.clear();
     viewerContainerRef.current = null;
     pdfViewerRef.current = null;
     window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);

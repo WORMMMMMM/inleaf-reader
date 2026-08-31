@@ -1,7 +1,8 @@
 import type { AnnotationRecord, ReaderStatePayload, WordDetails, WordRecord } from './types';
+import type { DeepSeekModel, TranslationProvider } from '../../src/translationContract';
 
 export type SidebarTab = 'overview' | 'annotations' | 'wordbook' | 'translation';
-export type TranslationMode = 'local' | 'deepseek';
+export type { TranslationProvider } from '../../src/translationContract';
 
 /** Messages sent by the extension host to the reader Webview. */
 export type IncomingMessage = (
@@ -15,8 +16,8 @@ export type IncomingMessage = (
   | {
       type: 'translationSettings';
       payload: {
-        mode: TranslationMode;
-        provider: string;
+        provider: TranslationProvider;
+        deepSeekModel: DeepSeekModel;
         hasDeepSeekApiKey: boolean;
         dictionaryReady: boolean;
         argosPythonFound: boolean;
@@ -26,4 +27,4 @@ export type IncomingMessage = (
   | { type: 'clipboardResult'; payload: { message?: string; error?: string } }
   | { type: 'annotationActionResult'; payload: { message?: string; error?: string } }
   | { type: 'stateError'; payload: { message: string } }
-) & { documentId?: string };
+) & { documentId: string };

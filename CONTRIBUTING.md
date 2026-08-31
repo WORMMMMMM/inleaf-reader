@@ -6,8 +6,15 @@ for inclusion in this project are provided under the
 
 ## Local setup
 
+Use Node.js 20.19 or newer (Node.js 22.12+ is also supported). If you use
+`nvm`, the repository includes an `.nvmrc`:
+
 ```bash
-npm install
+nvm use
+```
+
+```bash
+npm ci
 npm run compile
 ```
 
@@ -15,7 +22,7 @@ Press `F5` in VS Code to launch an Extension Development Host, then run
 `Inleaf Reader: Open Paper Reader` with a normal text PDF.
 
 Argos is optional for development. Offline dictionary lookup uses the bundled
-ECDICT file through a Node worker and does not require Python.
+sharded ECDICT data through a Node worker and does not require Python.
 
 ## Checks
 

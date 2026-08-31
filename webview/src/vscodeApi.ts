@@ -1,8 +1,10 @@
+import type { TranslationProvider } from '../../src/translationContract';
+
 export interface ReaderConfig {
   documentId: string;
   pdfUrl: string;
   paperName: string;
-  translationProvider?: string;
+  translationProvider: TranslationProvider;
   translationSource?: string;
   translationTarget?: string;
   pdfWorkerUrl: string;

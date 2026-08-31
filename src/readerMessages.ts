@@ -1,7 +1,6 @@
 import type { AnnotationRecord } from './annotationTypes';
-import type { ProgressRecord, WordRecord } from './readerStorage';
-
-export type TranslationMode = 'local' | 'deepseek';
+import type { ProgressRecord, WordRecord } from './readerDataTypes';
+import type { TranslationProvider } from './translationContract';
 
 /** Messages sent from the reader Webview to the extension host. */
 export type ReaderMessage = (
@@ -23,7 +22,7 @@ export type ReaderMessage = (
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'deleteWord'; payload: { id: string } }
   | { type: 'saveProgress'; payload: ProgressRecord }
-  | { type: 'setTranslationMode'; payload: { mode: TranslationMode } }
+  | { type: 'setTranslationProvider'; payload: { provider: TranslationProvider } }
   | { type: 'configureDeepSeek' }
   | { type: 'diagnoseTranslation' }
   | { type: 'translate'; payload: { text: string } }

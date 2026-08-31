@@ -2,7 +2,7 @@
   "name": "inleaf-reader",
   "displayName": "Inleaf Reader",
   "description": "Stay in flow while reading PDFs in VS Code, with portable AI-ready notes and your choice of AI tools.",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "publisher": "ziming",
   "icon": "assets/inleaf-reader-icon.png",
   "license": "Apache-2.0",
@@ -31,7 +31,8 @@
     "ai-ready"
   ],
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.90.0",
+    "node": "^20.19.0 || >=22.12.0"
   },
   "categories": [
     "Education",
@@ -158,33 +159,34 @@
     }
   },
   "scripts": {
-    "build:webview": "vite build --config vite.webview.config.ts",
+    "build:webview": "vite build --config vite.webview.config.mts",
     "copy:pdfjs-assets": "node scripts/copy_pdfjs_assets.mjs",
     "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap && esbuild src/ecdictWorker.ts --bundle --platform=node --format=cjs --outfile=out/ecdictWorker.js --sourcemap",
     "compile": "npm run copy:pdfjs-assets && npm run build:webview && npm run build:extension",
-    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
+    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-translation-contract.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
     "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json --noEmit",
     "check": "npm run compile && npm run test:unit && npm run typecheck && node --check media/reader-app.js",
     "test": "npm run check",
-    "package:vsix": "npm run compile && npx --yes @vscode/vsce package",
+    "package:vsix": "npm run compile && vsce package --no-dependencies",
     "watch": "tsc -watch -p ./",
-    "watch:webview": "vite build --watch --config vite.webview.config.ts"
+    "watch:webview": "vite build --watch --config vite.webview.config.mts"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@types/vscode": "^1.90.0",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/vscode": "1.90.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vite": "^8.2.2"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^6.0.2",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-pdf-highlighter-plus": "^1.1.4",
-    "vite": "^8.0.16"
+    "react-pdf-highlighter-plus": "^1.1.4"
   }
 }

@@ -19,6 +19,7 @@ assert.match(source, /const baseScale = pendingZoomScaleRef\.current \?\?/);
 assert.doesNotMatch(source, /horizontalViewportAnchor|restoreHorizontalZoomAnchor/);
 
 assert.match(pdfViewSource, /const horizontalCenterFrameRef = useRef<number \| undefined>/);
+assert.match(pdfViewSource, /const pendingHighlightLayersRef = useRef\(new Set<HTMLElement>\(\)\)/);
 assert.match(pdfViewSource, /horizontalCenterFrameRef\.current = window\.requestAnimationFrame/);
 assert.match(pdfViewSource, /function centerCurrentPageHorizontally/);
 assert.match(pdfViewSource, /viewer\.getPageView\(viewer\.currentPageNumber - 1\)\?\.div/);
@@ -27,6 +28,8 @@ assert.match(
   /pageRect\.left - containerRect\.left \+ pageRect\.width \/ 2/
 );
 assert.match(pdfViewSource, /container\.scrollLeft \+ pageCenterInViewport - container\.clientWidth \/ 2/);
+assert.match(pdfViewSource, /pendingHighlightLayersRef\.current\.delete\(layer\)/);
+assert.match(pdfViewSource, /pendingHighlightLayersRef\.current\.size === 0/);
 assert.doesNotMatch(
   pdfViewSource,
   /container\.scrollLeft = Math\.max\(0, \(container\.scrollWidth - container\.clientWidth\) \/ 2\)/

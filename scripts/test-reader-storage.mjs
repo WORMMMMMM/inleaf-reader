@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import Module, { createRequire } from 'node:module';
-import { copyFile, mkdir, mkdtemp, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -84,13 +84,33 @@ try {
   })));
 
   const sidecar = path.join(directory, '.inleaf-reader', 'paper.pdf.annotations.json');
-  const annotations = JSON.parse(await readFile(sidecar, 'utf8'));
-  assert.equal(annotations.length, 12, 'serialized concurrent writes must retain every annotation');
+  const annotationsDocument = JSON.parse(await readFile(sidecar, 'utf8'));
+  assert.equal(annotationsDocument.schemaVersion, 1);
+  assert.equal(annotationsDocument.annotations.length, 12, 'serialized concurrent writes must retain every annotation');
   assert.ok((await stat(`${sidecar}.bak`)).size > 0, 'a previous valid JSON backup should be retained');
 
   await writeFile(sidecar, '{broken json');
   const reopened = new ReaderStorage(Uri.file(pdfPath), memento);
-  await assert.rejects(() => reopened.readAnnotations(), /Could not read reader data/);
+  const recoveredAnnotations = await reopened.readAnnotations();
+  assert.equal(recoveredAnnotations.length, 11, 'the previous valid backup should be restored automatically');
+  const recoveryNotices = reopened.consumeDataRecoveryNotices();
+  assert.equal(recoveryNotices.length, 1);
+  assert.equal(JSON.parse(await readFile(sidecar, 'utf8')).schemaVersion, 1);
+  assert.ok(
+    (await readdir(path.dirname(sidecar))).some(name => name.startsWith('paper.pdf.annotations.json.corrupt-')),
+    'the unreadable primary sidecar should be preserved for inspection'
+  );
+
+  const invalidDirectory = await mkdtemp(path.join(os.tmpdir(), 'inleaf-reader-invalid-schema-'));
+  const invalidPdf = path.join(invalidDirectory, 'invalid.pdf');
+  await writeFile(invalidPdf, Buffer.from('%PDF invalid schema test'));
+  await mkdir(path.join(invalidDirectory, '.inleaf-reader'), { recursive: true });
+  await writeFile(
+    path.join(invalidDirectory, '.inleaf-reader', 'invalid.pdf.annotations.json'),
+    JSON.stringify({ schemaVersion: 1, annotations: [{ selectedText: 'missing required fields' }] })
+  );
+  const invalidStorage = new ReaderStorage(Uri.file(invalidPdf), memento);
+  await assert.rejects(() => invalidStorage.readAnnotations(), /Invalid reader data.*Recovery.*failed/);
 
   const migrationDirectory = await mkdtemp(path.join(os.tmpdir(), 'inleaf-reader-migration-'));
   const migrationPdf = path.join(migrationDirectory, 'legacy.pdf');
@@ -115,8 +135,8 @@ try {
       path.join(migrationDirectory, '.inleaf-reader', 'legacy.pdf.annotations.json'),
       'utf8'
     )),
-    legacyAnnotations,
-    'legacy sidecars should be copied into the current storage directory'
+    { schemaVersion: 1, annotations: legacyAnnotations },
+    'legacy sidecars should be copied and migrated to the versioned format'
   );
 
   console.log('reader storage regression passed.');

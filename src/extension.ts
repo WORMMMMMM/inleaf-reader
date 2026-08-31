@@ -5,6 +5,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { INLEAF_IDS } from './identity';
 import { PaperReaderPanel } from './paperReaderPanel';
+import { isTranslationProvider } from './translationContract';
 
 const execFileAsync = promisify(execFile);
 
@@ -33,12 +34,17 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    PaperReaderPanel.createOrShow(
-      context.extensionUri,
-      context.secrets,
-      context.globalState,
-      pdfUri
-    );
+    try {
+      PaperReaderPanel.createOrShow(
+        context.extensionUri,
+        context.secrets,
+        context.globalState,
+        pdfUri
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+      return;
+    }
     if (!context.globalState.get<boolean>(INLEAF_IDS.globalState.onboardingShown)) {
       await context.globalState.update(INLEAF_IDS.globalState.onboardingShown, true);
       const action = await vscode.window.showInformationMessage(
@@ -90,10 +96,12 @@ export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const configuredPython = config.get<string>('argosPythonPath')?.trim();
     const pythonPath = configuredPython || path.join(context.extensionUri.fsPath, '.venv-translate', 'bin', 'python');
-    const dictionaryPath = path.join(context.extensionUri.fsPath, 'scripts', 'ecdict_compact.json.gz');
+    const dictionaryPath = path.join(context.extensionUri.fsPath, 'scripts', 'ecdict', 'manifest.json');
+    const providerValue = config.get('translationProvider');
+    const provider = providerValue === undefined ? 'argos' : providerValue;
     const lines = [
       'Inleaf Reader translation diagnostics',
-      `Provider: ${config.get<string>('translationProvider') || 'argos'}`,
+      `Provider: ${isTranslationProvider(provider) ? provider : `invalid (${String(provider)})`}`,
       `Offline dictionary: ${fs.existsSync(dictionaryPath) ? 'ready' : `missing (${dictionaryPath})`}`,
       `Argos Python: ${fs.existsSync(pythonPath) ? pythonPath : `not found (${pythonPath})`}`,
       `LibreTranslate fallback: ${config.get<boolean>('translationFallbackToLibreTranslate') ? 'enabled' : 'disabled'}`,

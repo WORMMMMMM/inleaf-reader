@@ -1,7 +1,7 @@
 {
   "name": "inleaf-reader",
   "displayName": "Inleaf Reader",
-  "description": "Stay in flow while reading PDFs in VS Code, with portable AI-ready notes and your choice of AI tools.",
+  "description": "在 VS Code 中专注阅读 PDF，使用可移植、可供 AI 读取的笔记和你信任的 AI 工具。",
   "version": "0.0.11",
   "publisher": "ziming",
   "icon": "assets/inleaf-reader-icon.png",
@@ -39,17 +39,26 @@
     "Other"
   ],
   "activationEvents": [
+    "onCommand:inleafReader.quickStart",
     "onCommand:inleafReader.openReader",
     "onCommand:inleafReader.setDeepSeekApiKey",
     "onCommand:inleafReader.clearDeepSeekApiKey",
-    "onCommand:inleafReader.diagnoseTranslation"
+    "onCommand:inleafReader.diagnoseTranslation",
+    "onCommand:inleafReader.chooseLibraryRoot",
+    "onCommand:inleafReader.rebuildLibrary",
+    "onCommand:inleafReader.configureCodexMcp",
+    "onCommand:inleafReader.removeCodexMcp"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
+        "command": "inleafReader.quickStart",
+        "title": "Inleaf Reader：快速开始"
+      },
+      {
         "command": "inleafReader.openReader",
-        "title": "Inleaf Reader: Open Paper Reader",
+        "title": "Inleaf Reader：打开论文阅读器",
         "icon": {
           "light": "assets/inleaf-reader-toolbar-light.svg",
           "dark": "assets/inleaf-reader-toolbar-dark.svg"
@@ -57,15 +66,31 @@
       },
       {
         "command": "inleafReader.setDeepSeekApiKey",
-        "title": "Inleaf Reader: Set DeepSeek API Key"
+        "title": "Inleaf Reader：设置 DeepSeek API Key"
       },
       {
         "command": "inleafReader.clearDeepSeekApiKey",
-        "title": "Inleaf Reader: Clear DeepSeek API Key"
+        "title": "Inleaf Reader：清除 DeepSeek API Key"
       },
       {
         "command": "inleafReader.diagnoseTranslation",
-        "title": "Inleaf Reader: Diagnose Translation Setup"
+        "title": "Inleaf Reader：诊断翻译配置"
+      },
+      {
+        "command": "inleafReader.chooseLibraryRoot",
+        "title": "Inleaf Reader：选择论文文库目录"
+      },
+      {
+        "command": "inleafReader.rebuildLibrary",
+        "title": "Inleaf Reader：重建论文文库"
+      },
+      {
+        "command": "inleafReader.configureCodexMcp",
+        "title": "Inleaf Reader：配置只读 Codex MCP"
+      },
+      {
+        "command": "inleafReader.removeCodexMcp",
+        "title": "Inleaf Reader：移除 Codex MCP"
       }
     ],
     "menus": {
@@ -87,23 +112,33 @@
     "walkthroughs": [
       {
         "id": "inleafReader.gettingStarted",
-        "title": "Get started with Inleaf Reader",
-        "description": "Open a PDF, capture a selection, and choose a translation mode.",
+        "title": "开始使用 Inleaf Reader",
+        "description": "打开 PDF、选择文本并配置翻译模式。",
         "steps": [
           {
+            "id": "quickStart",
+            "title": "打开 Inleaf 快速开始菜单",
+            "description": "运行[快速开始](command:inleafReader.quickStart)，即可从一个入口打开论文、添加文库、检查 Codex 或配置翻译。"
+          },
+          {
             "id": "openPdf",
-            "title": "Open a PDF in the reader",
-            "description": "Run [Open Paper Reader](command:inleafReader.openReader), or right-click a PDF in the Explorer."
+            "title": "在阅读器中打开 PDF",
+            "description": "运行[打开论文阅读器](command:inleafReader.openReader)，或在资源管理器中右键单击 PDF。"
           },
           {
             "id": "selectText",
-            "title": "Select and annotate",
-            "description": "Select text in a real-text PDF, then highlight, underline, add a note, translate, or save a word."
+            "title": "选择文本并标注",
+            "description": "在含文本层的 PDF 中选择文字，然后进行高亮、下划线、添加笔记、翻译或保存生词。"
           },
           {
             "id": "translation",
-            "title": "Check translation setup",
-            "description": "The dictionary works offline. Run [Diagnose Translation Setup](command:inleafReader.diagnoseTranslation) before using Argos sentence translation."
+            "title": "检查翻译配置",
+            "description": "离线词典无需配置。使用 Argos 翻译句子前，请运行[诊断翻译配置](command:inleafReader.diagnoseTranslation)。"
+          },
+          {
+            "id": "researchWorkspace",
+            "title": "建立研究工作区",
+            "description": "使用阅读器中的“研究”和“仓库”面板，再打开“文库”，对两篇或更多论文进行可定位证据比较。"
           }
         ]
       }
@@ -114,7 +149,7 @@
         "inleafReader.libreTranslateEndpoint": {
           "type": "string",
           "default": "http://localhost:5000/translate",
-          "description": "Local LibreTranslate endpoint used by the in-panel translation button."
+          "description": "面板翻译按钮使用的本地 LibreTranslate 服务地址。"
         },
         "inleafReader.translationProvider": {
           "type": "string",
@@ -124,7 +159,7 @@
             "libretranslate",
             "deepseek"
           ],
-          "description": "Translation provider. Argos and LibreTranslate can run locally; DeepSeek uses the configured API key from VS Code SecretStorage."
+          "description": "翻译提供商。Argos 和 LibreTranslate 可在本地运行；DeepSeek 使用保存在 VS Code SecretStorage 中的 API Key。"
         },
         "inleafReader.deepSeekModel": {
           "type": "string",
@@ -133,41 +168,53 @@
             "deepseek-v4-flash",
             "deepseek-v4-pro"
           ],
-          "description": "DeepSeek model used when the translation provider is DeepSeek."
+          "description": "选择 DeepSeek 作为翻译提供商时使用的模型。"
         },
         "inleafReader.argosPythonPath": {
           "type": "string",
           "default": "",
-          "description": "Optional Python path for local Argos Translate. Empty means .venv-translate/bin/python inside the extension folder."
+          "description": "本地 Argos Translate 的可选 Python 路径。留空时使用扩展目录中的 .venv-translate/bin/python。"
         },
         "inleafReader.translationFallbackToLibreTranslate": {
           "type": "boolean",
           "default": false,
-          "description": "When Argos local translation fails, fall back to the configured LibreTranslate endpoint."
+          "description": "本地 Argos 翻译失败时，回退到已配置的 LibreTranslate 服务。"
         },
         "inleafReader.translationSource": {
           "type": "string",
           "default": "auto",
-          "description": "Source language code used by translation providers that require it."
+          "description": "需要指定源语言的翻译提供商所使用的语言代码。"
         },
         "inleafReader.translationTarget": {
           "type": "string",
           "default": "zh",
-          "description": "Target language code used by the selected translation provider."
+          "description": "当前翻译提供商使用的目标语言代码。"
+        },
+        "inleafReader.codexCliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Codex CLI 可执行文件的可选路径。留空时使用 Extension Host PATH 中的 codex。"
+        },
+        "inleafReader.mcpNodePath": {
+          "type": "string",
+          "default": "",
+          "description": "只读 Inleaf MCP 服务使用的可选 Node.js 可执行文件。留空时自动检测 Node。"
         }
       }
     }
   },
   "scripts": {
+    "dev": "npm run compile && node scripts/start-dev.mjs",
+    "install:local": "npm run package:vsix && node scripts/install-local.mjs",
     "build:webview": "vite build --config vite.webview.config.mts",
     "copy:pdfjs-assets": "node scripts/copy_pdfjs_assets.mjs",
     "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap && esbuild src/ecdictWorker.ts --bundle --platform=node --format=cjs --outfile=out/ecdictWorker.js --sourcemap",
     "compile": "npm run copy:pdfjs-assets && npm run build:webview && npm run build:extension",
-    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-translation-contract.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
+    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-research-workspace.mjs && node scripts/test-reader-actions.mjs && node scripts/test-quick-start.mjs && node scripts/test-start-dev.mjs && node scripts/test-repository-service.mjs && node scripts/test-codex-bridge.mjs && node scripts/test-deepseek-translation.mjs && node scripts/test-mcp-server.mjs && node scripts/test-research-message-contract.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-translation-contract.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
     "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json --noEmit",
     "check": "npm run compile && npm run test:unit && npm run typecheck && node --check media/reader-app.js",
     "test": "npm run check",
-    "package:vsix": "npm run compile && vsce package --no-dependencies",
+    "package:vsix": "npm run compile && vsce package --no-dependencies --out inleaf-reader-${npm_package_version}.vsix",
     "watch": "tsc -watch -p ./",
     "watch:webview": "vite build --watch --config vite.webview.config.mts"
   },

@@ -46,10 +46,13 @@ export class TranslationService implements vscode.Disposable {
     };
   }
 
-  async translate(text: string): Promise<TranslationResult> {
+  async translate(text: string, signal?: AbortSignal): Promise<TranslationResult> {
     const trimmed = text.trim();
     if (!trimmed) {
       return { error: 'Select or paste text before translating.' };
+    }
+    if (signal?.aborted) {
+      return { error: 'Translation canceled.' };
     }
 
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
@@ -67,12 +70,12 @@ export class TranslationService implements vscode.Disposable {
     }
 
     if (provider === 'deepseek') {
-      return this.captureProviderError(() => this.translateWithDeepSeek(trimmed));
+      return this.captureProviderError(() => this.translateWithDeepSeek(trimmed, signal));
     }
 
     if (provider === 'argos') {
       try {
-        return await this.translateWithDaemon(trimmed);
+        return await this.translateWithDaemon(trimmed, signal);
       } catch (error) {
         if (config.get<boolean>('translationFallbackToLibreTranslate') === false) {
           const detail = error instanceof Error ? error.message : String(error);
@@ -83,7 +86,7 @@ export class TranslationService implements vscode.Disposable {
       }
     }
 
-    return this.captureProviderError(() => this.translateWithLibreTranslate(trimmed));
+    return this.captureProviderError(() => this.translateWithLibreTranslate(trimmed, signal));
   }
 
   async enrichWord(
@@ -142,83 +145,41 @@ export class TranslationService implements vscode.Disposable {
     };
   }
 
-  private async translateWithDaemon(text: string): Promise<TranslationResult> {
+  private async translateWithDaemon(text: string, signal?: AbortSignal): Promise<TranslationResult> {
+    if (signal?.aborted) throw abortError();
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
     const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
     const result = await this.argos.request<TranslationResult>({ text, source, target, mode: 'translate' });
+    if (signal?.aborted) throw abortError();
     if (result.error) {
       throw new Error(result.error);
     }
     return result;
   }
 
-  private async translateWithDeepSeek(text: string) {
+  private async translateWithDeepSeek(text: string, signal?: AbortSignal) {
     const apiKey = await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey);
     if (!apiKey) {
       throw new Error('DeepSeek API key is not configured. Run “Inleaf Reader: Set DeepSeek API Key”.');
     }
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
-      const model = requireDeepSeekModel(config.get('deepSeekModel'));
+    const model = requireDeepSeekModel(config.get('deepSeekModel'));
     const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
-
-    try {
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a professional academic translator. Translate the user's text into ${target}. Preserve formulas, citations, terminology, paragraph structure, and proper nouns accurately. Return only the translation, without commentary or quotation marks.`
-            },
-            { role: 'user', content: text }
-          ],
-          thinking: { type: 'disabled' },
-          max_tokens: 4096,
-          stream: false
-        }),
-        signal: controller.signal
-      });
-      const responseText = await response.text();
-      let data: { choices?: { message?: { content?: string | null } }[]; error?: { message?: string } } = {};
-      try {
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        throw new Error(response.ok ? 'DeepSeek returned an invalid response.' : `DeepSeek returned HTTP ${response.status}.`);
-      }
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('DeepSeek rejected the API key. Run “Inleaf Reader: Set DeepSeek API Key” with a valid key.');
-        }
-        throw new Error(data.error?.message?.trim() || `DeepSeek returned HTTP ${response.status}.`);
-      }
-      const translatedText = data.choices?.[0]?.message?.content?.trim();
-      if (!translatedText) {
-        throw new Error('DeepSeek response did not include translated text.');
-      }
-      return translatedText;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('DeepSeek translation timed out.');
-      }
-      if (error instanceof TypeError) {
-        throw new Error('Could not reach the DeepSeek API. Check your network connection.');
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
-    }
+    return requestDeepSeekTranslation({ apiKey, model, target, text, signal });
   }
 
-  private async translateWithLibreTranslate(text: string) {
+  private async translateWithLibreTranslate(text: string, signal?: AbortSignal) {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const endpoint = config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate';
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    let timedOut = false;
+    const abortFromCaller = () => controller.abort();
+    signal?.addEventListener('abort', abortFromCaller, { once: true });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12000);
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -244,7 +205,9 @@ export class TranslationService implements vscode.Disposable {
       return data.translatedText;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('LibreTranslate request timed out. Is the local server running?');
+        throw new Error(timedOut
+          ? 'LibreTranslate request timed out. Is the local server running?'
+          : 'Translation canceled.');
       }
       if (error instanceof TypeError) {
         throw new Error('Could not reach LibreTranslate. Start the local server or change inleafReader.libreTranslateEndpoint.');
@@ -252,6 +215,7 @@ export class TranslationService implements vscode.Disposable {
       throw error;
     } finally {
       clearTimeout(timeout);
+      signal?.removeEventListener('abort', abortFromCaller);
     }
   }
 
@@ -267,6 +231,95 @@ export class TranslationService implements vscode.Disposable {
 
 function configuredProvider(config: vscode.WorkspaceConfiguration): TranslationProvider {
   return requireTranslationProvider(config.get('translationProvider'));
+}
+
+export async function requestDeepSeekTranslation({
+  apiKey,
+  model,
+  target,
+  text,
+  signal,
+  fetchImpl = fetch,
+  timeoutMs = 45000
+}: {
+  apiKey: string;
+  model: string;
+  target: string;
+  text: string;
+  signal?: AbortSignal;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+}) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const abortFromCaller = () => controller.abort();
+  signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (signal?.aborted) controller.abort();
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  try {
+    const response = await fetchImpl('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a professional academic translator. Translate the user's text into ${target}. Preserve formulas, citations, terminology, paragraph structure, and proper nouns accurately. Return only the translation, without commentary or quotation marks.`
+          },
+          { role: 'user', content: text }
+        ],
+        thinking: { type: 'disabled' },
+        max_tokens: 4096,
+        stream: false
+      }),
+      signal: controller.signal
+    });
+    const responseText = await response.text();
+    let data: { choices?: { message?: { content?: string | null } }[]; error?: { message?: string } } = {};
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      throw new Error(response.ok ? 'DeepSeek returned an invalid response.' : `DeepSeek returned HTTP ${response.status}.`);
+    }
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('DeepSeek rejected the API key. Run “Inleaf Reader: Set DeepSeek API Key” with a valid key.');
+      }
+      if (response.status === 429) {
+        throw new Error('DeepSeek rate limit or quota was reached. Wait, check account balance, and try again.');
+      }
+      if (response.status >= 500) {
+        throw new Error(`DeepSeek service is temporarily unavailable (HTTP ${response.status}).`);
+      }
+      throw new Error(data.error?.message?.trim() || `DeepSeek returned HTTP ${response.status}.`);
+    }
+    const translatedText = data.choices?.[0]?.message?.content?.trim();
+    if (!translatedText) {
+      throw new Error('DeepSeek response did not include translated text.');
+    }
+    return translatedText;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(timedOut ? 'DeepSeek translation timed out.' : 'Translation canceled.');
+    }
+    if (error instanceof TypeError) {
+      throw new Error('Could not reach the DeepSeek API. Check your network connection.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortFromCaller);
+  }
+}
+
+function abortError() {
+  const error = new Error('Translation canceled.');
+  error.name = 'AbortError';
+  return error;
 }
 
 export function isSingleEnglishWord(text: string) {

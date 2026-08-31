@@ -3,6 +3,7 @@ out/
 dist/
 .venv-translate/
 *.vsix
+*.pdf
 *.map
 vite.webview.config.js
 webview/src/*.js

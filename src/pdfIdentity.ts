@@ -12,7 +12,8 @@ export type SidecarKind =
   | 'annotations.md'
   | 'annotated.pdf'
   | 'wordbook'
-  | 'progress';
+  | 'progress'
+  | 'research';
 
 export interface PdfLocation {
   pdfPath: string;
@@ -30,7 +31,8 @@ export const SIDECAR_KINDS: SidecarKind[] = [
   'annotations.md',
   'annotated.pdf',
   'wordbook',
-  'progress'
+  'progress',
+  'research'
 ];
 
 export function createPdfLocation(pdfPath: string, updatedAt = new Date().toISOString()): PdfLocation {
@@ -50,7 +52,8 @@ export function getSidecarPaths(location: PdfLocation): SidecarPaths {
     'annotations.md': `${prefix}.annotations.md`,
     'annotated.pdf': `${prefix}.annotated.pdf`,
     wordbook: `${prefix}.wordbook.json`,
-    progress: `${prefix}.progress.json`
+    progress: `${prefix}.progress.json`,
+    research: `${prefix}.research.json`
   };
 }
 

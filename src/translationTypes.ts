@@ -1,3 +1,5 @@
+import type { DeepSeekModel, TranslationProvider } from './translationContract';
+
 export interface WordDetails {
   word: string;
   phonetic?: string;
@@ -17,4 +19,3 @@ export interface TranslationSettings {
   dictionaryReady: boolean;
   argosPythonFound: boolean;
 }
-import type { DeepSeekModel, TranslationProvider } from './translationContract';

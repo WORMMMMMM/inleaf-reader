@@ -13,13 +13,36 @@ Use Node.js 20.19 or newer (Node.js 22.12+ is also supported). If you use
 nvm use
 ```
 
+On macOS or Linux, one command installs nothing globally, compiles the project,
+and opens an Extension Development Host:
+
 ```bash
-npm ci
-npm run compile
+./dev
 ```
 
-Press `F5` in VS Code to launch an Extension Development Host, then run
-`Inleaf Reader: Open Paper Reader` with a normal text PDF.
+The launcher selects a working Node.js 20.19+ or 22.12+ executable, installs
+missing local dependencies, and also avoids a
+broken default `node` shim. On Windows, or when you prefer npm directly, use:
+
+```bash
+npm ci
+npm run dev
+```
+
+In the new VS Code window, run `Inleaf Reader: Quick Start`. After source
+changes, rerun `npm run compile` and use `Developer: Reload Window` in the
+Extension Development Host.
+
+To install or update the current checkout in ordinary VS Code instead of using
+an Extension Development Host, run:
+
+```bash
+./install
+```
+
+Reload open VS Code windows once after installation. From then on, open any PDF
+and click the Inleaf book icon in its editor title bar; no development service
+needs to remain running.
 
 Argos is optional for development. Offline dictionary lookup uses the bundled
 sharded ECDICT data through a Node worker and does not require Python.

@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+INLEAF_NPM_SCRIPT=install:local
+export INLEAF_NPM_SCRIPT
+exec "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/dev"

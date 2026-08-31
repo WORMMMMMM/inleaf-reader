@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+inleaf_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+inleaf_node=""
+
+inleaf_node_supported() {
+  "$1" -e "const [major, minor] = process.versions.node.split('.').map(Number); process.exit((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major > 22 ? 0 : 1)" >/dev/null 2>&1
+}
+
+for inleaf_candidate in \
+  /opt/homebrew/opt/node@22/bin/node \
+  /usr/local/bin/node \
+  /usr/bin/node
+do
+  if [ -x "$inleaf_candidate" ] && inleaf_node_supported "$inleaf_candidate"; then
+    inleaf_node="$inleaf_candidate"
+    break
+  fi
+done
+
+if [ -z "$inleaf_node" ] && command -v node >/dev/null 2>&1; then
+  inleaf_candidate=$(command -v node)
+  if inleaf_node_supported "$inleaf_candidate"; then
+    inleaf_node="$inleaf_candidate"
+  fi
+fi
+
+if [ -z "$inleaf_node" ]; then
+  echo "Inleaf Reader needs Node.js 20.19+ or 22.12+." >&2
+  exit 1
+fi
+
+cd "$inleaf_root"
+PATH="$(dirname "$inleaf_node"):$PATH"
+export PATH
+if [ ! -d node_modules ]; then
+  echo "Installing Inleaf Reader development dependencies..."
+  npm install
+fi
+inleaf_npm_script=${INLEAF_NPM_SCRIPT:-dev}
+exec npm run "$inleaf_npm_script"

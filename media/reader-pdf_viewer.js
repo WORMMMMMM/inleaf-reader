@@ -237,7 +237,9 @@ function ce(e) {
 			n = h.ODD;
 			break;
 		case "TwoPageRight": t = m.PAGE;
-		case "TwoColumnRight": n = h.EVEN;
+		case "TwoColumnRight":
+			n = h.EVEN;
+			break;
 	}
 	return {
 		scrollMode: t,
@@ -261,7 +263,7 @@ function le(e) {
 	return e < 11904;
 }
 function ue(e) {
-	return !(e & 65408);
+	return (e & 65408) == 0;
 }
 function de(e) {
 	return e >= 97 && e <= 122 || e >= 65 && e <= 90;
@@ -312,7 +314,7 @@ var O = {
 	"¼": "1/4",
 	"½": "1/2",
 	"¾": "3/4"
-}, Te = /* @__PURE__ */ new Set([
+}, Te = new Set([
 	12441,
 	12442,
 	2381,
@@ -473,7 +475,7 @@ var Le = class {
 		});
 	}
 	scrollMatchIntoView({ element: e = null, selectedLeft: t = 0, pageIndex: n = -1, matchIndex: r = -1 }) {
-		!this._scrollMatches || !e || r !== -1 && r === this._selected.matchIdx && n !== -1 && n === this._selected.pageIdx && (this._scrollMatches = !1, g(e, {
+		!this._scrollMatches || !e || r === -1 || r !== this._selected.matchIdx || n === -1 || n !== this._selected.pageIdx || (this._scrollMatches = !1, g(e, {
 			top: Se,
 			left: t + Ce
 		}, !0));
@@ -751,7 +753,9 @@ var Le = class {
 			case j.PARENT:
 				a = "_parent";
 				break;
-			case j.TOP: a = "_top";
+			case j.TOP:
+				a = "_top";
+				break;
 		}
 		e.target = a, e.rel = typeof i == "string" ? i : Re;
 	}
@@ -838,7 +842,10 @@ var Le = class {
 				case "LastPage":
 					this.page = this.pagesCount;
 					break;
-				case "FirstPage": this.page = 1;
+				case "FirstPage":
+					this.page = 1;
+					break;
+				default: break;
 			}
 			this.eventBus.dispatch("namedaction", {
 				source: this,
@@ -854,7 +861,7 @@ var Le = class {
 	static #e(e) {
 		if (!Array.isArray(e) || e.length < 2) return !1;
 		let [t, n, ...r] = e;
-		if (!(typeof t == "object" && Number.isInteger(t?.num) && Number.isInteger(t?.gen)) && !Number.isInteger(t) || typeof n != "object" || typeof n?.name != "string") return !1;
+		if (!(typeof t == "object" && Number.isInteger(t?.num) && Number.isInteger(t?.gen)) && !Number.isInteger(t) || !(typeof n == "object" && typeof n?.name == "string")) return !1;
 		let i = r.length, a = !0;
 		switch (n.name) {
 			case "XYZ":
@@ -1106,10 +1113,9 @@ function W(e, t) {
 }
 function It(e, { name: t }) {
 	let n;
-	if (e.params) {
-		if (Object.prototype.hasOwnProperty.call(e.params, t)) n = e.params[t];
-		else return new V(`$${t}`);
-	} else if (e.args && Object.prototype.hasOwnProperty.call(e.args, t)) n = e.args[t];
+	if (e.params) if (Object.prototype.hasOwnProperty.call(e.params, t)) n = e.params[t];
+	else return new V(`$${t}`);
+	else if (e.args && Object.prototype.hasOwnProperty.call(e.args, t)) n = e.args[t];
 	else return e.reportError(/* @__PURE__ */ ReferenceError(`Unknown variable: $${t}`)), new V(`$${t}`);
 	if (n instanceof B) return n;
 	switch (typeof n) {
@@ -1518,7 +1524,7 @@ var Yt = class {
 				case void 0: return !1;
 				case "{": return C(e.slice(n, t));
 			}
-			return e[t - 1] === " " && C(e.slice(n, t));
+			return e[t - 1] === " " ? C(e.slice(n, t)) : !1;
 		}
 		function S(e, t) {
 			return e.replace(t, "");
@@ -1594,13 +1600,11 @@ var Yt = class {
 };
 function Tn(e, t) {
 	let { value: n } = t;
-	if (typeof n == "string") {
-		if (e.localName === "title" && e.namespaceURI === "http://www.w3.org/1999/xhtml") e.textContent = n;
-		else if (!Sn.test(n)) e.textContent = n;
-		else {
-			let t = e.ownerDocument.createElementNS("http://www.w3.org/1999/xhtml", "template");
-			t.innerHTML = n, En(t.content, e);
-		}
+	if (typeof n == "string") if (e.localName === "title" && e.namespaceURI === "http://www.w3.org/1999/xhtml") e.textContent = n;
+	else if (!Sn.test(n)) e.textContent = n;
+	else {
+		let t = e.ownerDocument.createElementNS("http://www.w3.org/1999/xhtml", "template");
+		t.innerHTML = n, En(t.content, e);
 	}
 	On(t, e);
 }
@@ -1813,10 +1817,10 @@ var J = "data-l10n-id", Y = "data-l10n-args", Vn = `[${J}]`, Hn = class extends 
 			case "attributes":
 				t.target.hasAttribute("data-l10n-id") && this.pendingElements.add(t.target);
 				break;
-			case "childList": for (let e of t.addedNodes) if (e.nodeType === e.ELEMENT_NODE) {
-				if (e.childElementCount) for (let t of this.getTranslatables(e)) this.pendingElements.add(t);
+			case "childList":
+				for (let e of t.addedNodes) if (e.nodeType === e.ELEMENT_NODE) if (e.childElementCount) for (let t of this.getTranslatables(e)) this.pendingElements.add(t);
 				else e.hasAttribute(J) && this.pendingElements.add(e);
-			}
+				break;
 		}
 		this.pendingElements.size > 0 && this.pendingrAF === null && (this.pendingrAF = this.windowElement.requestAnimationFrame(() => {
 			this.translateElements(Array.from(this.pendingElements)), this.pendingElements.clear(), this.pendingrAF = null;
@@ -2013,12 +2017,10 @@ var Yn = class {
 		if (e && typeof e != "string") {
 			console.error(`PDFHistory.push: "${e}" is not a valid namedDest parameter.`);
 			return;
-		}
-		if (!Array.isArray(t)) {
+		} else if (!Array.isArray(t)) {
 			console.error(`PDFHistory.push: "${t}" is not a valid explicitDest parameter.`);
 			return;
-		}
-		if (!this.#r(n) && (n !== null || this._destination)) {
+		} else if (!this.#r(n) && (n !== null || this._destination)) {
 			console.error(`PDFHistory.push: "${n}" is not a valid pageNumber parameter.`);
 			return;
 		}
@@ -2114,13 +2116,11 @@ var Yn = class {
 	}
 	#i(e, t = !1) {
 		if (!e) return !1;
-		if (e.fingerprint !== this._fingerprint) {
-			if (t) {
-				if (typeof e.fingerprint != "string" || e.fingerprint.length !== this._fingerprint.length) return !1;
-				let [t] = performance.getEntriesByType("navigation");
-				if (t?.type !== "reload") return !1;
-			} else return !1;
-		}
+		if (e.fingerprint !== this._fingerprint) if (t) {
+			if (typeof e.fingerprint != "string" || e.fingerprint.length !== this._fingerprint.length) return !1;
+			let [t] = performance.getEntriesByType("navigation");
+			if (t?.type !== "reload") return !1;
+		} else return !1;
 		return !(!Number.isInteger(e.uid) || e.uid < 0 || e.destination === null || typeof e.destination != "object");
 	}
 	#a(e, t, n = !1) {
@@ -2715,10 +2715,8 @@ var tr = class {
 			let { role: n } = e, r = n.match(ir);
 			if (r ? (t.setAttribute("role", "heading"), t.setAttribute("aria-level", r[1])) : rr[n] && t.setAttribute("role", rr[n]), n === "Figure" && this.#s(e, t)) return t;
 		}
-		if (this.#o(e, t), e.children) {
-			if (e.children.length === 1 && "id" in e.children[0]) this.#o(e.children[0], t);
-			else for (let n of e.children) t.append(this.#c(n));
-		}
+		if (this.#o(e, t), e.children) if (e.children.length === 1 && "id" in e.children[0]) this.#o(e.children[0], t);
+		else for (let n of e.children) t.append(this.#c(n));
 		return t;
 	}
 }, or = class e {
@@ -3031,7 +3029,7 @@ var tr = class {
 	get linkService() {
 		return new Be();
 	}
-}, dr = /* @__PURE__ */ new Map([
+}, dr = new Map([
 	["canvasWrapper", 0],
 	["textLayer", 1],
 	["annotationLayer", 2],
@@ -3104,7 +3102,9 @@ var tr = class {
 				}, 0);
 				break;
 			case d.INITIAL:
-			case d.FINISHED: this.div.classList.remove("loadingIcon", "loading");
+			case d.FINISHED:
+				this.div.classList.remove("loadingIcon", "loading");
+				break;
 		}
 	}
 	#_() {
@@ -3657,7 +3657,9 @@ var mr = class {
 				case "ZoomViewOut":
 					n || t.decreaseScale();
 					break;
-				case "WillPrintFinished": this.#u?.resolve(), this.#u = null;
+				case "WillPrintFinished":
+					this.#u?.resolve(), this.#u = null;
+					break;
 			}
 			return;
 		}
@@ -3773,11 +3775,13 @@ var mr = class {
 			case d.RUNNING:
 				this.highestPriorityPage = e.renderingId;
 				break;
-			case d.INITIAL: this.highestPriorityPage = e.renderingId, e.draw().finally(() => {
-				this.renderHighestPriority();
-			}).catch((e) => {
-				e instanceof I || console.error("renderView:", e);
-			});
+			case d.INITIAL:
+				this.highestPriorityPage = e.renderingId, e.draw().finally(() => {
+					this.renderHighestPriority();
+				}).catch((e) => {
+					e instanceof I || console.error("renderView:", e);
+				});
+				break;
 		}
 		return !0;
 	}
@@ -4357,10 +4361,10 @@ var xr = class {
 		return this.presentationModeState === f.CHANGING;
 	}
 	get isHorizontalScrollbarEnabled() {
-		return !this.isInPresentationMode && this.container.scrollWidth > this.container.clientWidth;
+		return this.isInPresentationMode ? !1 : this.container.scrollWidth > this.container.clientWidth;
 	}
 	get isVerticalScrollbarEnabled() {
-		return !this.isInPresentationMode && this.container.scrollHeight > this.container.clientHeight;
+		return this.isInPresentationMode ? !1 : this.container.scrollHeight > this.container.clientHeight;
 	}
 	_getVisiblePages() {
 		let e = this._scrollMode === m.PAGE ? this.#S.pages : this._pages, t = this._scrollMode === m.HORIZONTAL, n = t && this._isContainerRtl;

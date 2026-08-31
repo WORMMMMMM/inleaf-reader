@@ -27,6 +27,8 @@ use, and is straightforward for AI tools to inspect and work with.
 - **Translate as you read:** use the bundled offline dictionary, local Argos Translate, DeepSeek, or LibreTranslate.
 - **Build a wordbook:** save useful English words and their structured definitions for each PDF.
 - **Keep data AI-ready:** annotations, vocabulary, exports, and progress use portable files beside the document.
+- **Ask Codex in context:** send a located passage, nearby evidence, confirmed metadata, and repository snapshots to a read-only Codex CLI session.
+- **Build a research library:** keep per-paper profiles, filter a local corpus, compare located evidence, and return to the source page.
 - **Stay focused:** the side panel starts hidden and appears only when you ask for it.
 
 ## Who is it for?
@@ -55,6 +57,11 @@ code --install-extension inleaf-reader-0.0.11.vsix
 After installation, run **Developer: Reload Window** once if the reader command
 does not appear immediately.
 
+When developing from a local checkout, `./install` packages and installs that
+checkout into ordinary VS Code in one step. Reload open VS Code windows once;
+afterward, opening any PDF exposes the Inleaf book icon without a development
+server or Extension Development Host.
+
 > **Moving from an earlier pre-Inleaf build?** VS Code treats the current
 > `ziming.inleaf-reader` identity as a separate extension. Install Inleaf Reader,
 > remove the earlier extension, and reopen each PDF once. Existing local
@@ -68,12 +75,28 @@ in the Extensions view and select **Install**.
 
 ## Start reading in three steps
 
-1. Open a PDF in VS Code, then click the blue nested-book icon in the editor title bar. You can also right-click the PDF and choose **Inleaf Reader: Open Paper Reader**.
+1. Run **Inleaf Reader：快速开始**, then choose **打开论文**. You can still click the blue nested-book icon on a PDF for the shortest direct path.
 2. Select text to highlight it, underline it, write a note, translate it, or save a word.
 3. Continue reading. Annotations and page progress are saved automatically—there is no separate Save button.
 
-The right panel stays hidden at startup. Open it from the reader toolbar when
-you want to browse annotations, saved words, or translation settings.
+The right inspector stays hidden at startup. The narrow Inleaf rail on the left
+keeps **标注**, **研究**, **仓库**, **文库**, **对比**, and **设置**
+discoverable without covering the PDF. 标注, 研究, and 仓库 open the
+paper inspector only after you click them; 文库 and 对比 open full
+research workspaces. **设置** reopens the same Quick Start menu without leaving
+the paper.
+
+### Recommended research workflows
+
+- **Ask about a passage:** select text, choose **询问 Codex**, and continue the conversation in the reused read-only terminal.
+- **Classify a paper:** choose **研究** in the Inleaf rail, edit its profile, and confirm sourced facts from a current selection.
+- **Analyze code:** choose **仓库**, link or clone a checkout, then choose **使用 Codex 分析**.
+- **Compare papers:** choose **文库**, add a paper folder, select at least two papers, and build the evidence matrix; **对比** returns to the latest matrix.
+
+Quick Start also checks Codex and configures DeepSeek from one menu. Ask Codex
+only requires a working local Codex CLI. The optional read-only MCP connection
+adds Library context; Codex starts its STDIO process when needed, so there is no
+separate Inleaf server to keep running.
 
 ## What happens to my data?
 
@@ -85,6 +108,8 @@ versioned JSON files in a `.inleaf-reader` folder beside it:
   paper.pdf.annotations.json   # highlights, underlines, notes, and tags
   paper.pdf.wordbook.json      # saved words
   paper.pdf.progress.json      # last reading position
+  paper.pdf.research.json      # metadata, classifications, facts, relations, and artifacts
+  paper.pdf.codex-context.md   # replaceable context snapshot for an explicit Codex question
 ```
 
 The following files are created only when you choose the matching export
@@ -94,6 +119,12 @@ action:
 paper.pdf.annotations.md     # Markdown export
 paper.pdf.annotated.pdf      # PDF export with visible marks and comments
 ```
+
+A configured paper-library root also contains a rebuildable
+`.inleaf-reader/library.index.json`, a small current-session file for the
+optional read-only MCP server, and exported comparisons under
+`.inleaf-reader/comparisons/`. The per-paper research files remain the source of
+truth; deleting the library index does not delete research data.
 
 These are normal local files. You can copy or synchronize them through Git,
 iCloud Drive, Dropbox, Syncthing, or another file-sync tool. JSON updates are
@@ -140,6 +171,32 @@ panel. The key is stored in VS Code SecretStorage and is never written to the
 Webview, settings, sidecar files, or logs.
 
 Run **Inleaf Reader: Clear DeepSeek API Key** to remove it.
+
+## Research Workspace and Codex
+
+Select a located passage and choose **Ask Codex**. Inleaf writes a bounded
+Markdown context file and opens Codex CLI with a read-only sandbox in the PDF's
+directory. The user question is written to the context file rather than
+interpolated into a shell command. Each paper can reuse its terminal session;
+Inleaf stores only a lightweight session pointer, not the Codex transcript.
+
+Choose **研究** or **仓库** in the Inleaf rail to open the paper inspector
+explicitly. Suggested facts stay distinct from confirmed facts. A
+confirmed paper fact requires a locator, and repository observations carry a
+captured commit and dirty-worktree state. After choosing or cloning a local
+checkout, **Analyze with Codex** refreshes that snapshot and opens a read-only
+repository-analysis conversation that separates paper, README, code, and
+working-tree evidence.
+
+Choose **文库** in the Inleaf rail, add a root, and refresh its rebuildable
+index. Select two or more papers to create a comparison. Cells without located
+paper evidence or commit-bound repository evidence remain `unknown`; exported
+JSON and Markdown retain page, annotation, quote, or commit references.
+
+The optional MCP integration exposes read-only tools to Codex. Run **Inleaf
+Reader: Configure Read-only Codex MCP** after choosing a library root. It does
+not add write, clone, or profile-mutation tools, and Reader/Terminal Bridge
+features continue to work if MCP is removed.
 
 ### LibreTranslate
 
@@ -207,6 +264,8 @@ If translation does not work, run
 - PDFs and all reading sidecars stay in paths you choose.
 - Offline ECDICT lookup and local Argos translation stay on your machine.
 - DeepSeek and LibreTranslate receive selected text only when you choose those providers.
+- Codex receives a local context file only after you choose Ask Codex or Analyze with Codex; PDF and repository text are treated as untrusted evidence.
+- Repository cloning always requires an explicit target-folder confirmation. Snapshot refreshes only inspect Git state.
 - A lightweight path index is stored in VS Code global state for move/rename recovery; annotation and wordbook content is not stored there.
 
 Review the privacy terms of any external translation provider before sending
@@ -224,10 +283,15 @@ sensitive text.
 
 | Command | What it does |
 | --- | --- |
+| `Inleaf Reader: Quick Start` | Opens one menu for papers, Library, Codex, DeepSeek, and the guide. |
 | `Inleaf Reader: Open Paper Reader` | Opens the active PDF or lets you choose one. |
 | `Inleaf Reader: Set DeepSeek API Key` | Stores or replaces a DeepSeek key securely. |
 | `Inleaf Reader: Clear DeepSeek API Key` | Removes the stored DeepSeek key. |
 | `Inleaf Reader: Diagnose Translation Setup` | Checks dictionary and translation readiness. |
+| `Inleaf Reader: Choose Paper Library Root` | Adds a local library root and builds its lightweight index. |
+| `Inleaf Reader: Rebuild Paper Library` | Rebuilds an index from PDFs and per-paper research sidecars. |
+| `Inleaf Reader: Configure Read-only Codex MCP` | Adds the read-only local Inleaf MCP server to Codex. |
+| `Inleaf Reader: Remove Codex MCP` | Removes the Inleaf MCP entry from Codex configuration. |
 
 ## Contributing
 

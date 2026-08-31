@@ -1,4 +1,12 @@
 import type { ScaledPosition } from 'react-pdf-highlighter-plus';
+import type {
+  EvidenceFocusTarget,
+  EvidenceLocator,
+  LibraryIndexData,
+  LibraryPaper,
+  PaperComparison,
+  ResearchProfile
+} from '../../src/researchTypes';
 
 export type AnnotationKind = 'highlight' | 'underline';
 
@@ -62,6 +70,11 @@ export interface ReaderStatePayload {
   words: WordRecord[];
   progress: ProgressRecord;
   paperName: string;
+  paperFingerprint: string;
+  research: ResearchProfile;
+  codex: { available: boolean; version?: string; error?: string };
+  libraries: LibraryIndexData[];
+  comparison?: PaperComparison;
 }
 
 export interface WordDetails {
@@ -69,3 +82,12 @@ export interface WordDetails {
   phonetic?: string;
   definitions: WordDefinition[];
 }
+
+export type {
+  EvidenceFocusTarget,
+  EvidenceLocator,
+  LibraryIndexData,
+  LibraryPaper,
+  PaperComparison,
+  ResearchProfile
+};

@@ -89,6 +89,18 @@ For `paper.pdf`, newly written data is:
   paper.pdf.annotated.pdf
   paper.pdf.wordbook.json
   paper.pdf.progress.json
+  paper.pdf.research.json
+  paper.pdf.codex-context.md
+```
+
+Library-scoped, rebuildable or exported research data uses:
+
+```text
+library-root/.inleaf-reader/
+  library.index.json
+  current-session.json
+  comparisons/<comparison-id>.json
+  comparisons/<comparison-id>.md
 ```
 
 The three JSON files are maintained automatically. Markdown and annotated-PDF
@@ -99,7 +111,8 @@ public documentation.
   Git or ordinary file-sync tools and inspected by external AI tools.
 - Prefer explicit, stable fields and backward-compatible schema evolution.
 - Do not hide user reading data in proprietary blobs or VS Code global state.
-- Global state may contain only lightweight indexes needed to locate sidecars;
+- Global state may contain only lightweight indexes, configured library roots,
+  and Codex session pointers needed to locate sidecars;
   never place annotations, vocabulary, notes, or reading progress there.
 - JSON mutations must remain serialized and atomic. Keep `.bak` recovery copies
   of the previous valid version where the current storage layer does so.

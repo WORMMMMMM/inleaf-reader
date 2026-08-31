@@ -1,27 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTags } from '../annotationModel';
+import {
+  getReaderActions,
+  type ReaderActionContext,
+  type ReaderActionId,
+  type ReaderActionOptions
+} from '../readerActions';
 import type { AnnotationKind, AnnotationRecord, WordDetails, WordRecord } from '../types';
+import { AskCodexActions } from './AskCodexActions';
 
 export interface SelectionToolbarContextValue {
   selectedText: string;
   translationSourceText: string;
   translationText: string;
   wordDetails?: WordDetails;
-  onHighlight(color: string): void;
-  onUnderline(color: string): void;
-  onSaveNote(note: string, color: string): void;
-  onTranslate(): void;
+  actionContext: ReaderActionContext;
+  onInvoke(actionId: ReaderActionId, options?: ReaderActionOptions): void;
+  onCancelTranslation(): void;
   onSaveWord(details: WordDetails): void;
 }
 
 export const SelectionToolbarContext = React.createContext<SelectionToolbarContextValue | undefined>(undefined);
 
 export const colorOptions = [
-  { label: 'Yellow', value: '#ffd654' },
-  { label: 'Blue', value: '#8fd3ff' },
-  { label: 'Green', value: '#a6e99f' },
-  { label: 'Red', value: '#ffaaa5' },
-  { label: 'Purple', value: '#d7b8ff' }
+  { label: '黄色', value: '#ffd654' },
+  { label: '蓝色', value: '#8fd3ff' },
+  { label: '绿色', value: '#a6e99f' },
+  { label: '红色', value: '#ffaaa5' },
+  { label: '紫色', value: '#d7b8ff' }
 ];
 
 export function AnnotationItem({
@@ -30,6 +36,7 @@ export function AnnotationItem({
   onFocus,
   onEdit,
   onCopy,
+  onResearch,
   onDelete
 }: {
   annotation: AnnotationRecord;
@@ -37,19 +44,21 @@ export function AnnotationItem({
   onFocus(): void;
   onEdit(): void;
   onCopy(): void;
+  onResearch(): void;
   onDelete(): void;
 }) {
   return (
     <article className={`item annotation-item${active ? ' active-item' : ''}`} onClick={onFocus}>
-      <strong>Page {annotation.page || annotation.highlighterPosition?.boundingRect.pageNumber || '-'}</strong>
-      <p>{shorten(annotation.selectedText || annotation.note || 'Page note', 220)}</p>
+      <strong>第 {annotation.page || annotation.highlighterPosition?.boundingRect.pageNumber || '-'} 页</strong>
+      <p>{shorten(annotation.selectedText || annotation.note || '页面笔记', 220)}</p>
       {annotation.note ? <p className="note">{shorten(annotation.note, 180)}</p> : null}
       {annotation.tags?.length ? <div className="annotation-tags">{annotation.tags.map(tag => <span key={tag}>#{tag}</span>)}</div> : null}
       <div className="annotation-actions">
-        <button onClick={stopThen(onFocus)}>Jump</button>
-        <button onClick={stopThen(onEdit)}>Edit</button>
-        <button onClick={stopThen(onCopy)}>Copy MD</button>
-        <button onClick={stopThen(onDelete)}>Delete</button>
+        <button onClick={stopThen(onFocus)}>跳转</button>
+        <button onClick={stopThen(onEdit)}>编辑</button>
+        <button onClick={stopThen(onCopy)}>复制 MD</button>
+        <button onClick={stopThen(onResearch)}>作为证据</button>
+        <button onClick={stopThen(onDelete)}>删除</button>
       </div>
     </article>
   );
@@ -66,8 +75,8 @@ export function AnnotationSummary({ annotations }: { annotations: AnnotationReco
   const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   return (
     <div className="annotation-summary">
-      <span>{highlights} highlights</span>
-      <span>{underlines} underlines</span>
+      <span>{highlights} 条高亮</span>
+      <span>{underlines} 条下划线</span>
       {topTags.map(([tag, count]) => <span key={tag}>#{tag} {count}</span>)}
     </div>
   );
@@ -92,7 +101,7 @@ export function WordItem({ word, onDelete }: { word: WordRecord; onDelete(): voi
       ) : null}
       {word.note ? <p className="note">{word.note}</p> : null}
       <div className="annotation-actions">
-        <button className="danger-button" onClick={onDelete}>Delete</button>
+        <button className="danger-button" onClick={onDelete}>删除</button>
       </div>
     </article>
   );
@@ -157,7 +166,7 @@ export function InlineAnnotationEditor({
       onMouseDown={event => event.stopPropagation()}
       onPointerDown={event => event.stopPropagation()}
     >
-      <div className="annotation-inline-title">Edit annotation</div>
+      <div className="annotation-inline-title">编辑标注</div>
       <div className="selection-toolbar-row">
         {colorOptions.map(option => (
           <button
@@ -172,45 +181,45 @@ export function InlineAnnotationEditor({
           className={draftKind === 'highlight' ? 'active-command' : ''}
           onClick={() => setDraftKind('highlight')}
         >
-          HL
+          高亮
         </button>
         <button
           className={draftKind === 'underline' ? 'active-command' : ''}
           onClick={() => setDraftKind('underline')}
         >
-          UL
+          下划线
         </button>
       </div>
       <label>
-        Original text
+        原文
         <textarea
           rows={2}
           value={draftText}
           onChange={event => setDraftText(event.target.value)}
-          placeholder="Selected PDF text"
+          placeholder="PDF 中选中的文本"
         />
       </label>
       <label>
-        Note
+        笔记
         <textarea
           ref={noteInputRef}
           rows={3}
           value={draftNote}
           onChange={event => setDraftNote(event.target.value)}
-          placeholder="Write a note..."
+          placeholder="写下笔记……"
         />
       </label>
       <label>
-        Tags
+        标签
         <input
           value={draftTags}
           onChange={event => setDraftTags(event.target.value)}
-          placeholder="method, question, todo"
+          placeholder="方法、问题、待办"
         />
       </label>
       <div className="selection-note-actions">
-        <button onClick={onCancel}>Cancel</button>
-        <button onClick={save} disabled={!canSave}>Save</button>
+        <button onClick={onCancel}>取消</button>
+        <button onClick={save} disabled={!canSave}>保存</button>
       </div>
     </div>
   );
@@ -230,8 +239,8 @@ export function InlineAnnotationActions({
       onMouseDown={event => event.stopPropagation()}
       onPointerDown={event => event.stopPropagation()}
     >
-      <button onClick={onEdit}>Edit</button>
-      <button className="danger-button" onClick={onDelete}>Delete</button>
+      <button onClick={onEdit}>编辑</button>
+      <button className="danger-button" onClick={onDelete}>删除</button>
     </div>
   );
 }
@@ -246,21 +255,34 @@ export function SelectionToolbar() {
     translationSourceText,
     translationText,
     wordDetails,
-    onHighlight,
-    onUnderline,
-    onSaveNote,
-    onTranslate,
+    actionContext,
+    onInvoke,
+    onCancelTranslation,
     onSaveWord
   } = context;
   const [selColor, setSelColor] = useState('#ffd654');
-  const [activeEditor, setActiveEditor] = useState<'note' | 'translation' | undefined>();
+  const [activeEditor, setActiveEditor] = useState<'note' | 'translation' | 'codex' | undefined>();
+  const [compactActions, setCompactActions] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [noteText, setNoteText] = useState('');
   const noteInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setActiveEditor(undefined);
     setNoteText('');
+    setShowMore(false);
   }, [selectedText]);
+
+  useEffect(() => {
+    const toolbar = toolbarRef.current;
+    if (!toolbar) return;
+    const update = () => setCompactActions(toolbar.clientWidth < 300);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(toolbar);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (activeEditor === 'note') {
@@ -274,23 +296,62 @@ export function SelectionToolbar() {
       noteInputRef.current?.focus();
       return;
     }
-    onSaveNote(trimmed, selColor);
+    onInvoke('inleafReader.action.note', { note: trimmed, color: selColor });
     setNoteText('');
     setActiveEditor(undefined);
   }
 
   function translate() {
     setActiveEditor('translation');
-    onTranslate();
+    onInvoke('inleafReader.action.translate');
+  }
+
+  const actions = getReaderActions(actionContext, 'selection-primary');
+  const compactPrimaryIds = new Set<ReaderActionId>([
+    'inleafReader.action.highlight',
+    'inleafReader.action.note',
+    'inleafReader.action.translate'
+  ]);
+  const visibleActions = compactActions
+    ? actions.filter(action => compactPrimaryIds.has(action.definition.id))
+    : actions;
+  const moreActions = compactActions
+    ? actions.filter(action => !compactPrimaryIds.has(action.definition.id))
+    : [];
+
+  function actionButton({ definition, available, disabledReason }: typeof actions[number]) {
+    return (
+      <button
+        key={definition.id}
+        className={definition.editor && activeEditor === definition.editor ? 'active-command' : ''}
+        disabled={!available}
+        title={disabledReason || definition.label}
+        onClick={() => {
+          if (definition.id === 'inleafReader.action.highlight' || definition.id === 'inleafReader.action.underline') {
+            onInvoke(definition.id, { color: selColor });
+          } else if (definition.id === 'inleafReader.action.note') {
+            setActiveEditor(activeEditor === 'note' ? undefined : 'note');
+          } else if (definition.id === 'inleafReader.action.translate') {
+            translate();
+          } else if (definition.id === 'inleafReader.action.askCodex') {
+            setActiveEditor(activeEditor === 'codex' ? undefined : 'codex');
+          }
+          setShowMore(false);
+        }}
+      >
+        {definition.label}
+      </button>
+    );
   }
 
   const hasCurrentResult = translationSourceText === selectedText.trim();
-  const isLoading = hasCurrentResult && translationText === 'Translating...';
+  const isLoading = hasCurrentResult && translationText === '正在翻译……';
   const currentWordDetails = hasCurrentResult ? wordDetails : undefined;
   const currentTranslation = hasCurrentResult ? translationText : '';
 
   return (
     <div
+      ref={toolbarRef}
       className="selection-toolbar"
       onClick={event => event.stopPropagation()}
       onMouseDown={event => event.stopPropagation()}
@@ -306,11 +367,12 @@ export function SelectionToolbar() {
             onClick={() => setSelColor(c.value)}
           />
         ))}
-        <button onClick={() => onHighlight(selColor)}>HL</button>
-        <button onClick={() => onUnderline(selColor)}>UL</button>
-        <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
-        <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button>
+        {visibleActions.map(actionButton)}
+        {moreActions.length ? (
+          <button className={showMore ? 'active-command' : ''} onClick={() => setShowMore(value => !value)}>更多</button>
+        ) : null}
       </div>
+      {showMore ? <div className="selection-toolbar-row selection-more-actions">{moreActions.map(actionButton)}</div> : null}
       {activeEditor === 'note' ? (
         <div className="selection-note-editor">
           <textarea
@@ -327,24 +389,28 @@ export function SelectionToolbar() {
                 setActiveEditor(undefined);
               }
             }}
-            placeholder="Write a note..."
+            placeholder="写下笔记……"
             rows={3}
           />
           <div className="selection-note-actions">
-            <button onClick={() => setActiveEditor(undefined)}>Cancel</button>
-            <button onClick={saveNote} disabled={!noteText.trim()}>Save</button>
+            <button onClick={() => setActiveEditor(undefined)}>取消</button>
+            <button onClick={saveNote} disabled={!noteText.trim()}>保存</button>
           </div>
         </div>
       ) : null}
       {activeEditor === 'translation' ? (
         <div className="selection-translation-result">
-          {isLoading ? <div className="selection-result-status">Looking up...</div> : null}
+          {isLoading ? (
+            <div className="selection-result-status">
+              正在查询…… <button onClick={onCancelTranslation}>取消</button>
+            </div>
+          ) : null}
           {!isLoading && currentWordDetails ? (
             <>
               <WordDetailsBlock details={currentWordDetails} />
               <div className="selection-note-actions">
-                <button onClick={() => onSaveWord(currentWordDetails)}>Save to Wordbook</button>
-                <button onClick={() => setActiveEditor(undefined)}>Close</button>
+                <button onClick={() => onSaveWord(currentWordDetails)}>保存到生词本</button>
+                <button onClick={() => setActiveEditor(undefined)}>关闭</button>
               </div>
             </>
           ) : null}
@@ -352,14 +418,23 @@ export function SelectionToolbar() {
             <>
               <p className="selection-translation-text">{currentTranslation}</p>
               <div className="selection-note-actions">
-                <button onClick={() => setActiveEditor(undefined)}>Close</button>
+                <button onClick={() => setActiveEditor(undefined)}>关闭</button>
               </div>
             </>
           ) : null}
           {!isLoading && !currentWordDetails && !currentTranslation ? (
-            <div className="selection-result-status">No result yet.</div>
+            <div className="selection-result-status">暂无结果。</div>
           ) : null}
         </div>
+      ) : null}
+      {activeEditor === 'codex' ? (
+        <AskCodexActions
+          onAsk={question => {
+            onInvoke('inleafReader.action.askCodex', { question });
+            setActiveEditor(undefined);
+          }}
+          onClose={() => setActiveEditor(undefined)}
+        />
       ) : null}
     </div>
   );
@@ -367,9 +442,9 @@ export function SelectionToolbar() {
 
 export function annotationStatus(shown: number, total: number) {
   if (!total) {
-    return '0 annotations';
+    return '0 条标注';
   }
-  return shown === total ? `${total} annotation${total === 1 ? '' : 's'}` : `${shown} of ${total} annotations`;
+  return shown === total ? `${total} 条标注` : `显示 ${shown} / ${total} 条标注`;
 }
 function shorten(value: string, max: number) {
   const normalized = value.replace(/\s+/g, ' ').trim();

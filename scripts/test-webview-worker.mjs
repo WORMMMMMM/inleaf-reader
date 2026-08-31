@@ -13,7 +13,7 @@ assert.match(webviewSource, /workerSrc=\{pdfWorkerSrc\}/);
 assert.doesNotMatch(webviewSource, /workerSrc=\{readerConfig\.pdfWorkerUrl\}/);
 assert.match(panelSource, /script-src[^"]*blob:/);
 assert.match(panelSource, /worker-src blob: data:/);
-assert.match(generatedBundle, /Starting PDF worker/);
+assert.match(generatedBundle, /正在启动 PDF 工作线程/);
 assert.match(generatedBundle, /createObjectURL/);
 
 console.log('Webview PDF worker contract passed.');

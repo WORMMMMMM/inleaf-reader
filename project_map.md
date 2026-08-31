@@ -14,6 +14,12 @@ VS Code command
         -> src/ecdictClient.ts -> src/ecdictWorker.ts
         -> src/argosTranslationDaemon.ts -> scripts/argos_translate_daemon.py
         -> DeepSeek or LibreTranslate
+     -> src/researchStorage.ts -> src/atomicJsonFile.ts
+     -> src/libraryIndex.ts
+     -> src/comparisonService.ts
+     -> src/repositoryService.ts
+     -> src/codexBridge.ts
+     -> src/mcpBridge.ts -> scripts/inleaf_mcp_server.mjs
   <-> Webview messages
   -> webview/src/main.tsx
      -> components/PdfDocumentView.tsx
@@ -26,6 +32,8 @@ VS Code command
 
 - `src/extension.ts`: Activates Inleaf Reader, registers commands, resolves the
   target PDF, manages DeepSeek credentials, and exposes translation diagnostics.
+- `src/quickStart.ts`: Pure Quick Start menu model for opening papers and
+  discovering Library, Codex, translation, and guide actions from one place.
 - `src/identity.ts`: Single runtime source for command, setting, secret, global
   state, Webview, fingerprint, and sidecar identifiers mirrored by the manifest.
 - `src/paperReaderPanel.ts`: Coordinates the Webview lifecycle, active-document
@@ -33,6 +41,25 @@ VS Code command
 - `src/readerMessages.ts`: Webview-to-extension discriminated message union.
 - `src/readerStorage.ts`: Reads and atomically writes annotations, wordbook, and
   progress sidecars; exports Markdown/PDF; recovers data after PDF moves.
+- `src/researchTypes.ts`: Persisted research, evidence, repository, library, and
+  comparison contracts.
+- `src/evidenceLocator.ts`: Pure locator construction, normalization, and
+  annotation/geometry/quote fallback resolution.
+- `src/atomicJsonFile.ts`: Serialized atomic JSON writes with previous-version
+  backups for research and library data.
+- `src/researchStorage.ts`: Reads and mutates per-paper research profiles with
+  fingerprint protection.
+- `src/libraryIndex.ts`: Builds and searches rebuildable multi-root paper
+  indexes without storing research content in GlobalState.
+- `src/comparisonService.ts`: Builds evidence-status comparison matrices and
+  exports portable JSON and Markdown.
+- `src/repositoryService.ts`: Validates repository URLs and records read-only
+  Git commit, branch, license-file, and dirty-worktree snapshots.
+- `src/codexBridge.ts`: Writes bounded paper/comparison context and launches
+  read-only Codex CLI terminals without shell interpolation.
+- `src/mcpBridge.ts`: Publishes the active selection and configures the optional
+  read-only Inleaf MCP server.
+- `src/researchMessages.ts`: Typed research-workspace Webview requests.
 - `src/pdfIdentity.ts`: Samples PDF content for identity fingerprints and maps
   sidecar paths for move/rename recovery.
 - `src/annotationTypes.ts`: Persisted annotation schema and PDF geometry types.
@@ -57,6 +84,21 @@ VS Code command
 - `webview/src/pdfSelection.ts`: Lazy margin/figure classification and clean
   cross-page PDF selection reconstruction.
 - `webview/src/messages.ts`: Extension-to-Webview discriminated message union.
+- `webview/src/readerActions.ts`: Built-in Action Registry for selection action
+  identity, order, availability, disabled reasons, and typed payloads.
+- `webview/src/evidenceLocator.ts`: Selection/annotation to persisted locator
+  conversion.
+- `webview/src/researchModel.ts`: Pure research display and relation-state rules.
+- `webview/src/components/AskCodexActions.tsx`: Point-of-reading Codex intents
+  and custom question input.
+- `webview/src/components/ResearchPanel.tsx`: Editable metadata,
+  classification, evidence facts, and source-missing relations.
+- `webview/src/components/RepositoryPanel.tsx`: Confirmed links, explicit clone,
+  and local commit snapshots.
+- `webview/src/components/LibraryView.tsx`: Library search, tag filtering, and
+  multi-paper selection.
+- `webview/src/components/ComparisonView.tsx`: Evidence-state matrix, export,
+  Codex analysis, and return-to-source actions.
 - `webview/src/types.ts`: Webview-side persisted and translation data types.
 - `webview/src/vscodeApi.ts`: Session-aware wrapper around `acquireVsCodeApi()`
   and the reader configuration injected by the extension host.
@@ -72,6 +114,10 @@ VS Code command
 - `scripts/build_ecdict_compact.py`: Rebuilds the compact dictionary.
 - `scripts/copy_pdfjs_assets.mjs`: Refreshes the packaged PDF.js worker, CMaps,
   and standard fonts.
+- `scripts/inleaf_mcp_server.mjs`: Standalone read-only stdio MCP server for
+  current-paper, annotation, research, library, comparison, and repository data.
+- `scripts/start-dev.mjs`: Cross-platform Extension Development Host launcher
+  used by `npm run dev`; the root `./dev` wrapper selects a working Node first.
 - `scripts/test-*.mjs`: Contract and regression tests for storage, exports,
   identity, dictionary lookup, Webview behavior, and manifest contributions.
 

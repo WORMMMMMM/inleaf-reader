@@ -13,6 +13,7 @@ export interface TranslationResult {
 export interface TranslationSettings {
   mode: 'local' | 'deepseek';
   provider: string;
+  deepSeekModel: 'deepseek-v4-flash' | 'deepseek-v4-pro';
   hasDeepSeekApiKey: boolean;
   dictionaryReady: boolean;
   argosPythonFound: boolean;

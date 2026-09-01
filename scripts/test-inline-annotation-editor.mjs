@@ -21,7 +21,15 @@ assert.match(
   /<button onClick=\{onEdit\}>Edit<\/button>\s*<button className="danger-button" onClick=\{onDelete\}>Delete<\/button>/
 );
 assert.match(source, /utils\.setTip\(/);
+assert.doesNotMatch(pdfViewSource, /\bonStyleChange=/);
+assert.doesNotMatch(pdfViewSource, /\bonDelete=/);
+assert.doesNotMatch(pdfViewSource, /\bcopyText=/);
 assert.match(source, /Original text/);
+assert.match(
+  annotationWidgetsSource,
+  /event\.key !== 'Enter' \|\| event\.shiftKey \|\| event\.nativeEvent\.isComposing/
+);
+assert.equal((annotationWidgetsSource.match(/saveNoteOnEnter\(event, /g) || []).length, 2);
 assert.match(
   source,
   /<button onClick=\{onCancel\}>Cancel<\/button>\s*<button onClick=\{save\} disabled=\{!canSave\}>Save<\/button>/

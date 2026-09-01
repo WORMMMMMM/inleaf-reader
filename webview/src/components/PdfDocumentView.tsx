@@ -13,7 +13,7 @@ import {
 } from 'react-pdf-highlighter-plus';
 import type { ReaderHighlight } from '../annotationModel';
 import { markPageSelectionRegions } from '../pdfSelection';
-import type { AnnotationKind, AnnotationRecord } from '../types';
+import type { AnnotationRecord } from '../types';
 
 type PdfPageChangingEvent = { pageNumber?: number };
 type PdfScaleChangingEvent = { scale?: number };
@@ -48,13 +48,11 @@ export function PdfDocumentView({
   pdfDocument,
   selectionTip,
   zoom,
-  onDelete,
   onDocumentReady,
   onOpen,
   onPageChange,
   onPinchZoom,
   onSelection,
-  onStyleChange,
   utilsRef
 }: {
   activeId?: string;
@@ -62,13 +60,11 @@ export function PdfDocumentView({
   pdfDocument: { numPages: number };
   selectionTip?: React.ReactNode;
   zoom: PdfScaleValue;
-  onDelete(annotation: AnnotationRecord): void;
   onDocumentReady(numPages: number): void;
   onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
   onPageChange(page: number): void;
   onPinchZoom(deltaY: number): void;
   onSelection(selection: PdfSelection): void;
-  onStyleChange(annotation: AnnotationRecord, color: string, kind: AnnotationKind): void;
   utilsRef(utils: PdfHighlighterUtils): void;
 }) {
   const eventBusRef = useRef<PdfEventBus | null>(null);
@@ -221,9 +217,7 @@ export function PdfDocumentView({
     >
       <HighlightContainer
         activeId={activeId}
-        onDelete={onDelete}
         onOpen={onOpen}
-        onStyleChange={onStyleChange}
       />
     </PdfHighlighter>
   );
@@ -246,14 +240,10 @@ function centerCurrentPageHorizontally(viewer: PdfViewerInstance) {
 
 function HighlightContainer({
   activeId,
-  onOpen,
-  onStyleChange,
-  onDelete
+  onOpen
 }: {
   activeId?: string;
   onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
-  onStyleChange(annotation: AnnotationRecord, color: string, kind: AnnotationKind): void;
-  onDelete(annotation: AnnotationRecord): void;
 }) {
   const { highlight, isScrolledTo, highlightBindings } = useHighlightContainerContext<ReaderHighlight>();
   const annotation = highlight.annotation;
@@ -276,7 +266,6 @@ function HighlightContainer({
         highlight={highlight}
         isScrolledTo={isScrolledTo}
         highlightColor="#ffd654"
-        copyText={highlight.content?.text}
       />
     );
   }
@@ -292,7 +281,6 @@ function HighlightContainer({
       isScrolledTo={isScrolledTo}
       bounds={highlightBindings.textLayer}
       highlightColor={annotation.color || '#ffd654'}
-      onDelete={() => onDelete(annotation)}
     />
   ) : null;
 
@@ -303,16 +291,7 @@ function HighlightContainer({
         isScrolledTo={isScrolledTo}
         highlightColor={annotation.color || '#ffd654'}
         highlightStyle={(annotation.kind || 'highlight') === 'underline' ? 'underline' : 'highlight'}
-        copyText={annotation.selectedText}
         onClick={() => onOpen(annotation, highlight.position)}
-        onDelete={() => onDelete(annotation)}
-        onStyleChange={style => {
-          onStyleChange(
-            annotation,
-            style.highlightColor || annotation.color || '#ffd654',
-            style.highlightStyle === 'underline' ? 'underline' : 'highlight'
-          );
-        }}
       />
     </span>
   ) : null;

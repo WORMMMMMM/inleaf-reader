@@ -269,13 +269,6 @@ function App() {
     }
   }, []);
 
-  const handleStyleChange = useCallback((annotation: AnnotationRecord, nextColor: string, nextKind: AnnotationKind) => {
-    vscode.postMessage({
-      type: 'updateAnnotation',
-      payload: { id: annotation.id, patch: { color: nextColor, kind: nextKind } }
-    });
-  }, []);
-
   useEffect(() => {
     vscode.postMessage({ type: 'ready' });
     const listener = (event: MessageEvent<IncomingMessage>) => {
@@ -647,13 +640,11 @@ function App() {
                   pdfDocument={pdfDocument}
                   selectionTip={selectionTip}
                   zoom={zoom}
-                  onDelete={deleteAnnotation}
                   onDocumentReady={handleDocumentReady}
                   onOpen={openAnnotationActions}
                   onPageChange={handleVisiblePageChange}
                   onPinchZoom={handlePinchZoom}
                   onSelection={handleSelection}
-                  onStyleChange={handleStyleChange}
                   utilsRef={handleHighlighterUtils}
                 />
               )}

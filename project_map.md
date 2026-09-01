@@ -95,7 +95,7 @@ VS Code command
 - `vite.webview.config.mts`: Webview production bundle configuration.
 - `assets/inleaf-reader-logo.png`: High-resolution transparent product logo.
 - `assets/inleaf-reader-icon.png`: Marketplace extension icon.
-- `assets/inleaf-reader-hero.png`: Public product screenshot.
+- `assets/inleaf-reader-example.png`: Public product screenshot.
 - `assets/inleaf-reader-toolbar-light.svg`: Light-theme editor-title command icon.
 - `assets/inleaf-reader-toolbar-dark.svg`: Dark-theme editor-title command icon.
 - `LICENSE`: Apache License 2.0 terms for the project.

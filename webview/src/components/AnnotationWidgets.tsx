@@ -197,7 +197,6 @@ export function InlineAnnotationEditor({
           rows={3}
           value={draftNote}
           onChange={event => setDraftNote(event.target.value)}
-          onKeyDown={event => saveNoteOnEnter(event, save)}
           placeholder="Write a note..."
         />
       </label>
@@ -319,8 +318,9 @@ export function SelectionToolbar() {
             value={noteText}
             onChange={event => setNoteText(event.target.value)}
             onKeyDown={event => {
-              if (saveNoteOnEnter(event, saveNote)) {
-                return;
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault();
+                saveNote();
               }
               if (event.key === 'Escape') {
                 event.preventDefault();
@@ -374,15 +374,6 @@ export function annotationStatus(shown: number, total: number) {
 function shorten(value: string, max: number) {
   const normalized = value.replace(/\s+/g, ' ').trim();
   return normalized.length > max ? `${normalized.slice(0, max - 1)}...` : normalized;
-}
-
-function saveNoteOnEnter(event: React.KeyboardEvent<HTMLTextAreaElement>, save: () => void) {
-  if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
-    return false;
-  }
-  event.preventDefault();
-  save();
-  return true;
 }
 
 function stopThen(callback: () => void) {

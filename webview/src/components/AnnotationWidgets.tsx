@@ -7,6 +7,9 @@ export interface SelectionToolbarContextValue {
   translationSourceText: string;
   translationText: string;
   wordDetails?: WordDetails;
+  annotationsEnabled: boolean;
+  translationEnabled: boolean;
+  wordbookEnabled: boolean;
   onHighlight(color: string): void;
   onUnderline(color: string): void;
   onSaveNote(note: string, color: string): void;
@@ -247,6 +250,9 @@ export function SelectionToolbar() {
     translationSourceText,
     translationText,
     wordDetails,
+    annotationsEnabled,
+    translationEnabled,
+    wordbookEnabled,
     onHighlight,
     onUnderline,
     onSaveNote,
@@ -269,6 +275,15 @@ export function SelectionToolbar() {
     }
   }, [activeEditor]);
 
+  useEffect(() => {
+    if (
+      (activeEditor === 'note' && !annotationsEnabled) ||
+      (activeEditor === 'translation' && !translationEnabled)
+    ) {
+      setActiveEditor(undefined);
+    }
+  }, [activeEditor, annotationsEnabled, translationEnabled]);
+
   function saveNote() {
     const trimmed = noteText.trim();
     if (!trimmed) {
@@ -290,6 +305,10 @@ export function SelectionToolbar() {
   const currentWordDetails = hasCurrentResult ? wordDetails : undefined;
   const currentTranslation = hasCurrentResult ? translationText : '';
 
+  if (!annotationsEnabled && !translationEnabled) {
+    return null;
+  }
+
   return (
     <div
       className="selection-toolbar"
@@ -298,19 +317,23 @@ export function SelectionToolbar() {
       onPointerDown={event => event.stopPropagation()}
     >
       <div className="selection-toolbar-row">
-        {colorOptions.map(c => (
-          <button
-            key={c.value}
-            className={`swatch${selColor === c.value ? ' active' : ''}`}
-            style={{ background: c.value }}
-            title={c.label}
-            onClick={() => setSelColor(c.value)}
-          />
-        ))}
-        <button onClick={() => onHighlight(selColor)}>HL</button>
-        <button onClick={() => onUnderline(selColor)}>UL</button>
-        <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
-        <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button>
+        {annotationsEnabled ? (
+          <>
+            {colorOptions.map(c => (
+              <button
+                key={c.value}
+                className={`swatch${selColor === c.value ? ' active' : ''}`}
+                style={{ background: c.value }}
+                title={c.label}
+                onClick={() => setSelColor(c.value)}
+              />
+            ))}
+            <button onClick={() => onHighlight(selColor)}>HL</button>
+            <button onClick={() => onUnderline(selColor)}>UL</button>
+            <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
+          </>
+        ) : null}
+        {translationEnabled ? <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button> : null}
       </div>
       {activeEditor === 'note' ? (
         <div className="selection-note-editor">
@@ -343,7 +366,7 @@ export function SelectionToolbar() {
             <>
               <WordDetailsBlock details={currentWordDetails} />
               <div className="selection-note-actions">
-                <button onClick={() => onSaveWord(currentWordDetails)}>Save to Wordbook</button>
+                {wordbookEnabled ? <button onClick={() => onSaveWord(currentWordDetails)}>Save to Wordbook</button> : null}
                 <button onClick={() => setActiveEditor(undefined)}>Close</button>
               </div>
             </>

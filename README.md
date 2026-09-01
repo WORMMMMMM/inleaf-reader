@@ -49,7 +49,7 @@ then choose **Extensions: Install from VSIX...** in VS Code.
 You can also install it from a terminal:
 
 ```bash
-code --install-extension inleaf-reader-0.0.11.vsix
+code --install-extension inleaf-reader-0.0.12.vsix
 ```
 
 After installation, run **Developer: Reload Window** once if the reader command
@@ -72,8 +72,10 @@ in the Extensions view and select **Install**.
 2. Select text to highlight it, underline it, write a note, translate it, or save a word.
 3. Continue reading. Annotations and page progress are saved automatically—there is no separate Save button.
 
-The right panel stays hidden at startup. Open it from the reader toolbar when
-you want to browse annotations, saved words, or translation settings.
+The right panel stays hidden at startup. Use **Show panel** to browse
+annotations, saved words, and translation results. Use the adjacent
+**Settings** button to enable or hide reading capabilities, change their panel
+order, and configure translation without leaving the reader.
 
 ## What happens to my data?
 
@@ -135,16 +137,17 @@ dictionary in memory.
 
 ### DeepSeek
 
-Run **Inleaf Reader: Set DeepSeek API Key** or select DeepSeek in the Translation
-panel. The key is stored in VS Code SecretStorage and is never written to the
-Webview, settings, sidecar files, or logs.
+Run **Inleaf Reader: Set DeepSeek API Key** or select DeepSeek from the reader's
+**Settings** page. The key is stored in VS Code SecretStorage and is never
+written to the Webview, settings, sidecar files, or logs.
 
 Run **Inleaf Reader: Clear DeepSeek API Key** to remove it.
 
 ### LibreTranslate
 
-Set `inleafReader.translationProvider` to `libretranslate` and provide a
-compatible endpoint in `inleafReader.libreTranslateEndpoint`.
+Choose LibreTranslate and provide a compatible endpoint from the reader's
+**Settings** page. Advanced users may set `inleafReader.translationProvider`
+and `inleafReader.libreTranslateEndpoint` directly.
 
 <details>
 <summary><strong>Optional: set up local Argos Translate</strong></summary>
@@ -183,8 +186,8 @@ package = next(
 argostranslate.package.install_from_path(package.download())
 ```
 
-Then set `inleafReader.argosPythonPath` to that virtual environment's
-Python executable. For example:
+Then set the Argos Python path from the reader's **Settings** page. Advanced
+users may set `inleafReader.argosPythonPath` directly. For example:
 
 ```json
 {

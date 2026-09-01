@@ -58,8 +58,6 @@ export interface ProgressRecord {
 }
 
 export interface ReaderStatePayload {
-  annotations: AnnotationRecord[];
-  words: WordRecord[];
   progress: ProgressRecord;
   paperName: string;
 }

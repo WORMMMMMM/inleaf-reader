@@ -101,6 +101,12 @@ textarea {
   white-space: nowrap;
 }
 
+.reader-toolbar .settings-toggle {
+  flex: 0 0 auto;
+  min-width: 86px;
+  white-space: nowrap;
+}
+
 .page-jump {
   display: inline-flex;
   align-items: center;
@@ -359,6 +365,119 @@ label {
   border-left-color: var(--vscode-inputValidation-warningBorder, #cca700);
 }
 
+.settings-view {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-section > h2 {
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.settings-help,
+.capability-card p,
+.capability-readiness-message {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.capability-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.capability-card {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px;
+  background: var(--vscode-editor-background);
+}
+
+.capability-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.capability-card h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.capability-card p {
+  margin: 0;
+}
+
+.capability-readiness {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.capability-readiness.ready {
+  border-color: var(--vscode-testing-iconPassed, #2ea043);
+}
+
+.capability-readiness.needsSetup,
+.capability-readiness.unavailable {
+  border-color: var(--vscode-inputValidation-warningBorder, #cca700);
+}
+
+.capability-readiness.error {
+  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+
+.capability-readiness-message {
+  margin: 8px 0;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 9px 0 0;
+  color: var(--vscode-foreground);
+}
+
+.toggle-row input {
+  width: auto;
+  margin: 0;
+}
+
+.capability-order {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.capability-order button {
+  padding: 4px 7px;
+  font-size: 11px;
+}
+
+.setting-field {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.setting-field > span {
+  color: var(--vscode-foreground);
+}
+
+.settings-section > .provider-status,
+.settings-section > button {
+  margin-top: 10px;
+}
+
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -381,28 +500,6 @@ label {
 
 .metric-card strong {
   font-size: 18px;
-}
-
-.meta-list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.meta-list div {
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  gap: 8px;
-}
-
-.meta-list dt {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.meta-list dd {
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
 .selection-preview,

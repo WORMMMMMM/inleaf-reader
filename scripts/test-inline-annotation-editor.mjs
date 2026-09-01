@@ -9,8 +9,8 @@ const [mainSource, pdfViewSource, annotationWidgetsSource, generatedBundle] = aw
 ]);
 const source = `${mainSource}\n${pdfViewSource}\n${annotationWidgetsSource}`;
 
-assert.match(source, /const \[sidebarVisible, setSidebarVisible\] = useState\(false\)/);
-assert.doesNotMatch(source, /setSidebarVisible\(true\)/);
+assert.match(source, /const \[surface, setSurface\] = useState<ReaderSurface>\('closed'\)/);
+assert.doesNotMatch(source, /onSave=\{patch => \{[^}]*setSurface/s);
 assert.match(source, /function InlineAnnotationActions/);
 assert.match(source, /function InlineAnnotationEditor/);
 assert.match(source, /onOpen\(annotation, highlight\.position\)/);
@@ -21,6 +21,7 @@ assert.match(
   /<button onClick=\{onEdit\}>Edit<\/button>\s*<button className="danger-button" onClick=\{onDelete\}>Delete<\/button>/
 );
 assert.match(source, /utils\.setTip\(/);
+assert.match(source, /postCapabilityRequest\('annotations', 'update'/);
 assert.doesNotMatch(pdfViewSource, /\bonStyleChange=/);
 assert.doesNotMatch(pdfViewSource, /\bonDelete=/);
 assert.doesNotMatch(pdfViewSource, /\bcopyText=/);

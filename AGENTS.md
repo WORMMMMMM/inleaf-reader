@@ -46,6 +46,10 @@ identity.
 ```text
 src/extension.ts
   -> PaperReaderPanel
+     -> HostCapabilityRegistry
+        -> AnnotationHostCapability
+        -> WordbookHostCapability
+        -> TranslationHostCapability
      -> ReaderStorage
      -> TranslationService
         -> EcdictClient
@@ -53,6 +57,8 @@ src/extension.ts
         -> remote translation providers
 
 webview/src/main.tsx
+  -> capabilities/registry.ts
+  -> capabilities/<capability>/*
   -> components/PdfDocumentView.tsx
   -> components/AnnotationWidgets.tsx
   -> annotationModel.ts
@@ -61,8 +67,11 @@ webview/src/main.tsx
 
 - `extension.ts` registers commands and owns extension activation only.
 - `PaperReaderPanel` coordinates document sessions, Webview messages,
-  clipboard/export operations, storage, and translation. It must not absorb
-  provider implementations or domain algorithms.
+  core progress, and capability dispatch. It must not absorb capability
+  implementations, provider implementations, or domain algorithms.
+- `HostCapabilityRegistry` is the extension-host composition root for reading
+  capabilities. Capability messages use the standard request/event envelope;
+  each capability validates and handles its own action union.
 - `ReaderStorage` owns filesystem persistence and recovery.
 - `TranslationService` is the single translation boundary. Provider choice,
   local dictionary enrichment, local processes, and remote APIs stay behind
@@ -70,7 +79,8 @@ webview/src/main.tsx
 - The Webview owns reader UI and PDF interaction; the extension host owns file
   access, clipboard access, processes, secrets, and external API calls.
 - `main.tsx` coordinates reader state and workflows. PDF-library integration,
-  reusable UI, and pure annotation/selection rules belong in their focused
+  surface state, and the capability event router. Capability panels, settings,
+  local state hooks, and pure annotation/selection rules belong in focused
   modules.
 - PDF rendering, text layers, scrolling, zoom, and highlight positioning stay
   delegated to `react-pdf-highlighter-plus` unless a proven limitation makes
@@ -116,6 +126,13 @@ public documentation.
   steps and without unnecessary panel changes.
 - The right-side panel is user-invoked and hidden on startup. Annotation edits,
   translation, and word saving must not open it automatically.
+- The top toolbar exposes adjacent `Show panel` and `Settings` controls. The
+  right-side surface has three states: closed, reading workspace, and settings.
+  Settings is not a workspace tab and closing it restores the prior workspace
+  when appropriate.
+- Keep configuration exclusively in Settings. Workspace panels and Overview
+  show document content, reading state, and capability results without
+  repeating provider or setup fields.
 - Clicking a saved highlight opens inline `Edit` and `Delete` actions near the
   PDF content. `Edit` then opens the inline annotation editor.
 - The original selected text remains editable so OCR mistakes can be corrected.
@@ -125,6 +142,30 @@ public documentation.
   than hard-coded exceptions in the top-level UI.
 - Extension-host handler errors must reach both the Webview through
   `stateError` and the user through `vscode.window.showErrorMessage`.
+
+## Capability Contract
+
+- `src/capabilities/contracts.ts` is the manifest and preference contract.
+  Stable capability ids currently include `annotations`, `wordbook`, and
+  `translation`.
+- A capability may contribute inline actions, a workspace panel, settings, and
+  persisted data. `enabled` and `showInPanel` are independent; hiding or
+  disabling a capability never deletes its sidecars.
+- Webview requests use `capabilityRequest`; host responses use
+  `capabilityEvent`. Keep core document navigation and reading progress outside
+  capability protocols.
+- Add host behavior through `HostCapabilityRegistry` and Webview presentation
+  through `webview/src/capabilities/registry.ts`. Do not add feature switches
+  back to `PaperReaderPanel`.
+- Each capability owns a runtime decoder for its actions. Never trust an
+  `unknown` payload or allow protected persisted fields to cross a mutation
+  boundary unchecked.
+- Capability host implementations depend on narrow storage interfaces. The
+  shared `ReaderStorage` engine continues to provide serialized atomic writes,
+  backups, recovery, and migration.
+- Ordinary settings are edited in the in-reader Settings surface and persisted
+  through VS Code configuration. Secrets stay in Extension Host SecretStorage;
+  the Webview receives readiness booleans only.
 
 ## Translation Contract
 
@@ -185,7 +226,9 @@ For most tasks:
 
 1. Read this file for product and engineering constraints.
 2. Use `project_map.md` to locate the relevant boundary.
-3. Read only the coordinator, domain module, and contract involved in the task.
+3. For capability work, read the shared contract and that capability's host,
+   protocol, storage adapter, Webview hook, and panel. Read unrelated
+   capabilities only when a declared dependency requires it.
 4. Inspect the matching regression test before changing behavior.
 5. Run the smallest relevant checks during development, then `npm test` before
    handing off the result.
@@ -227,6 +270,10 @@ Use at least one normal text PDF:
 - Select text across pages and verify normal body selection excludes cached
   margins and inferred figure blocks.
 - Create, edit, delete, and undo annotations without forcing the side panel open.
+- Open Settings from the toolbar, change capability visibility/order, and
+  confirm closing Settings restores the previous workspace state.
+- Disable and re-enable each capability; confirm its inline actions and panel
+  contribution follow the preference while existing sidecar data remains.
 - Close and reopen the reader and confirm annotations, wordbook entries, and
   progress return.
 - Check a known dictionary word, a missing word, and a sentence translation.

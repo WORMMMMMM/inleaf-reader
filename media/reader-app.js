@@ -583,23 +583,23 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		(i === null ? r || !(2 < t.length) || t[0] !== "o" && t[0] !== "O" || t[1] !== "n" && t[1] !== "N" : i.type !== 0) && (_(t, n, i, r) && (n = null), r || i === null ? h(t) && (n === null ? e.removeAttribute(t) : e.setAttribute(t, "" + n)) : i.mustUseProperty ? e[i.propertyName] = n === null ? i.type !== 3 && "" : n : (t = i.attributeName, r = i.attributeNamespace, n === null ? e.removeAttribute(t) : (i = i.type, n = i === 3 || i === 4 && !0 === n ? "" : "" + n, r ? e.setAttributeNS(r, t, n) : e.setAttribute(t, n))));
 	}
 	var C = t.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED, w = Symbol.for("react.element"), T = Symbol.for("react.portal"), E = Symbol.for("react.fragment"), D = Symbol.for("react.strict_mode"), O = Symbol.for("react.profiler"), k = Symbol.for("react.provider"), A = Symbol.for("react.context"), j = Symbol.for("react.forward_ref"), M = Symbol.for("react.suspense"), ee = Symbol.for("react.suspense_list"), N = Symbol.for("react.memo"), te = Symbol.for("react.lazy"), ne = Symbol.for("react.offscreen"), re = Symbol.iterator;
-	function P(e) {
+	function ie(e) {
 		return typeof e != "object" || !e ? null : (e = re && e[re] || e["@@iterator"], typeof e == "function" ? e : null);
 	}
-	var F = Object.assign, ie;
-	function ae(e) {
-		if (ie === void 0) try {
+	var P = Object.assign, ae;
+	function oe(e) {
+		if (ae === void 0) try {
 			throw Error();
 		} catch (e) {
 			var t = e.stack.trim().match(/\n( *(at )?)/);
-			ie = t && t[1] || "";
+			ae = t && t[1] || "";
 		}
-		return "\n" + ie + e;
+		return "\n" + ae + e;
 	}
-	var oe = !1;
+	var F = !1;
 	function se(e, t) {
-		if (!e || oe) return "";
-		oe = !0;
+		if (!e || F) return "";
+		F = !0;
 		var n = Error.prepareStackTrace;
 		Error.prepareStackTrace = void 0;
 		try {
@@ -645,16 +645,16 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 				}
 			}
 		} finally {
-			oe = !1, Error.prepareStackTrace = n;
+			F = !1, Error.prepareStackTrace = n;
 		}
-		return (e = e ? e.displayName || e.name : "") ? ae(e) : "";
+		return (e = e ? e.displayName || e.name : "") ? oe(e) : "";
 	}
 	function ce(e) {
 		switch (e.tag) {
-			case 5: return ae(e.type);
-			case 16: return ae("Lazy");
-			case 13: return ae("Suspense");
-			case 19: return ae("SuspenseList");
+			case 5: return oe(e.type);
+			case 16: return oe("Lazy");
+			case 13: return oe("Suspense");
+			case 19: return oe("SuspenseList");
 			case 0:
 			case 2:
 			case 15: return e = se(e.type, !1), e;
@@ -781,7 +781,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	}
 	function _e(e, t) {
 		var n = t.checked;
-		return F({}, t, {
+		return P({}, t, {
 			defaultChecked: void 0,
 			defaultValue: void 0,
 			value: void 0,
@@ -839,7 +839,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	}
 	function we(e, t) {
 		if (t.dangerouslySetInnerHTML != null) throw Error(r(91));
-		return F({}, t, {
+		return P({}, t, {
 			value: void 0,
 			defaultValue: void 0,
 			children: "" + e._wrapperState.initialValue
@@ -965,7 +965,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			n === "float" && (n = "cssFloat"), r ? e.setProperty(n, i) : e[n] = i;
 		}
 	}
-	var Ie = F({ menuitem: !0 }, {
+	var Ie = P({ menuitem: !0 }, {
 		area: !0,
 		base: !0,
 		br: !0,
@@ -1581,7 +1581,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			for (var o in this._reactName = t, this._targetInst = r, this.type = n, this.nativeEvent = i, this.target = a, this.currentTarget = null, e) e.hasOwnProperty(o) && (t = e[o], this[o] = t ? t(i) : i[o]);
 			return this.isDefaultPrevented = (i.defaultPrevented == null ? !1 === i.returnValue : i.defaultPrevented) ? bn : xn, this.isPropagationStopped = xn, this;
 		}
-		return F(t.prototype, {
+		return P(t.prototype, {
 			preventDefault: function() {
 				this.defaultPrevented = !0;
 				var e = this.nativeEvent;
@@ -1604,10 +1604,10 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		},
 		defaultPrevented: 0,
 		isTrusted: 0
-	}, wn = Sn(Cn), Tn = F({}, Cn, {
+	}, wn = Sn(Cn), Tn = P({}, Cn, {
 		view: 0,
 		detail: 0
-	}), En = Sn(Tn), Dn, On, kn, An = F({}, Tn, {
+	}), En = Sn(Tn), Dn, On, kn, An = P({}, Tn, {
 		screenX: 0,
 		screenY: 0,
 		clientX: 0,
@@ -1630,13 +1630,13 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		movementY: function(e) {
 			return "movementY" in e ? e.movementY : On;
 		}
-	}), jn = Sn(An), Mn = Sn(F({}, An, { dataTransfer: 0 })), Nn = Sn(F({}, Tn, { relatedTarget: 0 })), Pn = Sn(F({}, Cn, {
+	}), jn = Sn(An), Mn = Sn(P({}, An, { dataTransfer: 0 })), Nn = Sn(P({}, Tn, { relatedTarget: 0 })), Pn = Sn(P({}, Cn, {
 		animationName: 0,
 		elapsedTime: 0,
 		pseudoElement: 0
-	})), Fn = Sn(F({}, Cn, { clipboardData: function(e) {
+	})), Fn = Sn(P({}, Cn, { clipboardData: function(e) {
 		return "clipboardData" in e ? e.clipboardData : window.clipboardData;
-	} })), In = Sn(F({}, Cn, { data: 0 })), Ln = {
+	} })), In = Sn(P({}, Cn, { data: 0 })), Ln = {
 		Esc: "Escape",
 		Spacebar: " ",
 		Left: "ArrowLeft",
@@ -1699,7 +1699,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	function Vn() {
 		return Bn;
 	}
-	var Hn = Sn(F({}, Tn, {
+	var Hn = Sn(P({}, Tn, {
 		key: function(e) {
 			if (e.key) {
 				var t = Ln[e.key] || e.key;
@@ -1725,7 +1725,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		which: function(e) {
 			return e.type === "keypress" ? yn(e) : e.type === "keydown" || e.type === "keyup" ? e.keyCode : 0;
 		}
-	})), Un = Sn(F({}, An, {
+	})), Un = Sn(P({}, An, {
 		pointerId: 0,
 		width: 0,
 		height: 0,
@@ -1736,7 +1736,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		twist: 0,
 		pointerType: 0,
 		isPrimary: 0
-	})), Wn = Sn(F({}, Tn, {
+	})), Wn = Sn(P({}, Tn, {
 		touches: 0,
 		targetTouches: 0,
 		changedTouches: 0,
@@ -1745,11 +1745,11 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		ctrlKey: 0,
 		shiftKey: 0,
 		getModifierState: Vn
-	})), Gn = Sn(F({}, Cn, {
+	})), Gn = Sn(P({}, Cn, {
 		propertyName: 0,
 		elapsedTime: 0,
 		pseudoElement: 0
-	})), Kn = Sn(F({}, An, {
+	})), Kn = Sn(P({}, An, {
 		deltaX: function(e) {
 			return "deltaX" in e ? e.deltaX : "wheelDeltaX" in e ? -e.wheelDeltaX : 0;
 		},
@@ -2414,7 +2414,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		var i = e.stateNode;
 		if (t = t.childContextTypes, typeof i.getChildContext != "function") return n;
 		for (var a in i = i.getChildContext(), i) if (!(a in t)) throw Error(r(108, ue(e) || "Unknown", a));
-		return F({}, n, i);
+		return P({}, n, i);
 	}
 	function Xi(e) {
 		return e = (e = e.stateNode) && e.__reactInternalMemoizedMergedChildContext || Vi, Wi = Hi.current, Y(Hi, e), Y(Ui, Ui.current), !0;
@@ -2634,7 +2634,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						var r = t._init;
 						return f(e, r(t._payload), n);
 				}
-				if (Se(t) || P(t)) return t = Zl(t, e.mode, n, null), t.return = e, t;
+				if (Se(t) || ie(t)) return t = Zl(t, e.mode, n, null), t.return = e, t;
 				ja(e, t);
 			}
 			return null;
@@ -2648,7 +2648,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 					case T: return n.key === i ? u(e, t, n, r) : null;
 					case te: return i = n._init, p(e, t, i(n._payload), r);
 				}
-				if (Se(n) || P(n)) return i === null ? d(e, t, n, r, null) : null;
+				if (Se(n) || ie(n)) return i === null ? d(e, t, n, r, null) : null;
 				ja(e, n);
 			}
 			return null;
@@ -2663,7 +2663,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						var a = r._init;
 						return m(e, t, n, a(r._payload), i);
 				}
-				if (Se(r) || P(r)) return e = e.get(n) || null, d(t, e, r, i, null);
+				if (Se(r) || ie(r)) return e = e.get(n) || null, d(t, e, r, i, null);
 				ja(t, r);
 			}
 			return null;
@@ -2689,7 +2689,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			}), ya && pa(r, h), l;
 		}
 		function g(a, s, c, l) {
-			var u = P(c);
+			var u = ie(c);
 			if (typeof u != "function") throw Error(r(150));
 			if (c = u.call(c), c == null) throw Error(r(151));
 			for (var d = u = null, h = s, g = s = 0, _ = null, v = c.next(); h !== null && !v.done; g++, v = c.next()) {
@@ -2754,7 +2754,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 					case te: return l = i._init, _(e, r, l(i._payload), o);
 				}
 				if (Se(i)) return h(e, r, i, o);
-				if (P(i)) return g(e, r, i, o);
+				if (ie(i)) return g(e, r, i, o);
 				ja(e, i);
 			}
 			return typeof i == "string" && i !== "" || typeof i == "number" ? (i = "" + i, r !== null && r.tag === 6 ? (n(e, r.sibling), r = a(r, i), r.return = e, e = r) : (n(e, r), r = $l(i, e.mode, o), r.return = e, e = r), s(e)) : n(e, r);
@@ -2925,7 +2925,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 							case 3: m.flags = m.flags & -65537 | 128;
 							case 0:
 								if (m = h.payload, f = typeof m == "function" ? m.call(p, d, f) : m, f == null) break a;
-								d = F({}, d, f);
+								d = P({}, d, f);
 								break a;
 							case 2: Ya = !0;
 						}
@@ -3461,13 +3461,13 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	};
 	function hs(e, t) {
 		if (e && e.defaultProps) {
-			for (var n in t = F({}, t), e = e.defaultProps, e) t[n] === void 0 && (t[n] = e[n]);
+			for (var n in t = P({}, t), e = e.defaultProps, e) t[n] === void 0 && (t[n] = e[n]);
 			return t;
 		}
 		return t;
 	}
 	function gs(e, t, n, r) {
-		t = e.memoizedState, n = n(r, t), n = n == null ? t : F({}, t, n), e.memoizedState = n, e.lanes === 0 && (e.updateQueue.baseState = n);
+		t = e.memoizedState, n = n(r, t), n = n == null ? t : P({}, t, n), e.memoizedState = n, e.lanes === 0 && (e.updateQueue.baseState = n);
 	}
 	var _s = {
 		isMounted: function(e) {
@@ -3912,7 +3912,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 					i = _e(e, i), r = _e(e, r), o = [];
 					break;
 				case "select":
-					i = F({}, i, { value: void 0 }), r = F({}, r, { value: void 0 }), o = [];
+					i = P({}, i, { value: void 0 }), r = P({}, r, { value: void 0 }), o = [];
 					break;
 				case "textarea":
 					i = we(e, i), r = we(e, r), o = [];
@@ -4074,7 +4074,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 									o = i;
 									break;
 								case "select":
-									e._wrapperState = { wasMultiple: !!i.multiple }, o = F({}, i, { value: void 0 }), q("invalid", e);
+									e._wrapperState = { wasMultiple: !!i.multiple }, o = P({}, i, { value: void 0 }), q("invalid", e);
 									break;
 								case "textarea":
 									Te(e, i), o = we(e, i), q("invalid", e);
@@ -6031,7 +6031,7 @@ function re(e, t, n) {
 	} while (r);
 	return !1;
 }
-function P(e, t, n, r) {
+function ie(e, t, n, r) {
 	if (!e) return;
 	let i = {
 		capture: !0,
@@ -6039,7 +6039,7 @@ function P(e, t, n, r) {
 	}, a = n;
 	e.addEventListener ? e.addEventListener(t, a, i) : e.attachEvent ? e.attachEvent("on" + t, a) : e["on" + t] = a;
 }
-function F(e, t, n, r) {
+function P(e, t, n, r) {
 	if (!e) return;
 	let i = {
 		capture: !0,
@@ -6047,15 +6047,15 @@ function F(e, t, n, r) {
 	}, a = n;
 	e.removeEventListener ? e.removeEventListener(t, a, i) : e.detachEvent ? e.detachEvent("on" + t, a) : e["on" + t] = null;
 }
-function ie(e) {
+function ae(e) {
 	let t = e.clientHeight, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t += O(n.borderTopWidth), t += O(n.borderBottomWidth), t;
 }
-function ae(e) {
+function oe(e) {
 	let t = e.clientWidth, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t += O(n.borderLeftWidth), t += O(n.borderRightWidth), t;
 }
-function oe(e) {
+function F(e) {
 	let t = e.clientHeight, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t -= O(n.paddingTop), t -= O(n.paddingBottom), t;
 }
@@ -6132,8 +6132,8 @@ function ve(e, t, n) {
 		r = {
 			left: -i.offsetLeft + O(s.paddingLeft) + O(o.marginLeft),
 			top: -i.offsetTop + O(s.paddingTop) + O(o.marginTop),
-			right: se(a) - ae(i) - i.offsetLeft + O(s.paddingRight) - O(o.marginRight),
-			bottom: oe(a) - ie(i) - i.offsetTop + O(s.paddingBottom) - O(o.marginBottom)
+			right: se(a) - oe(i) - i.offsetLeft + O(s.paddingRight) - O(o.marginRight),
+			bottom: F(a) - ae(i) - i.offsetTop + O(s.paddingBottom) - O(o.marginBottom)
 		};
 	}
 	return D(r.right) && (t = Math.min(t, r.right)), D(r.bottom) && (n = Math.min(n, r.bottom)), D(r.left) && (t = Math.max(t, r.left)), D(r.top) && (n = Math.max(n, r.top)), [t, n];
@@ -6223,7 +6223,7 @@ var De = {
 			let i = Se(e, r, this);
 			if (i == null) return;
 			let { x: a, y: o } = i, s = Ce(this, a, o);
-			this.props.onStart, this.props.onStart(e, s) !== !1 && this.mounted !== !1 && (this.props.enableUserSelectHack && me(n), this.dragging = !0, this.lastX = a, this.lastY = o, P(n, Oe.move, this.handleDrag), P(n, Oe.stop, this.handleDragStop));
+			this.props.onStart, this.props.onStart(e, s) !== !1 && this.mounted !== !1 && (this.props.enableUserSelectHack && me(n), this.dragging = !0, this.lastX = a, this.lastY = o, ie(n, Oe.move, this.handleDrag), ie(n, Oe.stop, this.handleDragStop));
 		}, this.handleDrag = (e) => {
 			let t = Se(e, this.touchIdentifier, this);
 			if (t == null) return;
@@ -6256,20 +6256,20 @@ var De = {
 			let i = Ce(this, n, r);
 			if (this.props.onStop(e, i) === !1 || this.mounted === !1) return !1;
 			let a = this.findDOMNode();
-			a && this.props.enableUserSelectHack && he(a.ownerDocument), this.dragging = !1, this.lastX = NaN, this.lastY = NaN, a && (F(a.ownerDocument, Oe.move, this.handleDrag), F(a.ownerDocument, Oe.stop, this.handleDragStop));
+			a && this.props.enableUserSelectHack && he(a.ownerDocument), this.dragging = !1, this.lastX = NaN, this.lastY = NaN, a && (P(a.ownerDocument, Oe.move, this.handleDrag), P(a.ownerDocument, Oe.stop, this.handleDragStop));
 		}, this.onMouseDown = (e) => (Oe = De.mouse, this.handleDragStart(e)), this.onMouseUp = (e) => (Oe = De.mouse, this.handleDragStop(e)), this.onTouchStart = (e) => (Oe = De.touch, this.handleDragStart(e)), this.onTouchEnd = (e) => (Oe = De.touch, this.handleDragStop(e));
 	}
 	componentDidMount() {
 		this.mounted = !0;
 		let e = this.findDOMNode();
-		e && P(e, De.touch.start, this.onTouchStart, { passive: !1 });
+		e && ie(e, De.touch.start, this.onTouchStart, { passive: !1 });
 	}
 	componentWillUnmount() {
 		this.mounted = !1;
 		let e = this.findDOMNode();
 		if (e) {
 			let { ownerDocument: t } = e;
-			F(t, De.mouse.move, this.handleDrag), F(t, De.touch.move, this.handleDrag), F(t, De.mouse.stop, this.handleDragStop), F(t, De.touch.stop, this.handleDragStop), F(e, De.touch.start, this.onTouchStart, { passive: !1 }), this.props.enableUserSelectHack && he(t);
+			P(t, De.mouse.move, this.handleDrag), P(t, De.touch.move, this.handleDrag), P(t, De.mouse.stop, this.handleDragStop), P(t, De.touch.stop, this.handleDragStop), P(e, De.touch.start, this.onTouchStart, { passive: !1 }), this.props.enableUserSelectHack && he(t);
 		}
 	}
 	findDOMNode() {
@@ -13730,7 +13730,7 @@ function ki(e = {}) {
 	typeof e == "string" || e instanceof URL ? e = { url: e } : (e instanceof ArrayBuffer || ArrayBuffer.isView(e)) && (e = { data: e });
 	let t = new Ni(), { docId: n } = t, r = e.url ? Ai(e.url) : null, i = e.data ? ji(e.data) : null, a = e.httpHeaders || null, o = e.withCredentials === !0, s = e.password ?? null, c = e.range instanceof Pi ? e.range : null, l = Number.isInteger(e.rangeChunkSize) && e.rangeChunkSize > 0 ? e.rangeChunkSize : Si, u = e.worker instanceof Ri ? e.worker : null, d = e.verbosity, f = typeof e.docBaseUrl == "string" && !on(e.docBaseUrl) ? e.docBaseUrl : null, p = typeof e.cMapUrl == "string" ? e.cMapUrl : null, m = e.cMapPacked !== !1, h = e.CMapReaderFactory || Ei, g = typeof e.standardFontDataUrl == "string" ? e.standardFontDataUrl : null, _ = e.StandardFontDataFactory || Oi, v = e.stopAtErrors !== !0, y = Number.isInteger(e.maxImageSize) && e.maxImageSize > -1 ? e.maxImageSize : -1, b = e.isEvalSupported !== !1, x = typeof e.isOffscreenCanvasSupported == "boolean" ? e.isOffscreenCanvasSupported : !lt, S = typeof e.isImageDecoderSupported == "boolean" ? e.isImageDecoderSupported : !lt && (Gt.platform.isFirefox || !globalThis.chrome), C = Number.isInteger(e.canvasMaxAreaInBytes) ? e.canvasMaxAreaInBytes : -1, w = typeof e.disableFontFace == "boolean" ? e.disableFontFace : lt, T = e.fontExtraProperties === !0, E = e.enableXfa === !0, D = e.ownerDocument || globalThis.document, O = e.disableRange === !0, k = e.disableStream === !0, A = e.disableAutoFetch === !0, j = e.pdfBug === !0, M = e.CanvasFactory || Ti, ee = e.FilterFactory || Di, N = e.enableHWA === !0, te = c ? c.length : e.length ?? NaN, ne = typeof e.useSystemFonts == "boolean" ? e.useSystemFonts : !lt && !w, re = typeof e.useWorkerFetch == "boolean" ? e.useWorkerFetch : h === Zn && _ === tr && p && g && dn(p, document.baseURI) && dn(g, document.baseURI);
 	Et(d);
-	let P = {
+	let ie = {
 		canvasFactory: new M({
 			ownerDocument: D,
 			enableHWA: N
@@ -13752,7 +13752,7 @@ function ki(e = {}) {
 		};
 		u = e.port ? Ri.fromPort(e) : new Ri(e), t._worker = u;
 	}
-	let F = {
+	let P = {
 		docId: n,
 		apiVersion: "4.10.38",
 		data: i,
@@ -13775,7 +13775,7 @@ function ki(e = {}) {
 			cMapUrl: re ? p : null,
 			standardFontDataUrl: re ? g : null
 		}
-	}, ie = {
+	}, ae = {
 		disableFontFace: w,
 		fontExtraProperties: T,
 		ownerDocument: D,
@@ -13789,7 +13789,7 @@ function ki(e = {}) {
 	return u.promise.then(function() {
 		if (t.destroyed) throw Error("Loading aborted");
 		if (u.destroyed) throw Error("Worker was destroyed");
-		let e = u.messageHandler.sendWithPromise("GetDocRequest", F, i ? [i.buffer] : null), s;
+		let e = u.messageHandler.sendWithPromise("GetDocRequest", P, i ? [i.buffer] : null), s;
 		if (c) s = new Gr(c, {
 			disableRange: O,
 			disableStream: k
@@ -13816,7 +13816,7 @@ function ki(e = {}) {
 		return e.then((e) => {
 			if (t.destroyed) throw Error("Loading aborted");
 			if (u.destroyed) throw Error("Worker was destroyed");
-			let r = new qn(n, e, u.port), i = new zi(r, t, s, ie, P);
+			let r = new qn(n, e, u.port), i = new zi(r, t, s, ae, ie);
 			t._transport = i, r.send("Ready", null);
 		});
 	}).catch(t._capability.reject), t;
@@ -20444,11 +20444,11 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 			...j,
 			mode: e
 		};
-	}, [j]), [ee, N] = (0, y.useState)(null), [te, ne] = (0, y.useState)(!1), re = (0, y.useRef)(null), P = (0, y.useRef)({}), F = (0, y.useRef)({}), ie = (0, y.useRef)(e), ae = (0, y.useRef)(d), oe = (0, y.useRef)(null), se = (0, y.useRef)(null), ce = (0, y.useRef)(null), le = (0, y.useRef)(!1), ue = (0, y.useRef)(!1), de = (0, y.useRef)(() => {}), fe = (0, y.useRef)(new Go()), pe = (0, y.useRef)(new qo({
+	}, [j]), [ee, N] = (0, y.useState)(null), [te, ne] = (0, y.useState)(!1), re = (0, y.useRef)(null), ie = (0, y.useRef)({}), P = (0, y.useRef)({}), ae = (0, y.useRef)(e), oe = (0, y.useRef)(d), F = (0, y.useRef)(null), se = (0, y.useRef)(null), ce = (0, y.useRef)(null), le = (0, y.useRef)(!1), ue = (0, y.useRef)(!1), de = (0, y.useRef)(() => {}), fe = (0, y.useRef)(new Go()), pe = (0, y.useRef)(new qo({
 		eventBus: fe.current,
 		externalLinkTarget: 2
 	})), me = (0, y.useRef)(null), he = (0, y.useRef)([]), ge = (0, y.useRef)(null), _e = (0, y.useRef)(null), I = (0, y.useRef)(null);
-	ie.current = e, ae.current = d, (0, y.useLayoutEffect)(() => {
+	ae.current = e, oe.current = d, (0, y.useLayoutEffect)(() => {
 		re.current && (_e.current = _e.current || new Ko({
 			eventBus: fe.current,
 			linkService: pe.current
@@ -20491,11 +20491,11 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 			content: u,
 			type: "text",
 			position: l,
-			makeGhostHighlight: () => (oe.current = {
+			makeGhostHighlight: () => (F.current = {
 				content: u,
 				type: "text",
 				position: l
-			}, i && i(oe.current), je(), Te(), oe.current)
+			}, i && i(F.current), je(), Te(), F.current)
 		}, r && r(se.current), o && N({
 			position: c,
 			content: o
@@ -20553,13 +20553,13 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		I.current && (I.current.currentScaleValue = n.toString());
 	}, we = (e, t, n) => {
 		I.current && e.reactRoot.render(/* @__PURE__ */ y.createElement(ao.Provider, { value: Re }, /* @__PURE__ */ y.createElement(Lo, {
-			highlightsByPage: Co([...ie.current, oe.current]),
+			highlightsByPage: Co([...ae.current, F.current]),
 			pageNumber: t,
 			scrolledToHighlightId: ce.current,
 			viewer: I.current,
 			highlightBindings: e,
 			shouldRenderHighlight: n,
-			children: ae.current
+			children: oe.current
 		})));
 	}, Te = () => {
 		if (I.current) for (let e = 1; e <= u.numPages; e++) {
@@ -20567,20 +20567,20 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 			if (!t) continue;
 			let n = t.div, r = es(n), i = ts(n);
 			if (r) {
-				let t = P.current[e];
+				let t = ie.current[e];
 				t?.container?.isConnected || (t = {
 					reactRoot: (0, x.createRoot)(r),
 					container: r,
 					textLayer: n
-				}, P.current[e] = t), we(t, e, (e) => !ns(e));
+				}, ie.current[e] = t), we(t, e, (e) => !ns(e));
 			}
 			if (i) {
-				let t = F.current[e];
+				let t = P.current[e];
 				t?.container?.isConnected || (t = {
 					reactRoot: (0, x.createRoot)(i),
 					container: i,
 					textLayer: n
-				}, F.current[e] = t), we(t, e, ns);
+				}, P.current[e] = t), we(t, e, ns);
 			}
 		}
 	}, Ee = () => {
@@ -20596,10 +20596,10 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		e && (ge.current && clearTimeout(ge.current), ge.current = setTimeout(() => {
 			e.addEventListener("scroll", ve, { once: !0 }), ge.current = null;
 		}, 1200));
-	}, Oe = () => !!se.current || !!oe.current || le.current || ue.current, ke = (e) => {
+	}, Oe = () => !!se.current || !!F.current || le.current || ue.current, ke = (e) => {
 		e === void 0 ? ue.current = !ue.current : ue.current = e, I.current && I.current.viewer?.classList.toggle("PdfHighlighter--disable-selection", ue.current);
 	}, Ae = () => {
-		a && oe.current && a(oe.current), oe.current = null, Te();
+		a && F.current && a(F.current), F.current = null, Te();
 	}, je = () => {
 		se.current = null;
 		let e = re.current, t = To(e).getSelection();
@@ -20655,7 +20655,7 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 	}, Re = {
 		isEditingOrHighlighting: Oe,
 		getCurrentSelection: () => se.current,
-		getGhostHighlight: () => oe.current,
+		getGhostHighlight: () => F.current,
 		removeGhostHighlight: Ae,
 		toggleEditInProgress: ke,
 		isEditInProgress: () => ue.current,
@@ -20768,11 +20768,11 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 				content: { image: n },
 				type: "area",
 				position: t,
-				makeGhostHighlight: () => (oe.current = {
+				makeGhostHighlight: () => (F.current = {
 					position: t,
 					type: "area",
 					content: { image: n }
-				}, i && i(oe.current), a(), Te(), oe.current)
+				}, i && i(F.current), a(), Te(), F.current)
 			}, r && r(se.current), o && N({
 				position: e,
 				content: o
@@ -21608,25 +21608,31 @@ function Js({ onDelete: e, onEdit: t }) {
 function Ys() {
 	let e = y.useContext(Hs);
 	if (!e) return null;
-	let { selectedText: t, translationSourceText: n, translationText: r, wordDetails: i, onHighlight: a, onUnderline: o, onSaveNote: s, onTranslate: c, onSaveWord: l } = e, [u, d] = (0, y.useState)("#ffd654"), [f, p] = (0, y.useState)(), [m, h] = (0, y.useState)(""), g = (0, y.useRef)(null);
+	let { selectedText: t, translationSourceText: n, translationText: r, wordDetails: i, annotationsEnabled: a, translationEnabled: o, wordbookEnabled: s, onHighlight: c, onUnderline: l, onSaveNote: u, onTranslate: d, onSaveWord: f } = e, [p, m] = (0, y.useState)("#ffd654"), [h, g] = (0, y.useState)(), [_, v] = (0, y.useState)(""), b = (0, y.useRef)(null);
 	(0, y.useEffect)(() => {
-		p(void 0), h("");
+		g(void 0), v("");
 	}, [t]), (0, y.useEffect)(() => {
-		f === "note" && g.current?.focus();
-	}, [f]);
-	function _() {
-		let e = m.trim();
+		h === "note" && b.current?.focus();
+	}, [h]), (0, y.useEffect)(() => {
+		(h === "note" && !a || h === "translation" && !o) && g(void 0);
+	}, [
+		h,
+		a,
+		o
+	]);
+	function x() {
+		let e = _.trim();
 		if (!e) {
-			g.current?.focus();
+			b.current?.focus();
 			return;
 		}
-		s(e, u), h(""), p(void 0);
+		u(e, p), v(""), g(void 0);
 	}
-	function v() {
-		p("translation"), c();
+	function S() {
+		g("translation"), d();
 	}
-	let b = n === t.trim(), x = b && r === "Translating...", S = b ? i : void 0, C = b ? r : "";
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	let C = n === t.trim(), w = C && r === "Translating...", T = C ? i : void 0, E = C ? r : "";
+	return !a && !o ? null : /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "selection-toolbar",
 		onClick: (e) => e.stopPropagation(),
 		onMouseDown: (e) => e.stopPropagation(),
@@ -21634,84 +21640,83 @@ function Ys() {
 		children: [
 			/* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "selection-toolbar-row",
-				children: [
+				children: [a ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
 					Us.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
-						className: `swatch${u === e.value ? " active" : ""}`,
+						className: `swatch${p === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
-						onClick: () => d(e.value)
+						onClick: () => m(e.value)
 					}, e.value)),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: () => a(u),
+						onClick: () => c(p),
 						children: "HL"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: () => o(u),
+						onClick: () => l(p),
 						children: "UL"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						className: f === "note" ? "active-command" : "",
-						onClick: () => p(f === "note" ? void 0 : "note"),
+						className: h === "note" ? "active-command" : "",
+						onClick: () => g(h === "note" ? void 0 : "note"),
 						children: "Note"
-					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
-						className: f === "translation" ? "active-command" : "",
-						onClick: v,
-						children: "Translate"
 					})
-				]
+				] }) : null, o ? /* @__PURE__ */ (0, L.jsx)("button", {
+					className: h === "translation" ? "active-command" : "",
+					onClick: S,
+					children: "Translate"
+				}) : null]
 			}),
-			f === "note" ? /* @__PURE__ */ (0, L.jsxs)("div", {
+			h === "note" ? /* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "selection-note-editor",
 				children: [/* @__PURE__ */ (0, L.jsx)("textarea", {
-					ref: g,
-					value: m,
-					onChange: (e) => h(e.target.value),
+					ref: b,
+					value: _,
+					onChange: (e) => v(e.target.value),
 					onKeyDown: (e) => {
-						Qs(e, _) || e.key === "Escape" && (e.preventDefault(), p(void 0));
+						Qs(e, x) || e.key === "Escape" && (e.preventDefault(), g(void 0));
 					},
 					placeholder: "Write a note...",
 					rows: 3
 				}), /* @__PURE__ */ (0, L.jsxs)("div", {
 					className: "selection-note-actions",
 					children: [/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: () => p(void 0),
+						onClick: () => g(void 0),
 						children: "Cancel"
 					}), /* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: _,
-						disabled: !m.trim(),
+						onClick: x,
+						disabled: !_.trim(),
 						children: "Save"
 					})]
 				})]
 			}) : null,
-			f === "translation" ? /* @__PURE__ */ (0, L.jsxs)("div", {
+			h === "translation" ? /* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "selection-translation-result",
 				children: [
-					x ? /* @__PURE__ */ (0, L.jsx)("div", {
+					w ? /* @__PURE__ */ (0, L.jsx)("div", {
 						className: "selection-result-status",
 						children: "Looking up..."
 					}) : null,
-					!x && S ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)(ec, { details: S }), /* @__PURE__ */ (0, L.jsxs)("div", {
+					!w && T ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)(ec, { details: T }), /* @__PURE__ */ (0, L.jsxs)("div", {
 						className: "selection-note-actions",
-						children: [/* @__PURE__ */ (0, L.jsx)("button", {
-							onClick: () => l(S),
+						children: [s ? /* @__PURE__ */ (0, L.jsx)("button", {
+							onClick: () => f(T),
 							children: "Save to Wordbook"
-						}), /* @__PURE__ */ (0, L.jsx)("button", {
-							onClick: () => p(void 0),
+						}) : null, /* @__PURE__ */ (0, L.jsx)("button", {
+							onClick: () => g(void 0),
 							children: "Close"
 						})]
 					})] }) : null,
-					!x && !S && C ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("p", {
+					!w && !T && E ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("p", {
 						className: "selection-translation-text",
-						children: C
+						children: E
 					}), /* @__PURE__ */ (0, L.jsx)("div", {
 						className: "selection-note-actions",
 						children: /* @__PURE__ */ (0, L.jsx)("button", {
-							onClick: () => p(void 0),
+							onClick: () => g(void 0),
 							children: "Close"
 						})
 					})] }) : null,
-					!x && !S && !C ? /* @__PURE__ */ (0, L.jsx)("div", {
+					!w && !T && !E ? /* @__PURE__ */ (0, L.jsx)("div", {
 						className: "selection-result-status",
 						children: "No result yet."
 					}) : null
@@ -22064,19 +22069,630 @@ var Ec = {
 	},
 	getState: () => Cc.getState(),
 	setState: (e) => Cc.setState(e)
-}, Dc = {
-	annotations: [],
-	words: [],
+}, Dc = [
+	"annotations",
+	"wordbook",
+	"translation"
+], Oc = [
+	{
+		id: "annotations",
+		title: "Annotations",
+		description: "Highlight, underline, edit, and export notes beside the text.",
+		defaultEnabled: !0,
+		defaultPanelVisibility: !0,
+		order: 10,
+		contributions: {
+			panel: !0,
+			inlineActions: !0,
+			settings: !1,
+			persistence: !0
+		}
+	},
+	{
+		id: "wordbook",
+		title: "Wordbook",
+		description: "Capture words and dictionary details in a portable sidecar.",
+		defaultEnabled: !0,
+		defaultPanelVisibility: !0,
+		order: 20,
+		contributions: {
+			panel: !0,
+			inlineActions: !0,
+			settings: !1,
+			persistence: !0
+		}
+	},
+	{
+		id: "translation",
+		title: "Translation",
+		description: "Translate selections with a local or user-configured provider.",
+		defaultEnabled: !0,
+		defaultPanelVisibility: !0,
+		order: 30,
+		contributions: {
+			panel: !0,
+			inlineActions: !0,
+			settings: !0,
+			persistence: !1
+		}
+	}
+];
+function kc(e, t = {}) {
+	let n = Ac(e);
+	return Oc.map((e) => {
+		let r = n[e.id];
+		return {
+			...e,
+			enabled: r?.enabled ?? e.defaultEnabled,
+			showInPanel: r?.showInPanel ?? e.defaultPanelVisibility,
+			order: r?.order ?? e.order,
+			readiness: t[e.id]?.readiness ?? "ready",
+			...t[e.id]?.readinessMessage ? { readinessMessage: t[e.id]?.readinessMessage } : {}
+		};
+	}).sort((e, t) => e.order - t.order || e.title.localeCompare(t.title));
+}
+function Ac(e) {
+	if (!jc(e)) return {};
+	let t = {};
+	for (let n of Dc) {
+		let r = e[n];
+		if (!jc(r)) continue;
+		let i = {};
+		typeof r.enabled == "boolean" && (i.enabled = r.enabled), typeof r.showInPanel == "boolean" && (i.showInPanel = r.showInPanel), typeof r.order == "number" && Number.isFinite(r.order) && (i.order = r.order), t[n] = i;
+	}
+	return t;
+}
+function jc(e) {
+	return typeof e == "object" && !!e && !Array.isArray(e);
+}
+//#endregion
+//#region webview/src/capabilities/annotations/useAnnotationsCapability.ts
+function Mc() {
+	let [e, t] = (0, y.useState)([]);
+	return {
+		annotations: e,
+		handleEvent: (0, y.useCallback)((e, n) => Nc(n) ? (e === "state" && Array.isArray(n.annotations) && t(n.annotations), { ...e === "result" && typeof n.message == "string" ? { status: n.message } : {} }) : {}, []),
+		reset: (0, y.useCallback)(() => t([]), [])
+	};
+}
+function Nc(e) {
+	return typeof e == "object" && !!e && !Array.isArray(e);
+}
+//#endregion
+//#region webview/src/capabilities/wordbook/useWordbookCapability.ts
+function Pc() {
+	let [e, t] = (0, y.useState)([]);
+	return {
+		words: e,
+		handleEvent: (0, y.useCallback)((e, n) => (e !== "state" || !Fc(n) || !Array.isArray(n.words) || t(n.words), {}), []),
+		reset: (0, y.useCallback)(() => t([]), [])
+	};
+}
+function Fc(e) {
+	return typeof e == "object" && !!e && !Array.isArray(e);
+}
+//#endregion
+//#region webview/src/capabilities/translation/useTranslationCapability.ts
+var Ic = {
+	provider: "argos",
+	deepSeekModel: "deepseek-v4-flash",
+	libreTranslateEndpoint: "http://localhost:5000/translate",
+	argosPythonPath: "",
+	fallbackToLibreTranslate: !1,
+	source: "auto",
+	target: "zh",
+	hasDeepSeekApiKey: !1,
+	dictionaryReady: !1,
+	argosPythonFound: !1
+};
+function Lc() {
+	let [e, t] = (0, y.useState)(Ic), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)();
+	return {
+		settings: e,
+		sourceText: n,
+		output: i,
+		wordDetails: o,
+		handleEvent: (0, y.useCallback)((e, n, i) => Rc(n) ? e === "settings" ? (t(n), {}) : e === "result" && typeof n.sourceText == "string" && n.sourceText === i ? (r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(Rc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, []),
+		start: (0, y.useCallback)((e) => {
+			r(e), a("Translating..."), s(void 0);
+		}, []),
+		clearResult: (0, y.useCallback)(() => {
+			r(""), a(""), s(void 0);
+		}, [])
+	};
+}
+function Rc(e) {
+	return typeof e == "object" && !!e && !Array.isArray(e);
+}
+//#endregion
+//#region webview/src/capabilities/OverviewPanel.tsx
+function zc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
+	return /* @__PURE__ */ (0, L.jsxs)("section", {
+		className: "side-tab-panel",
+		children: [
+			/* @__PURE__ */ (0, L.jsxs)("div", {
+				className: "overview-grid",
+				children: [
+					/* @__PURE__ */ (0, L.jsx)(Bc, {
+						label: "Page",
+						value: `${e} / ${t || "-"}`
+					}),
+					/* @__PURE__ */ (0, L.jsx)(Bc, {
+						label: "Annotations",
+						value: n
+					}),
+					/* @__PURE__ */ (0, L.jsx)(Bc, {
+						label: "Words",
+						value: r
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, L.jsxs)("section", {
+				className: "tool-block",
+				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Status" }), /* @__PURE__ */ (0, L.jsx)("div", {
+					className: "empty compact-empty",
+					children: i
+				})]
+			}),
+			/* @__PURE__ */ (0, L.jsxs)("section", {
+				className: "tool-block",
+				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current selection" }), a.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+					className: "selection-preview",
+					children: $(a, 260)
+				}) : /* @__PURE__ */ (0, L.jsx)("div", {
+					className: "empty compact-empty",
+					children: "Select text in the PDF to act on it."
+				})]
+			})
+		]
+	});
+}
+function Bc({ label: e, value: t }) {
+	return /* @__PURE__ */ (0, L.jsxs)("div", {
+		className: "metric-card",
+		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("strong", { children: t })]
+	});
+}
+function $(e, t) {
+	let n = e.replace(/\s+/g, " ").trim();
+	return n.length > t ? `${n.slice(0, t - 1)}...` : n;
+}
+//#endregion
+//#region webview/src/capabilities/SettingsView.tsx
+function Vc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
+	return /* @__PURE__ */ (0, L.jsxs)("div", {
+		className: "settings-view",
+		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
+			className: "settings-section",
+			children: [
+				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Reading capabilities" }),
+				/* @__PURE__ */ (0, L.jsx)("p", {
+					className: "settings-help",
+					children: "Choose which actions are available and which views appear in the reading workspace. Disabling a capability never deletes its data."
+				}),
+				/* @__PURE__ */ (0, L.jsx)("div", {
+					className: "capability-list",
+					children: e.map((t, i) => /* @__PURE__ */ (0, L.jsxs)("article", {
+						className: "capability-card",
+						children: [
+							/* @__PURE__ */ (0, L.jsxs)("div", {
+								className: "capability-card-heading",
+								children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("h3", { children: t.title }), /* @__PURE__ */ (0, L.jsx)("p", { children: t.description })] }), /* @__PURE__ */ (0, L.jsx)("span", {
+									className: `capability-readiness ${t.readiness}`,
+									children: Gc(t.readiness)
+								})]
+							}),
+							t.readinessMessage ? /* @__PURE__ */ (0, L.jsx)("p", {
+								className: "capability-readiness-message",
+								children: t.readinessMessage
+							}) : null,
+							/* @__PURE__ */ (0, L.jsxs)("label", {
+								className: "toggle-row",
+								children: [/* @__PURE__ */ (0, L.jsx)("input", {
+									type: "checkbox",
+									checked: t.enabled,
+									onChange: (e) => n(t.id, { enabled: e.target.checked })
+								}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Enable capability" })]
+							}),
+							/* @__PURE__ */ (0, L.jsxs)("label", {
+								className: "toggle-row",
+								children: [/* @__PURE__ */ (0, L.jsx)("input", {
+									type: "checkbox",
+									checked: t.showInPanel,
+									disabled: !t.enabled || !t.contributions.panel,
+									onChange: (e) => n(t.id, { showInPanel: e.target.checked })
+								}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Show in panel" })]
+							}),
+							/* @__PURE__ */ (0, L.jsxs)("div", {
+								className: "capability-order",
+								"aria-label": `${t.title} panel order`,
+								children: [/* @__PURE__ */ (0, L.jsx)("button", {
+									className: "secondary-button",
+									disabled: i === 0,
+									onClick: () => r(t.id, -1),
+									children: "Move up"
+								}), /* @__PURE__ */ (0, L.jsx)("button", {
+									className: "secondary-button",
+									disabled: i === e.length - 1,
+									onClick: () => r(t.id, 1),
+									children: "Move down"
+								})]
+							})
+						]
+					}, t.id))
+				})
+			]
+		}), /* @__PURE__ */ (0, L.jsx)(Hc, {
+			settings: t,
+			onSetting: i,
+			onConfigureDeepSeek: a,
+			onDiagnose: o
+		})]
+	});
+}
+function Hc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
+	return /* @__PURE__ */ (0, L.jsxs)("section", {
+		className: "settings-section",
+		children: [
+			/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation" }),
+			/* @__PURE__ */ (0, L.jsxs)(Uc, {
+				label: "Provider",
+				value: e.provider,
+				onChange: (e) => t("provider", e),
+				children: [
+					/* @__PURE__ */ (0, L.jsx)("option", {
+						value: "argos",
+						children: "Argos Translate (local)"
+					}),
+					/* @__PURE__ */ (0, L.jsx)("option", {
+						value: "libretranslate",
+						children: "LibreTranslate"
+					}),
+					/* @__PURE__ */ (0, L.jsx)("option", {
+						value: "deepseek",
+						children: "DeepSeek"
+					})
+				]
+			}),
+			e.provider === "deepseek" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
+				/* @__PURE__ */ (0, L.jsxs)(Uc, {
+					label: "DeepSeek model",
+					value: e.deepSeekModel,
+					onChange: (e) => t("deepSeekModel", e),
+					children: [/* @__PURE__ */ (0, L.jsx)("option", {
+						value: "deepseek-v4-flash",
+						children: "deepseek-v4-flash"
+					}), /* @__PURE__ */ (0, L.jsx)("option", {
+						value: "deepseek-v4-pro",
+						children: "deepseek-v4-pro"
+					})]
+				}),
+				/* @__PURE__ */ (0, L.jsx)("div", {
+					className: `provider-status ${e.hasDeepSeekApiKey ? "ready" : "missing"}`,
+					children: e.hasDeepSeekApiKey ? "DeepSeek API key is configured." : "DeepSeek API key is required."
+				}),
+				/* @__PURE__ */ (0, L.jsx)("button", {
+					className: "secondary-button",
+					onClick: n,
+					children: e.hasDeepSeekApiKey ? "Replace API Key" : "Set API Key"
+				})
+			] }) : null,
+			/* @__PURE__ */ (0, L.jsx)(Wc, {
+				label: "Source language",
+				value: e.source,
+				onCommit: (e) => t("source", e)
+			}),
+			/* @__PURE__ */ (0, L.jsx)(Wc, {
+				label: "Target language",
+				value: e.target,
+				onCommit: (e) => t("target", e)
+			}),
+			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(Wc, {
+				label: "LibreTranslate endpoint",
+				value: e.libreTranslateEndpoint,
+				onCommit: (e) => t("libreTranslateEndpoint", e)
+			}) : null,
+			e.provider === "argos" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
+				/* @__PURE__ */ (0, L.jsx)(Wc, {
+					label: "Argos Python path",
+					value: e.argosPythonPath,
+					placeholder: "Use the bundled .venv-translate path",
+					onCommit: (e) => t("argosPythonPath", e)
+				}),
+				/* @__PURE__ */ (0, L.jsxs)("label", {
+					className: "toggle-row",
+					children: [/* @__PURE__ */ (0, L.jsx)("input", {
+						type: "checkbox",
+						checked: e.fallbackToLibreTranslate,
+						onChange: (e) => t("fallbackToLibreTranslate", e.target.checked)
+					}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Fall back to LibreTranslate when Argos fails" })]
+				}),
+				/* @__PURE__ */ (0, L.jsx)("div", {
+					className: `provider-status ${e.argosPythonFound ? "ready" : "missing"}`,
+					children: e.argosPythonFound ? "Argos Python was found." : "Argos is not configured for sentence translation."
+				})
+			] }) : null,
+			/* @__PURE__ */ (0, L.jsx)("div", {
+				className: `provider-status ${e.dictionaryReady ? "ready" : "missing"}`,
+				children: e.dictionaryReady ? "Offline dictionary is ready." : "Offline dictionary is missing."
+			}),
+			/* @__PURE__ */ (0, L.jsx)("button", {
+				className: "secondary-button",
+				onClick: r,
+				children: "Diagnose translation setup"
+			})
+		]
+	});
+}
+function Uc({ label: e, value: t, onChange: n, children: r }) {
+	return /* @__PURE__ */ (0, L.jsxs)("label", {
+		className: "setting-field",
+		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("select", {
+			value: t,
+			onChange: (e) => n(e.target.value),
+			children: r
+		})]
+	});
+}
+function Wc({ label: e, value: t, placeholder: n, onCommit: r }) {
+	let [i, a] = (0, y.useState)(t);
+	return (0, y.useEffect)(() => a(t), [t]), /* @__PURE__ */ (0, L.jsxs)("label", {
+		className: "setting-field",
+		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("input", {
+			value: i,
+			placeholder: n,
+			onChange: (e) => a(e.target.value),
+			onBlur: () => i !== t && r(i),
+			onKeyDown: (e) => {
+				e.key === "Enter" && e.currentTarget.blur();
+			}
+		})]
+	});
+}
+function Gc(e) {
+	return e === "needsSetup" ? "Needs setup" : e[0].toUpperCase() + e.slice(1);
+}
+//#endregion
+//#region webview/src/capabilities/ReaderSideSurface.tsx
+function Kc({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
+	return /* @__PURE__ */ (0, L.jsxs)("aside", {
+		className: "side-panel",
+		"aria-hidden": e === "closed",
+		children: [/* @__PURE__ */ (0, L.jsxs)("header", {
+			className: "side-panel-header",
+			children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("p", {
+				className: "eyebrow",
+				children: "Inleaf Reader"
+			}), /* @__PURE__ */ (0, L.jsx)("h1", { children: e === "settings" ? "Settings" : t })] }), /* @__PURE__ */ (0, L.jsx)("button", {
+				className: "side-panel-close secondary-button",
+				title: "Close",
+				"aria-label": "Close",
+				onClick: o,
+				children: "×"
+			})]
+		}), e === "settings" ? i : /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("nav", {
+			className: "side-tabs",
+			"aria-label": "Reader panels",
+			children: r.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+				className: n === e.id ? "active-tab" : "",
+				onClick: () => a(e.id),
+				children: e.title
+			}, e.id))
+		}), r.find((e) => e.id === n)?.content] })]
+	});
+}
+//#endregion
+//#region webview/src/capabilities/annotations/AnnotationsPanel.tsx
+function qc(e) {
+	return /* @__PURE__ */ (0, L.jsx)("section", {
+		className: "side-tab-panel list-block",
+		children: /* @__PURE__ */ (0, L.jsxs)("section", {
+			className: "tool-block",
+			children: [
+				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Saved Annotations" }),
+				/* @__PURE__ */ (0, L.jsx)("input", {
+					type: "search",
+					value: e.query,
+					onChange: (t) => e.onQuery(t.target.value),
+					placeholder: "Search annotations"
+				}),
+				/* @__PURE__ */ (0, L.jsx)("input", {
+					type: "search",
+					value: e.tagQuery,
+					onChange: (t) => e.onTagQuery(t.target.value),
+					placeholder: "Filter by tag"
+				}),
+				/* @__PURE__ */ (0, L.jsxs)("select", {
+					value: e.colorFilter,
+					onChange: (t) => e.onColorFilter(t.target.value),
+					children: [/* @__PURE__ */ (0, L.jsx)("option", {
+						value: "",
+						children: "All colors"
+					}), Us.map((e) => /* @__PURE__ */ (0, L.jsx)("option", {
+						value: e.value,
+						children: e.label
+					}, e.value))]
+				}),
+				/* @__PURE__ */ (0, L.jsxs)("select", {
+					value: e.kindFilter,
+					onChange: (t) => e.onKindFilter(t.target.value),
+					children: [
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "",
+							children: "All styles"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "highlight",
+							children: "Highlight"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "underline",
+							children: "Underline"
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, L.jsxs)("select", {
+					value: e.sortMode,
+					onChange: (t) => e.onSortMode(t.target.value),
+					children: [
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "position",
+							children: "Sort by paper order"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "created",
+							children: "Sort by newest"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("option", {
+							value: "updated",
+							children: "Sort by recently edited"
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, L.jsxs)("div", {
+					className: "actions",
+					children: [/* @__PURE__ */ (0, L.jsx)("button", {
+						onClick: e.onExportMarkdown,
+						children: "Export Markdown"
+					}), /* @__PURE__ */ (0, L.jsx)("button", {
+						onClick: e.onExportPdf,
+						children: "Export PDF"
+					})]
+				}),
+				e.canUndo ? /* @__PURE__ */ (0, L.jsx)("button", {
+					className: "undo-button",
+					onClick: e.onUndo,
+					children: "Undo delete"
+				}) : null,
+				/* @__PURE__ */ (0, L.jsx)("div", {
+					className: "status-line",
+					children: Xs(e.annotations.length, e.total)
+				}),
+				/* @__PURE__ */ (0, L.jsx)(Gs, { annotations: e.annotations }),
+				/* @__PURE__ */ (0, L.jsx)("div", {
+					className: "list",
+					children: e.annotations.length ? e.annotations.map((t) => /* @__PURE__ */ (0, L.jsx)(Ws, {
+						annotation: t,
+						active: t.id === e.activeId,
+						onFocus: () => e.onFocus(t),
+						onEdit: () => e.onEdit(t),
+						onCopy: () => e.onCopy(t),
+						onDelete: () => e.onDelete(t)
+					}, t.id)) : /* @__PURE__ */ (0, L.jsx)("div", {
+						className: "empty",
+						children: "No annotations saved yet."
+					})
+				})
+			]
+		})
+	});
+}
+//#endregion
+//#region webview/src/capabilities/translation/TranslationPanel.tsx
+function Jc({ selectedText: e, output: t, wordDetails: n }) {
+	return /* @__PURE__ */ (0, L.jsxs)("section", {
+		className: "side-tab-panel",
+		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
+			className: "tool-block",
+			children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current Selection" }), e.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+				className: "selection-preview",
+				children: e
+			}) : /* @__PURE__ */ (0, L.jsx)("div", {
+				className: "empty compact-empty",
+				children: "Select text in the PDF, then use Translate in the selection toolbar."
+			})]
+		}), /* @__PURE__ */ (0, L.jsxs)("section", {
+			className: "tool-block",
+			children: [
+				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Result" }),
+				n ? /* @__PURE__ */ (0, L.jsx)(ec, { details: n }) : null,
+				!n && t.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+					className: "translation-preview",
+					children: t
+				}) : null,
+				!n && !t.trim() ? /* @__PURE__ */ (0, L.jsx)("div", {
+					className: "empty compact-empty",
+					children: "No translation yet."
+				}) : null
+			]
+		})]
+	});
+}
+//#endregion
+//#region webview/src/capabilities/wordbook/WordbookPanel.tsx
+function Yc({ words: e, onDelete: t }) {
+	return /* @__PURE__ */ (0, L.jsx)("section", {
+		className: "side-tab-panel list-block",
+		children: /* @__PURE__ */ (0, L.jsxs)("section", {
+			className: "tool-block",
+			children: [/* @__PURE__ */ (0, L.jsxs)("h2", { children: [
+				"Saved Words (",
+				e.length,
+				")"
+			] }), e.length ? /* @__PURE__ */ (0, L.jsx)("div", {
+				className: "list",
+				children: e.map((e) => /* @__PURE__ */ (0, L.jsx)(Ks, {
+					word: e,
+					onDelete: () => t(e.id)
+				}, e.id))
+			}) : /* @__PURE__ */ (0, L.jsx)("div", {
+				className: "empty",
+				children: "No words saved yet."
+			})]
+		})
+	});
+}
+//#endregion
+//#region webview/src/capabilities/registry.ts
+var Xc = [
+	{
+		id: "annotations",
+		render: (e) => y.createElement(qc, e.annotations)
+	},
+	{
+		id: "wordbook",
+		render: (e) => y.createElement(Yc, e.wordbook)
+	},
+	{
+		id: "translation",
+		render: (e) => y.createElement(Jc, e.translation)
+	}
+];
+function Zc(e) {
+	let t = new Map(e.map((e) => [e.id, e]));
+	return Xc.map((e) => t.get(e.id)).filter((e) => !!e && e.enabled && e.showInPanel).sort((e, t) => e.order - t.order);
+}
+function Qc(e, t) {
+	let n = new Map(Zc(e).map((e) => [e.id, e])), r = [];
+	for (let e of Xc) {
+		let i = n.get(e.id);
+		i && r.push({
+			id: i.id,
+			title: i.title,
+			content: e.render(t)
+		});
+	}
+	return r.sort((e, t) => (n.get(e.id)?.order ?? 0) - (n.get(t.id)?.order ?? 0));
+}
+function $c(e, t) {
+	return e.find((e) => e.id === t)?.enabled ?? !0;
+}
+function el(e, t) {
+	return t[e.capabilityId]?.(e.event, e.payload) ?? {};
+}
+//#endregion
+//#region webview/src/main.tsx
+var tl = {
 	progress: { updatedAt: (/* @__PURE__ */ new Date(0)).toISOString() },
 	paperName: Sc.paperName
 };
-function Oc() {
-	let [e, t] = (0, y.useState)(Dc), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), [c, l] = (0, y.useState)(""), [u, d] = (0, y.useState)(Sc.translationProvider), [f, p] = (0, y.useState)("deepseek-v4-flash"), [m, h] = (0, y.useState)(!1), [g, _] = (0, y.useState)(!1), [v, b] = (0, y.useState)(!1), [x, S] = (0, y.useState)(""), [C, w] = (0, y.useState)(""), [T, E] = (0, y.useState)(""), [D, O] = (0, y.useState)(""), [k, A] = (0, y.useState)("position"), [j, M] = (0, y.useState)(1), [ee, N] = (0, y.useState)(0), [te, ne] = (0, y.useState)("page-width"), [re, P] = (0, y.useState)("Loading PDF..."), [F, ie] = (0, y.useState)(), [ae, oe] = (0, y.useState)(), [se, ce] = (0, y.useState)(Sc.pdfUrl), [le, ue] = (0, y.useState)(), [de, fe] = (0, y.useState)(), [pe, me] = (0, y.useState)(Sc.paperName), [he, ge] = (0, y.useState)("overview"), [_e, I] = (0, y.useState)(!1), ve = (0, y.useRef)(null), ye = (0, y.useRef)(void 0), be = (0, y.useRef)(void 0), xe = (0, y.useRef)(void 0), Se = (0, y.useRef)(void 0), Ce = (0, y.useRef)(void 0), we = (0, y.useRef)(void 0), Te = (0, y.useRef)(void 0), Ee = (0, y.useRef)(null), De = (0, y.useRef)(!1), Oe = (0, y.useRef)(Sc.documentId), ke = (0, y.useRef)({
+function nl() {
+	let [e, t] = (0, y.useState)(tl), n = Mc(), r = Pc(), i = Lc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => kc(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Sc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Sc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Sc.documentId), be = (0, y.useRef)({
 		selectedText: "",
 		selectionPosition: void 0,
 		currentPage: 1
-	}), Ae = (0, y.useMemo)(() => ({
-		url: se,
+	}), xe = (0, y.useMemo)(() => ({
+		url: M,
 		cMapUrl: Sc.pdfCMapUrl,
 		cMapPacked: !0,
 		standardFontDataUrl: Sc.pdfStandardFontDataUrl,
@@ -22088,59 +22704,59 @@ function Oc() {
 		enableHWA: !0,
 		disableFontFace: !0,
 		useSystemFonts: !1
-	}), [se]), je = (0, y.useCallback)((e) => {
-		be.current = e, window.clearTimeout(ye.current), ye.current = window.setTimeout(() => {
+	}), [M]), Se = (0, y.useCallback)((e) => {
+		ue.current = e, window.clearTimeout(le.current), le.current = window.setTimeout(() => {
 			Ec.postMessage({
 				type: "saveProgress",
 				payload: { page: e }
-			}), be.current = void 0;
+			}), ue.current = void 0;
 		}, 350);
-	}, []), Me = (0, y.useCallback)(() => {
-		window.clearTimeout(ye.current), be.current !== void 0 && (Ec.postMessage({
+	}, []), Ce = (0, y.useCallback)(() => {
+		window.clearTimeout(le.current), ue.current !== void 0 && (Ec.postMessage({
 			type: "saveProgress",
-			payload: { page: be.current }
-		}), be.current = void 0);
-	}, []), Ne = (0, y.useCallback)((e) => {
-		je(e), Se.current = e, xe.current === void 0 && (xe.current = window.setTimeout(() => {
-			xe.current = void 0, Se.current !== void 0 && (M(Se.current), Se.current = void 0);
+			payload: { page: ue.current }
+		}), ue.current = void 0);
+	}, []), we = (0, y.useCallback)((e) => {
+		Se(e), fe.current = e, de.current === void 0 && (de.current = window.setTimeout(() => {
+			de.current = void 0, fe.current !== void 0 && (x(fe.current), fe.current = void 0);
 		}, 80));
-	}, [je]), Pe = (0, y.useCallback)((e) => {
-		ve.current = e;
-	}, []), Fe = (0, y.useCallback)((e) => {
-		window.cancelAnimationFrame(Ce.current || 0), Ce.current = void 0, we.current = void 0, window.clearTimeout(Te.current), ne(e);
-		let t = ve.current?.getViewer();
+	}, [Se]), Te = (0, y.useCallback)((e) => {
+		ce.current = e;
+	}, []), Ee = (0, y.useCallback)((e) => {
+		window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, window.clearTimeout(he.current), T(e);
+		let t = ce.current?.getViewer();
 		t && (t.currentScaleValue = e.toString());
-	}, []), Ie = (0, y.useCallback)((e, t = !1) => {
-		let n = ve.current?.getViewer(), r = Ac((we.current ?? n?.currentScale ?? 1) * e);
+	}, []), De = (0, y.useCallback)((e, t = !1) => {
+		let n = ce.current?.getViewer(), r = il((me.current ?? n?.currentScale ?? 1) * e);
 		if (!t) {
-			window.cancelAnimationFrame(Ce.current || 0), Ce.current = void 0, we.current = void 0, n && (n.currentScale = r), window.clearTimeout(Te.current), ne(r);
+			window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, n && (n.currentScale = r), window.clearTimeout(he.current), T(r);
 			return;
 		}
-		we.current = r, n && Ce.current === void 0 && (Ce.current = window.requestAnimationFrame(() => {
-			Ce.current = void 0;
-			let e = we.current;
-			we.current = void 0;
-			let t = ve.current?.getViewer();
+		me.current = r, n && pe.current === void 0 && (pe.current = window.requestAnimationFrame(() => {
+			pe.current = void 0;
+			let e = me.current;
+			me.current = void 0;
+			let t = ce.current?.getViewer();
 			t && e !== void 0 && (t.currentScale = e);
-		})), Ee.current && (Ee.current.textContent = jc(r)), window.clearTimeout(Te.current), Te.current = window.setTimeout(() => {
-			ne(r);
+		})), ge.current && (ge.current.textContent = al(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
+			T(r);
 		}, 140);
-	}, []), Le = (0, y.useCallback)((e) => {
+	}, []), Oe = (0, y.useCallback)((e) => {
 		let t = Math.min(Math.max(-e * .01, -.25), .25);
-		Ie(Math.exp(t), !0);
-	}, [Ie]);
+		De(Math.exp(t), !0);
+	}, [De]);
 	(0, y.useEffect)(() => (document.body.classList.add("reader-mounted"), () => {
-		Me(), window.clearTimeout(xe.current), window.cancelAnimationFrame(Ce.current || 0), window.clearTimeout(Te.current), Ce.current = void 0, we.current = void 0, document.body.classList.remove("reader-mounted");
-	}), [Me]), (0, y.useEffect)(() => {
+		Ce(), window.clearTimeout(de.current), window.cancelAnimationFrame(pe.current || 0), window.clearTimeout(he.current), pe.current = void 0, me.current = void 0, document.body.classList.remove("reader-mounted");
+	}), [Ce]), (0, y.useEffect)(() => {
 		let e = !1, t;
-		return Lc(Sc.pdfWorkerUrl).then((n) => {
+		return fl(Sc.pdfWorkerUrl).then((n) => {
 			if (e) {
 				URL.revokeObjectURL(n);
 				return;
 			}
-			t = n, ue(n);
+			t = n, te(n);
 		}).catch((t) => {
-			e || fe(t instanceof Error ? t.message : String(t));
+			e || re(t instanceof Error ? t.message : String(t));
 		}), () => {
 			e = !0, t && URL.revokeObjectURL(t);
 		};
@@ -22149,7 +22765,7 @@ function Oc() {
 			if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "c") return;
 			let t = document.activeElement;
 			if (t instanceof HTMLElement && t.closest("input, textarea, [contenteditable=\"true\"]")) return;
-			let n = ke.current.selectedText.trim();
+			let n = be.current.selectedText.trim();
 			n && (e.preventDefault(), Ec.postMessage({
 				type: "copySelection",
 				payload: { text: n }
@@ -22157,59 +22773,79 @@ function Oc() {
 		};
 		return window.addEventListener("keydown", e, !0), () => window.removeEventListener("keydown", e, !0);
 	}, []);
-	let Re = (0, y.useCallback)((e) => {
-		N(e), De.current || (De.current = !0, P("PDF loaded."));
+	let ke = (0, y.useCallback)((e) => {
+		C(e), _e.current || (_e.current = !0, D("PDF loaded."));
 	}, []);
 	(0, y.useEffect)(() => {
+		ve.current = s;
+	}, [s]), (0, y.useEffect)(() => {
 		Ec.postMessage({ type: "ready" });
+	}, []), (0, y.useEffect)(() => {
 		let e = (e) => {
-			let n = e.data;
-			if (n.type === "navigateTo" || n.documentId === Oe.current) {
-				if (n.type === "state" && (t(n.payload), n.payload.progress?.page && M(n.payload.progress.page)), n.type === "statePatch" && t((e) => ({
-					...e,
-					annotations: n.payload.annotations ?? e.annotations,
-					words: n.payload.words ?? e.words
-				})), n.type === "navigateTo" && (Me(), window.clearTimeout(xe.current), xe.current = void 0, Se.current = void 0, Oe.current = n.payload.documentId, Tc(n.payload.documentId), ce(n.payload.pdfUrl), me(n.payload.paperName), t(Dc), M(1), N(0), P("Loading PDF..."), De.current = !1, oe(void 0), Je()), n.type === "stateError" && P(n.payload.message), n.type === "translationResult") {
-					if (n.payload.sourceText !== ke.current.selectedText.trim()) return;
-					l(n.payload.sourceText), a(n.payload.error || n.payload.translatedText || ""), s(n.payload.wordDetails), ge("translation");
+			let a = e.data;
+			if (a.type === "navigateTo" || a.documentId === ye.current) {
+				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Tc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(tl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), i.clearResult(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && c(a.payload.capabilities), a.type === "capabilityEvent") {
+					if (a.event === "error" && sl(a.payload)) {
+						D(a.payload.message);
+						return;
+					}
+					let e = el(a, {
+						annotations: n.handleEvent,
+						wordbook: r.handleEvent,
+						translation: (e, t) => i.handleEvent(e, t, be.current.selectedText.trim())
+					});
+					e.status && D(e.status), e.activatePanel && $c(ve.current, e.activatePanel) && oe(e.activatePanel);
 				}
-				n.type === "translationSettings" && (d(n.payload.provider), p(n.payload.deepSeekModel), h(n.payload.hasDeepSeekApiKey), _(n.payload.dictionaryReady), b(n.payload.argosPythonFound)), n.type === "exportResult" && P(n.payload.error ? `Export failed: ${n.payload.error}` : `Exported: ${n.payload.path}`), (n.type === "clipboardResult" || n.type === "annotationActionResult") && P(n.payload.error || n.payload.message || "Done.");
+				a.type === "clipboardResult" && D(a.payload.error || a.payload.message || "Done.");
 			}
 		};
 		return window.addEventListener("message", e), () => window.removeEventListener("message", e);
-	}, [Me]), (0, y.useEffect)(() => {
-		if (!e.progress?.page || !ee) return;
-		let t = window.setTimeout(() => it(e.progress.page || 1, !1), 250);
+	}, [
+		n.handleEvent,
+		n.reset,
+		Ce,
+		i.clearResult,
+		i.handleEvent,
+		r.handleEvent,
+		r.reset
+	]), (0, y.useEffect)(() => {
+		if (!e.progress?.page || !S) return;
+		let t = window.setTimeout(() => Xe(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
-	}, [ee, e.progress?.page]);
-	let ze = (0, y.useMemo)(() => e.annotations.map(js).filter(Boolean), [e.annotations]), Be = (0, y.useMemo)(() => Ps(e.annotations, {
-		query: x,
-		tags: C,
-		color: T,
-		kind: D,
-		sort: k
+	}, [S, e.progress?.page]);
+	let Ae = (0, y.useMemo)(() => $c(s, "annotations") ? n.annotations.map(js).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Ps(n.annotations, {
+		query: l,
+		tags: d,
+		color: p,
+		kind: h,
+		sort: _
 	}), [
-		x,
-		T,
-		D,
-		k,
-		e.annotations,
-		C
-	]);
-	function Ve(e) {
+		l,
+		n.annotations,
+		p,
+		h,
+		_,
+		d
+	]), Me = (0, y.useMemo)(() => Zc(s), [s]);
+	(0, y.useEffect)(() => {
+		ae !== "overview" && !Me.some((e) => e.id === ae) && oe("overview");
+	}, [ae, Me]), (0, y.useEffect)(() => {
+		$c(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
+	}, [s]);
+	function Ne(e) {
 		let t = window.getSelection();
 		t?.rangeCount && uc(t.getRangeAt(0)).forEach(ic);
-		let n = ac(t), i = oc(t, n), o = e.makeGhostHighlight(), c = n ? o.position : sc(o.position), u = i || o.content.text || "";
-		o.content.text = u, o.position = c, r(u), M(c.boundingRect.pageNumber), l(""), a(""), s(void 0), ke.current = {
-			selectedText: u,
-			selectionPosition: c,
-			currentPage: c.boundingRect.pageNumber
-		}, P("Selection captured.");
+		let n = ac(t), r = oc(t, n), a = e.makeGhostHighlight(), s = n ? a.position : sc(a.position), c = r || a.content.text || "";
+		a.content.text = c, a.position = s, o(c), x(s.boundingRect.pageNumber), i.clearResult(), be.current = {
+			selectedText: c,
+			selectionPosition: s,
+			currentPage: s.boundingRect.pageNumber
+		}, D("Selection captured.");
 	}
-	function He(e, t) {
-		let n = ve.current, r = n?.getViewer(), i = e.highlighterPosition || Ns(e.rects), a = t || (i && r ? fo(i, r) : void 0);
+	function Pe(e, t) {
+		let n = ce.current, r = n?.getViewer(), i = e.highlighterPosition || Ns(e.rects), a = t || (i && r ? fo(i, r) : void 0);
 		if (!n || !a) {
-			P("This annotation cannot be opened inline because its position is unavailable.");
+			D("This annotation cannot be opened inline because its position is unavailable.");
 			return;
 		}
 		return {
@@ -22217,149 +22853,138 @@ function Oc() {
 			utils: n
 		};
 	}
-	function Ue(e, t) {
-		let n = He(e, t);
+	function Fe(e, t) {
+		let n = Pe(e, t);
 		if (!n) return;
 		let { tipPosition: r, utils: i } = n;
-		ie(e.id), i.toggleEditInProgress(!0), i.setTip({
+		k(e.id), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
 			content: /* @__PURE__ */ (0, L.jsx)(Js, {
-				onEdit: () => We(e, r),
+				onEdit: () => Ie(e, r),
 				onDelete: () => {
-					Ge(e), Ke();
+					Le(e), Re();
 				}
 			})
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
-	function We(e, t) {
-		let n = He(e, t);
+	function Ie(e, t) {
+		let n = Pe(e, t);
 		if (!n) return;
 		let { tipPosition: r, utils: i } = n;
-		ie(e.id), rt(e), i.toggleEditInProgress(!0), i.setTip({
+		k(e.id), Ye(e), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
 			content: /* @__PURE__ */ (0, L.jsx)(qs, {
 				annotation: e,
-				onCancel: Ke,
+				onCancel: Re,
 				onSave: (t) => {
-					Ec.postMessage({
-						type: "updateAnnotation",
-						payload: {
-							id: e.id,
-							patch: t
-						}
-					}), P("Annotation saved."), Ke();
+					ol("annotations", "update", {
+						id: e.id,
+						patch: t
+					}), D("Annotation saved."), Re();
 				}
 			})
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
-	function Ge(e) {
-		oe(e), Ec.postMessage({
-			type: "deleteAnnotation",
-			payload: { id: e.id }
-		}), F === e.id && Ke(), P("Annotation deleted. Use undo to restore it.");
+	function Le(e) {
+		j(e), ol("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
 	}
-	function Ke() {
-		let e = ve.current;
-		e?.setTip(null), e?.toggleEditInProgress(!1), ie(void 0);
+	function Re() {
+		let e = ce.current;
+		e?.setTip(null), e?.toggleEditInProgress(!1), k(void 0);
 	}
-	function qe() {
-		ae && (Ec.postMessage({
-			type: "restoreAnnotation",
-			payload: ae
-		}), oe(void 0));
+	function ze() {
+		A && (ol("annotations", "restore", A), j(void 0));
 	}
-	function Je() {
-		r(""), ie(void 0), ke.current = {
+	function Be() {
+		o(""), k(void 0), be.current = {
 			selectedText: "",
 			selectionPosition: void 0,
 			currentPage: 1
 		};
 	}
-	let Ye = (0, y.useCallback)((e) => {
-		let t = ke.current;
-		if (!kc(t, {
+	let Ve = (0, y.useCallback)((e) => {
+		let t = be.current;
+		if (!rl(t, {
 			color: e,
 			kind: "highlight"
 		})) {
-			P("Select text before highlighting.");
+			D("Select text before highlighting.");
 			return;
 		}
-		Je(), ve.current?.removeGhostHighlight(), P("Annotation saved.");
-	}, []), Xe = (0, y.useCallback)((e) => {
-		let t = ke.current;
-		if (!kc(t, {
+		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
+	}, []), He = (0, y.useCallback)((e) => {
+		let t = be.current;
+		if (!rl(t, {
 			color: e,
 			kind: "underline"
 		})) {
-			P("Select text before highlighting.");
+			D("Select text before highlighting.");
 			return;
 		}
-		Je(), ve.current?.removeGhostHighlight(), P("Annotation saved.");
-	}, []), Ze = (0, y.useCallback)((e, t) => {
-		let n = ke.current;
+		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
+	}, []), Ue = (0, y.useCallback)((e, t) => {
+		let n = be.current;
 		if (!n.selectedText.trim()) {
-			P("Select text before adding a note.");
+			D("Select text before adding a note.");
 			return;
 		}
-		if (!kc(n, {
+		if (!rl(n, {
 			color: t,
 			kind: "highlight",
 			note: e
 		})) {
-			P("Add note text before saving.");
+			D("Add note text before saving.");
 			return;
 		}
-		Je(), ve.current?.removeGhostHighlight(), P("Note saved.");
-	}, []), Qe = (0, y.useCallback)(() => {
-		let e = ke.current, t = e.selectedText.trim();
+		Be(), ce.current?.removeGhostHighlight(), D("Note saved.");
+	}, []), We = (0, y.useCallback)(() => {
+		let e = be.current, t = e.selectedText.trim();
 		if (!t) {
-			P("Select text before translating.");
+			D("Select text before translating.");
 			return;
 		}
-		r(t), M(e.currentPage), l(t), a("Translating..."), s(void 0), ge("translation"), Ec.postMessage({
-			type: "translate",
-			payload: { text: t }
-		});
-	}, []), $e = (0, y.useCallback)((e) => {
-		let t = ke.current, n = t.selectedText.trim();
+		o(t), x(e.currentPage), i.start(t), Zc(s).some((e) => e.id === "translation") && oe("translation"), ol("translation", "translate", { text: t });
+	}, [s, i.start]), Ge = (0, y.useCallback)((e) => {
+		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
-			P("Select a word before saving it.");
+			D("Select a word before saving it.");
 			return;
 		}
-		Ec.postMessage({
-			type: "saveWord",
-			payload: {
-				word: e.word,
-				translation: Ls(e),
-				phonetic: e.phonetic,
-				definitions: e.definitions,
-				sentence: n,
-				note: "",
-				page: t.currentPage
-			}
-		}), ve.current?.removeGhostHighlight(), ge("wordbook"), P("Word saved.");
-	}, []), et = (0, y.useMemo)(() => ({
-		selectedText: n,
-		translationSourceText: c,
-		translationText: i,
-		wordDetails: o,
-		onHighlight: Ye,
-		onUnderline: Xe,
-		onSaveNote: Ze,
-		onTranslate: Qe,
-		onSaveWord: $e
+		ol("wordbook", "save", {
+			word: e.word,
+			translation: Ls(e),
+			phonetic: e.phonetic,
+			definitions: e.definitions,
+			sentence: n,
+			note: "",
+			page: t.currentPage
+		}), ce.current?.removeGhostHighlight(), Zc(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
+	}, [s]), Ke = (0, y.useMemo)(() => ({
+		selectedText: a,
+		translationSourceText: i.sourceText,
+		translationText: i.output,
+		wordDetails: i.wordDetails,
+		annotationsEnabled: $c(s, "annotations"),
+		translationEnabled: $c(s, "translation"),
+		wordbookEnabled: $c(s, "wordbook"),
+		onHighlight: Ve,
+		onUnderline: He,
+		onSaveNote: Ue,
+		onTranslate: We,
+		onSaveWord: Ge
 	}), [
-		Ye,
-		Xe,
-		Ze,
-		$e,
-		n,
-		Qe,
-		i,
-		c,
-		o
-	]), tt = (0, y.useMemo)(() => /* @__PURE__ */ (0, L.jsx)(Ys, {}), []), nt = /* @__PURE__ */ (0, L.jsx)(Hs.Provider, {
-		value: et,
+		s,
+		Ve,
+		He,
+		Ue,
+		Ge,
+		a,
+		We,
+		i.output,
+		i.sourceText,
+		i.wordDetails
+	]), qe = (0, y.useMemo)(() => /* @__PURE__ */ (0, L.jsx)(Ys, {}), []), Je = /* @__PURE__ */ (0, L.jsx)(Hs.Provider, {
+		value: Ke,
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
 			className: "reader",
 			children: [/* @__PURE__ */ (0, L.jsxs)("div", {
@@ -22367,7 +22992,7 @@ function Oc() {
 				children: [
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Previous page",
-						onClick: () => it(j - 1),
+						onClick: () => Xe(b - 1),
 						children: "Prev"
 					}),
 					/* @__PURE__ */ (0, L.jsxs)("label", {
@@ -22377,63 +23002,78 @@ function Oc() {
 							/* @__PURE__ */ (0, L.jsx)("input", {
 								type: "number",
 								min: 1,
-								max: ee || void 0,
-								value: j,
-								onChange: (e) => M(Number(e.target.value) || 1),
-								onBlur: () => it(j),
+								max: S || void 0,
+								value: b,
+								onChange: (e) => x(Number(e.target.value) || 1),
+								onBlur: () => Xe(b),
 								onKeyDown: (e) => {
-									e.key === "Enter" && it(j);
+									e.key === "Enter" && Xe(b);
 								}
 							}),
-							/* @__PURE__ */ (0, L.jsxs)("span", { children: ["/ ", ee || "-"] })
+							/* @__PURE__ */ (0, L.jsxs)("span", { children: ["/ ", S || "-"] })
 						]
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Next page",
-						onClick: () => it(j + 1),
+						onClick: () => Xe(b + 1),
 						children: "Next"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Zoom out",
-						onClick: () => Ie(.85),
+						onClick: () => De(.85),
 						children: "-"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("span", {
-						ref: Ee,
+						ref: ge,
 						className: "zoom-value",
-						children: jc(te)
+						children: al(w)
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Zoom in",
-						onClick: () => Ie(1.15),
+						onClick: () => De(1.15),
 						children: "+"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Fit page width",
-						onClick: () => Fe("page-width"),
+						onClick: () => Ee("page-width"),
 						children: "Fit"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						className: "sidebar-toggle",
-						title: _e ? "Hide sidebar" : "Show sidebar",
-						"aria-label": _e ? "Hide sidebar" : "Show sidebar",
-						"aria-expanded": _e,
-						onClick: () => I((e) => !e),
-						children: _e ? "Hide panel" : "Show panel"
+						title: F === "workspace" ? "Hide panel" : "Show panel",
+						"aria-label": F === "workspace" ? "Hide panel" : "Show panel",
+						"aria-expanded": F === "workspace",
+						"aria-pressed": F === "workspace",
+						onClick: () => se((e) => e === "workspace" ? "closed" : "workspace"),
+						children: F === "workspace" ? "Hide panel" : "Show panel"
+					}),
+					/* @__PURE__ */ (0, L.jsx)("button", {
+						className: "settings-toggle secondary-button",
+						title: "Open Inleaf Reader settings",
+						"aria-label": "Open Inleaf Reader settings",
+						"aria-pressed": F === "settings",
+						onClick: () => {
+							if (F === "settings") {
+								se(I.current);
+								return;
+							}
+							I.current = F === "workspace" ? "workspace" : "closed", se("settings");
+						},
+						children: "⚙ Settings"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("span", {
 						className: "reader-status",
-						children: re
+						children: E
 					})
 				]
 			}), /* @__PURE__ */ (0, L.jsx)("div", {
 				className: "pdf-host",
-				children: de ? /* @__PURE__ */ (0, L.jsxs)("div", {
+				children: ne ? /* @__PURE__ */ (0, L.jsxs)("div", {
 					className: "loading error",
-					children: ["Could not start PDF worker: ", de]
-				}) : le ? /* @__PURE__ */ (0, L.jsx)(As, {
-					document: Ae,
-					workerSrc: le,
+					children: ["Could not start PDF worker: ", ne]
+				}) : N ? /* @__PURE__ */ (0, L.jsx)(As, {
+					document: xe,
+					workerSrc: N,
 					beforeLoad: (e) => /* @__PURE__ */ (0, L.jsxs)("div", {
 						className: "loading",
 						children: ["Loading PDF ", e.loaded ? `${Math.round(e.loaded / 1024)} KB` : ""]
@@ -22443,393 +23083,165 @@ function Oc() {
 						children: ["Could not load PDF: ", e.message]
 					}),
 					onError: (e) => {
-						Fc(e) || P(`Could not load PDF: ${e.message}`);
+						ul(e) || D(`Could not load PDF: ${e.message}`);
 					},
 					children: (e) => /* @__PURE__ */ (0, L.jsx)(_c, {
-						activeId: F,
-						highlights: ze,
+						activeId: O,
+						highlights: Ae,
 						pdfDocument: e,
-						selectionTip: tt,
-						zoom: te,
-						onDocumentReady: Re,
-						onOpen: Ue,
-						onPageChange: Ne,
-						onPinchZoom: Le,
-						onSelection: Ve,
-						utilsRef: Pe
+						selectionTip: qe,
+						zoom: w,
+						onDocumentReady: ke,
+						onOpen: Fe,
+						onPageChange: we,
+						onPinchZoom: Oe,
+						onSelection: Ne,
+						utilsRef: Te
 					})
-				}, se) : /* @__PURE__ */ (0, L.jsx)("div", {
+				}, M) : /* @__PURE__ */ (0, L.jsx)("div", {
 					className: "loading",
 					children: "Starting PDF worker..."
 				})
 			})]
 		})
 	});
-	function rt(e) {
-		ie(e.id);
+	function Ye(e) {
+		k(e.id);
 		let t = js(e);
 		if (t) {
-			ve.current?.scrollToHighlight(t);
+			ce.current?.scrollToHighlight(t);
 			return;
 		}
-		it(e.page || 1);
+		Xe(e.page || 1);
 	}
-	function it(e, t = !0) {
-		let n = Math.min(Math.max(e, 1), ee || e || 1);
-		M(n), ve.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && je(n);
+	function Xe(e, t = !0) {
+		let n = Math.min(Math.max(e, 1), S || e || 1);
+		x(n), ce.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && Se(n);
 	}
+	function Ze() {
+		if (F === "settings" && I.current === "workspace") {
+			se("workspace");
+			return;
+		}
+		se("closed");
+	}
+	function Qe(e, t) {
+		Ec.postMessage({
+			type: "updateCapabilityPreference",
+			payload: {
+				capabilityId: e,
+				patch: t
+			}
+		});
+	}
+	function $e(e, t) {
+		let n = s.findIndex((t) => t.id === e), r = s[n + t];
+		r && Qe(e, { order: r.order + t });
+	}
+	function et(e, t) {
+		ol("translation", "updateSetting", {
+			key: e,
+			value: t
+		});
+	}
+	let tt = [{
+		id: "overview",
+		title: "Overview",
+		content: /* @__PURE__ */ (0, L.jsx)(zc, {
+			currentPage: b,
+			pageTotal: S,
+			annotationCount: n.annotations.length,
+			wordCount: r.words.length,
+			status: E,
+			selectedText: a
+		})
+	}, ...Qc(s, {
+		annotations: {
+			annotations: je,
+			total: n.annotations.length,
+			activeId: O,
+			query: l,
+			tagQuery: d,
+			colorFilter: p,
+			kindFilter: h,
+			sortMode: _,
+			canUndo: !!A,
+			onQuery: u,
+			onTagQuery: f,
+			onColorFilter: m,
+			onKindFilter: g,
+			onSortMode: v,
+			onFocus: Ye,
+			onEdit: Ie,
+			onCopy: (e) => ol("annotations", "copyMarkdown", { id: e.id }),
+			onDelete: Le,
+			onUndo: ze,
+			onExportMarkdown: () => ol("annotations", "exportMarkdown"),
+			onExportPdf: () => ol("annotations", "exportPdf")
+		},
+		wordbook: {
+			words: r.words,
+			onDelete: (e) => ol("wordbook", "delete", { id: e })
+		},
+		translation: {
+			selectedText: a,
+			output: i.output,
+			wordDetails: i.wordDetails
+		}
+	})], nt = /* @__PURE__ */ (0, L.jsx)(Vc, {
+		capabilities: s,
+		translation: i.settings,
+		onCapabilityChange: Qe,
+		onMove: $e,
+		onTranslationSetting: et,
+		onConfigureDeepSeek: () => ol("translation", "configureDeepSeek"),
+		onDiagnoseTranslation: () => ol("translation", "diagnose")
+	});
 	return /* @__PURE__ */ (0, L.jsxs)("main", {
-		className: `shell${_e ? "" : " sidebar-hidden"}`,
-		children: [nt, /* @__PURE__ */ (0, L.jsxs)("aside", {
-			className: "side-panel",
-			"aria-hidden": !_e,
-			children: [
-				/* @__PURE__ */ (0, L.jsxs)("header", {
-					className: "side-panel-header",
-					children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("p", {
-						className: "eyebrow",
-						children: "Inleaf Reader"
-					}), /* @__PURE__ */ (0, L.jsx)("h1", { children: pe || e.paperName || Sc.paperName })] }), /* @__PURE__ */ (0, L.jsx)("button", {
-						className: "side-panel-close secondary-button",
-						title: "Hide sidebar",
-						"aria-label": "Hide sidebar",
-						onClick: () => I(!1),
-						children: "×"
-					})]
-				}),
-				/* @__PURE__ */ (0, L.jsxs)("nav", {
-					className: "side-tabs",
-					"aria-label": "Reader panels",
-					children: [
-						/* @__PURE__ */ (0, L.jsx)("button", {
-							className: he === "overview" ? "active-tab" : "",
-							onClick: () => ge("overview"),
-							children: "Overview"
-						}),
-						/* @__PURE__ */ (0, L.jsx)("button", {
-							className: he === "annotations" ? "active-tab" : "",
-							onClick: () => ge("annotations"),
-							children: "Annotations"
-						}),
-						/* @__PURE__ */ (0, L.jsx)("button", {
-							className: he === "wordbook" ? "active-tab" : "",
-							onClick: () => ge("wordbook"),
-							children: "Wordbook"
-						}),
-						/* @__PURE__ */ (0, L.jsx)("button", {
-							className: he === "translation" ? "active-tab" : "",
-							onClick: () => ge("translation"),
-							children: "Translation"
-						})
-					]
-				}),
-				he === "overview" ? /* @__PURE__ */ (0, L.jsxs)("section", {
-					className: "side-tab-panel",
-					children: [
-						/* @__PURE__ */ (0, L.jsxs)("div", {
-							className: "overview-grid",
-							children: [
-								/* @__PURE__ */ (0, L.jsxs)("div", {
-									className: "metric-card",
-									children: [/* @__PURE__ */ (0, L.jsx)("span", { children: "Page" }), /* @__PURE__ */ (0, L.jsxs)("strong", { children: [
-										j,
-										" / ",
-										ee || "-"
-									] })]
-								}),
-								/* @__PURE__ */ (0, L.jsxs)("div", {
-									className: "metric-card",
-									children: [/* @__PURE__ */ (0, L.jsx)("span", { children: "Annotations" }), /* @__PURE__ */ (0, L.jsx)("strong", { children: e.annotations.length })]
-								}),
-								/* @__PURE__ */ (0, L.jsxs)("div", {
-									className: "metric-card",
-									children: [/* @__PURE__ */ (0, L.jsx)("span", { children: "Words" }), /* @__PURE__ */ (0, L.jsx)("strong", { children: e.words.length })]
-								})
-							]
-						}),
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation" }), /* @__PURE__ */ (0, L.jsxs)("dl", {
-								className: "meta-list",
-								children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("dt", { children: "Provider" }), /* @__PURE__ */ (0, L.jsx)("dd", { children: u === "deepseek" ? "DeepSeek AI" : u === "libretranslate" ? "LibreTranslate" : "Local Argos" })] }), /* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("dt", { children: "Languages" }), /* @__PURE__ */ (0, L.jsxs)("dd", { children: [
-									Sc.translationSource || "auto",
-									" ",
-									"->",
-									" ",
-									Sc.translationTarget || "zh"
-								] })] })]
-							})]
-						}),
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Status" }), /* @__PURE__ */ (0, L.jsx)("div", {
-								className: "empty compact-empty",
-								children: re
-							})]
-						}),
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current selection" }), n.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
-								className: "selection-preview",
-								children: Mc(n, 260)
-							}) : /* @__PURE__ */ (0, L.jsx)("div", {
-								className: "empty compact-empty",
-								children: "Select text in the PDF to act on it."
-							})]
-						})
-					]
-				}) : null,
-				he === "annotations" ? /* @__PURE__ */ (0, L.jsx)("section", {
-					className: "side-tab-panel list-block",
-					children: /* @__PURE__ */ (0, L.jsxs)("section", {
-						className: "tool-block",
-						children: [
-							/* @__PURE__ */ (0, L.jsx)("h2", { children: "Saved Annotations" }),
-							/* @__PURE__ */ (0, L.jsx)("input", {
-								type: "search",
-								value: x,
-								onChange: (e) => S(e.target.value),
-								placeholder: "Search annotations"
-							}),
-							/* @__PURE__ */ (0, L.jsx)("input", {
-								type: "search",
-								value: C,
-								onChange: (e) => w(e.target.value),
-								placeholder: "Filter by tag"
-							}),
-							/* @__PURE__ */ (0, L.jsxs)("select", {
-								value: T,
-								onChange: (e) => E(e.target.value),
-								children: [/* @__PURE__ */ (0, L.jsx)("option", {
-									value: "",
-									children: "All colors"
-								}), Us.map((e) => /* @__PURE__ */ (0, L.jsx)("option", {
-									value: e.value,
-									children: e.label
-								}, e.value))]
-							}),
-							/* @__PURE__ */ (0, L.jsxs)("select", {
-								value: D,
-								onChange: (e) => O(e.target.value),
-								children: [
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "",
-										children: "All styles"
-									}),
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "highlight",
-										children: "Highlight"
-									}),
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "underline",
-										children: "Underline"
-									})
-								]
-							}),
-							/* @__PURE__ */ (0, L.jsxs)("select", {
-								value: k,
-								onChange: (e) => A(e.target.value),
-								children: [
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "position",
-										children: "Sort by paper order"
-									}),
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "created",
-										children: "Sort by newest"
-									}),
-									/* @__PURE__ */ (0, L.jsx)("option", {
-										value: "updated",
-										children: "Sort by recently edited"
-									})
-								]
-							}),
-							/* @__PURE__ */ (0, L.jsxs)("div", {
-								className: "actions",
-								children: [/* @__PURE__ */ (0, L.jsx)("button", {
-									onClick: () => Ec.postMessage({ type: "exportAnnotations" }),
-									children: "Export Markdown"
-								}), /* @__PURE__ */ (0, L.jsx)("button", {
-									onClick: () => Ec.postMessage({ type: "exportAnnotatedPdf" }),
-									children: "Export PDF"
-								})]
-							}),
-							ae ? /* @__PURE__ */ (0, L.jsx)("button", {
-								className: "undo-button",
-								onClick: qe,
-								children: "Undo delete"
-							}) : null,
-							/* @__PURE__ */ (0, L.jsx)("div", {
-								className: "status-line",
-								children: Xs(Be.length, e.annotations.length)
-							}),
-							/* @__PURE__ */ (0, L.jsx)(Gs, { annotations: Be }),
-							/* @__PURE__ */ (0, L.jsx)("div", {
-								className: "list",
-								children: Be.length ? Be.map((e) => /* @__PURE__ */ (0, L.jsx)(Ws, {
-									annotation: e,
-									active: e.id === F,
-									onFocus: () => rt(e),
-									onEdit: () => We(e),
-									onCopy: () => Ec.postMessage({
-										type: "copyAnnotationMarkdown",
-										payload: { id: e.id }
-									}),
-									onDelete: () => Ge(e)
-								}, e.id)) : /* @__PURE__ */ (0, L.jsx)("div", {
-									className: "empty",
-									children: "No annotations saved yet."
-								})
-							})
-						]
-					})
-				}) : null,
-				he === "wordbook" ? /* @__PURE__ */ (0, L.jsx)("section", {
-					className: "side-tab-panel list-block",
-					children: /* @__PURE__ */ (0, L.jsxs)("section", {
-						className: "tool-block",
-						children: [/* @__PURE__ */ (0, L.jsxs)("h2", { children: [
-							"Saved Words (",
-							e.words.length,
-							")"
-						] }), e.words.length ? /* @__PURE__ */ (0, L.jsx)("div", {
-							className: "list",
-							children: e.words.map((e) => /* @__PURE__ */ (0, L.jsx)(Ks, {
-								word: e,
-								onDelete: () => Ec.postMessage({
-									type: "deleteWord",
-									payload: { id: e.id }
-								})
-							}, e.id))
-						}) : /* @__PURE__ */ (0, L.jsx)("div", {
-							className: "empty",
-							children: "No words saved yet."
-						})]
-					})
-				}) : null,
-				he === "translation" ? /* @__PURE__ */ (0, L.jsxs)("section", {
-					className: "side-tab-panel",
-					children: [
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [
-								/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation Mode" }),
-								/* @__PURE__ */ (0, L.jsx)("label", {
-									htmlFor: "translationProvider",
-									children: "Choose how selected text is translated"
-								}),
-								/* @__PURE__ */ (0, L.jsxs)("select", {
-									id: "translationProvider",
-									value: u,
-									onChange: (e) => {
-										let t = e.target.value;
-										Ec.postMessage({
-											type: "setTranslationProvider",
-											payload: { provider: t }
-										});
-									},
-									children: [
-										/* @__PURE__ */ (0, L.jsx)("option", {
-											value: "argos",
-											children: "Argos Translate (local)"
-										}),
-										/* @__PURE__ */ (0, L.jsx)("option", {
-											value: "libretranslate",
-											children: "LibreTranslate (configured endpoint)"
-										}),
-										/* @__PURE__ */ (0, L.jsxs)("option", {
-											value: "deepseek",
-											children: [
-												"DeepSeek (",
-												f,
-												")"
-											]
-										})
-									]
-								}),
-								u === "deepseek" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("div", {
-									className: `provider-status ${m ? "ready" : "missing"}`,
-									children: m ? "DeepSeek API Key is configured." : "DeepSeek API Key is required."
-								}), /* @__PURE__ */ (0, L.jsx)("button", {
-									className: "secondary-button",
-									onClick: () => Ec.postMessage({ type: "configureDeepSeek" }),
-									children: m ? "Replace API Key" : "Set API Key"
-								})] }) : /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-									/* @__PURE__ */ (0, L.jsx)("div", {
-										className: `provider-status ${g ? "ready" : "missing"}`,
-										children: g ? "Offline dictionary is ready." : "Offline dictionary is missing."
-									}),
-									u === "argos" ? /* @__PURE__ */ (0, L.jsx)("div", {
-										className: `provider-status ${v ? "ready" : "missing"}`,
-										children: v ? "Argos Python was found." : "Argos is not configured for sentence translation."
-									}) : null,
-									/* @__PURE__ */ (0, L.jsx)("button", {
-										className: "secondary-button",
-										onClick: () => Ec.postMessage({ type: "diagnoseTranslation" }),
-										children: "Diagnose translation setup"
-									})
-								] })
-							]
-						}),
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current Selection" }), n.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
-								className: "selection-preview",
-								children: n
-							}) : /* @__PURE__ */ (0, L.jsx)("div", {
-								className: "empty compact-empty",
-								children: "Select text in the PDF, then use Translate in the selection toolbar."
-							})]
-						}),
-						/* @__PURE__ */ (0, L.jsxs)("section", {
-							className: "tool-block",
-							children: [
-								/* @__PURE__ */ (0, L.jsx)("h2", { children: "Result" }),
-								o ? /* @__PURE__ */ (0, L.jsx)(ec, { details: o }) : null,
-								!o && i.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
-									className: "translation-preview",
-									children: i
-								}) : null,
-								!o && !i.trim() ? /* @__PURE__ */ (0, L.jsx)("div", {
-									className: "empty compact-empty",
-									children: "No translation yet."
-								}) : null
-							]
-						})
-					]
-				}) : null
-			]
+		className: `shell${F === "closed" ? " sidebar-hidden" : ""}`,
+		children: [Je, /* @__PURE__ */ (0, L.jsx)(Kc, {
+			surface: F,
+			title: ie || e.paperName || Sc.paperName,
+			activePanel: ae,
+			panels: tt,
+			settings: nt,
+			onActivePanel: oe,
+			onClose: Ze
 		})]
 	});
 }
-function kc(e, t) {
+function rl(e, t) {
 	let n = Fs(e, t);
-	return n ? (Ec.postMessage({
-		type: "saveAnnotation",
-		payload: n
-	}), !0) : !1;
+	return n ? (ol("annotations", "save", n), !0) : !1;
 }
-function Ac(e) {
+function il(e) {
 	return Math.min(Math.max(e, .5), 2.4);
 }
-function jc(e) {
+function al(e) {
 	return typeof e == "number" ? `${Math.round(e * 100)}%` : e === "page-width" ? "Fit" : e === "page-actual" ? "100%" : e;
 }
-function Mc(e, t) {
-	let n = e.replace(/\s+/g, " ").trim();
-	return n.length > t ? `${n.slice(0, t - 1)}...` : n;
+function ol(e, t, n) {
+	Ec.postMessage({
+		type: "capabilityRequest",
+		capabilityId: e,
+		action: t,
+		payload: n
+	});
 }
-function Nc() {
+function sl(e) {
+	return typeof e == "object" && !!e && "message" in e && typeof e.message == "string";
+}
+function cl() {
 	let [e, t] = (0, y.useState)();
 	return (0, y.useEffect)(() => {
 		let e = (e) => {
-			if (Pc(e.error || e.message)) {
+			if (ll(e.error || e.message)) {
 				e.preventDefault();
 				return;
 			}
 			t(e.message || String(e.error || "Unknown Webview error"));
 		}, n = (e) => {
-			if (Pc(e.reason)) {
+			if (ll(e.reason)) {
 				e.preventDefault();
 				return;
 			}
@@ -22841,24 +23253,24 @@ function Nc() {
 	}, []), e ? /* @__PURE__ */ (0, L.jsxs)("main", {
 		className: "fatal-error",
 		children: [/* @__PURE__ */ (0, L.jsx)("h1", { children: "Reader failed to start" }), /* @__PURE__ */ (0, L.jsx)("pre", { children: e })]
-	}) : /* @__PURE__ */ (0, L.jsx)(Oc, {});
+	}) : /* @__PURE__ */ (0, L.jsx)(nl, {});
 }
-function Pc(e) {
-	return Fc(e) || Ic(e);
+function ll(e) {
+	return ul(e) || dl(e);
 }
-function Fc(e) {
+function ul(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /worker was (?:terminated|destroyed)/i.test(t) || /loading aborted/i.test(t);
 }
-function Ic(e) {
+function dl(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/i.test(t.trim());
 }
-async function Lc(e) {
+async function fl(e) {
 	let t = await fetch(e);
 	if (!t.ok) throw Error(`Worker resource request failed with HTTP ${t.status}.`);
 	let n = await t.arrayBuffer();
 	return URL.createObjectURL(new Blob([n], { type: "text/javascript" }));
 }
-(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(Nc, {}));
+(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(cl, {}));
 //#endregion

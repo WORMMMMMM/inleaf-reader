@@ -1,15 +1,11 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { formatAnnotationMarkdownSnippet } from './annotationExports';
 import { INLEAF_IDS } from './identity';
 import type { ReaderMessage } from './readerMessages';
-import {
-  AnnotationRecord,
-  ReaderStorage
-} from './readerStorage';
-import type { WordRecord } from './readerDataTypes';
-import { TranslationService } from './translationService';
-import { requireTranslationProvider, TranslationProvider } from './translationContract';
+import { ReaderStorage } from './readerStorage';
+import { HostCapabilityRegistry } from './capabilities/hostRegistry';
+import { CapabilityPreferenceService } from './capabilities/preferences';
+import type { CapabilityId } from './capabilities/contracts';
 
 export class PaperReaderPanel {
   private static currentPanel: PaperReaderPanel | undefined;
@@ -20,7 +16,8 @@ export class PaperReaderPanel {
   private readonly storageSessions = new Map<string, ReaderStorage>();
   private disposables: vscode.Disposable[] = [];
   private readonly recoveryNotifications = new WeakSet<ReaderStorage>();
-  private readonly translation: TranslationService;
+  private readonly capabilities: HostCapabilityRegistry;
+  private readonly capabilityPreferences = new CapabilityPreferenceService();
 
   static createOrShow(
     extensionUri: vscode.Uri,
@@ -28,9 +25,6 @@ export class PaperReaderPanel {
     globalState: vscode.Memento,
     pdfUri: vscode.Uri
   ) {
-    requireTranslationProvider(
-      vscode.workspace.getConfiguration(INLEAF_IDS.configuration).get('translationProvider')
-    );
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
     if (PaperReaderPanel.currentPanel) {
@@ -71,7 +65,7 @@ export class PaperReaderPanel {
     private pdfUri: vscode.Uri
   ) {
     this.panel = panel;
-    this.translation = new TranslationService(extensionUri, secrets);
+    this.capabilities = new HostCapabilityRegistry(extensionUri, secrets);
     this.storage = new ReaderStorage(pdfUri, globalState);
     this.storageSessions.set(this.documentId, this.storage);
     this.panel.webview.html = this.getHtml();
@@ -83,8 +77,9 @@ export class PaperReaderPanel {
     );
     vscode.workspace.onDidChangeConfiguration(
       event => {
-        if (event.affectsConfiguration(`${INLEAF_IDS.configuration}.translationProvider`)) {
-          void this.postTranslationSettings();
+        if (event.affectsConfiguration(INLEAF_IDS.configuration)) {
+          void this.postCapabilitySettings();
+          void this.capabilities.postInitialState(this.capabilityContext());
         }
       },
       null,
@@ -156,6 +151,14 @@ export class PaperReaderPanel {
       }
       await this.dispatchMessage(message);
     } catch (error) {
+      if (message.type === 'capabilityRequest') {
+        await this.postCapabilityEvent(
+          message.capabilityId,
+          'error',
+          { message: error instanceof Error ? error.message : String(error) },
+          message.documentId
+        );
+      }
       await this.reportError(error, message.documentId);
     }
   }
@@ -167,24 +170,6 @@ export class PaperReaderPanel {
       case 'ready':
         await this.postState();
         break;
-      case 'saveAnnotation':
-        await this.postStatePatch({ annotations: await storage.addAnnotation(message.payload) }, documentId);
-        break;
-      case 'updateAnnotation':
-        await this.postStatePatch({
-          annotations: await storage.updateAnnotation(message.payload.id, message.payload.patch)
-        }, documentId);
-        break;
-      case 'deleteAnnotation':
-        await this.postStatePatch({ annotations: await storage.deleteAnnotation(message.payload.id) }, documentId);
-        break;
-      case 'restoreAnnotation':
-        await this.postStatePatch({ annotations: await storage.restoreAnnotation(message.payload) }, documentId);
-        await this.postAnnotationActionResult('Annotation restored.', documentId);
-        break;
-      case 'copyAnnotationMarkdown':
-        await this.copyAnnotationMarkdown(storage, message.payload.id, documentId);
-        break;
       case 'copySelection':
         await vscode.env.clipboard.writeText(message.payload.text);
         await this.panel.webview.postMessage({
@@ -193,34 +178,21 @@ export class PaperReaderPanel {
           payload: { message: 'Selected text copied.' }
         });
         break;
-      case 'exportAnnotations':
-        await this.exportAnnotations(storage, documentId);
-        break;
-      case 'exportAnnotatedPdf':
-        await this.exportAnnotatedPdf(storage, documentId);
-        break;
-      case 'saveWord':
-        await this.postStatePatch({ words: await this.saveWord(storage, message.payload) }, documentId);
-        break;
-      case 'deleteWord':
-        await this.postStatePatch({ words: await storage.deleteWord(message.payload.id) }, documentId);
-        break;
       case 'saveProgress':
         await storage.saveProgress(message.payload);
         break;
-      case 'setTranslationProvider':
-        await this.setTranslationProvider(message.payload.provider);
+      case 'updateCapabilityPreference':
+        await this.capabilityPreferences.update(message.payload.capabilityId, message.payload.patch);
+        await this.postCapabilitySettings();
+        await this.capabilities.postInitialState(this.capabilityContext());
         break;
-      case 'configureDeepSeek':
-        await vscode.commands.executeCommand(INLEAF_IDS.commands.setDeepSeekApiKey);
-        await this.postTranslationSettings();
-        break;
-      case 'diagnoseTranslation':
-        await vscode.commands.executeCommand(INLEAF_IDS.commands.diagnoseTranslation);
-        await this.postTranslationSettings();
-        break;
-      case 'translate':
-        await this.translate(message.payload.text, documentId);
+      case 'capabilityRequest':
+        await this.capabilities.handle(
+          message.capabilityId,
+          message.action,
+          message.payload,
+          this.capabilityContext()
+        );
         break;
     }
   }
@@ -232,11 +204,7 @@ export class PaperReaderPanel {
     if (storage !== this.storage) {
       return;
     }
-    const [annotations, words, progress] = await Promise.all([
-      storage.readAnnotations(),
-      storage.readWords(),
-      storage.readProgress()
-    ]);
+    const progress = await storage.readProgress();
     if (storage !== this.storage) {
       return;
     }
@@ -245,8 +213,6 @@ export class PaperReaderPanel {
       type: 'state',
       documentId: this.documentId,
       payload: {
-        annotations,
-        words,
         progress,
         paperName: path.basename(pdfUri.fsPath)
       }
@@ -257,17 +223,10 @@ export class PaperReaderPanel {
         `The unreadable file was preserved at ${notice.corruptPath}.`
       );
     }
-    await this.postTranslationSettings();
-  }
-
-  private async postStatePatch(
-    payload: { annotations?: AnnotationRecord[]; words?: WordRecord[] },
-    documentId: string
-  ) {
-    if (documentId !== this.documentId) {
-      return;
-    }
-    await this.panel.webview.postMessage({ type: 'statePatch', documentId, payload });
+    await Promise.all([
+      this.postCapabilitySettings(),
+      this.capabilities.postInitialState(this.capabilityContext())
+    ]);
   }
 
   private async prepareStorage(storage: ReaderStorage) {
@@ -282,132 +241,44 @@ export class PaperReaderPanel {
     );
   }
 
-  private async setTranslationProvider(provider: TranslationProvider) {
-    if (provider === 'deepseek' && !(await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey))) {
-      await vscode.commands.executeCommand(INLEAF_IDS.commands.setDeepSeekApiKey);
-      if (!(await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey))) {
-        await this.postTranslationSettings();
-        return;
-      }
-    }
-    await vscode.workspace
-      .getConfiguration(INLEAF_IDS.configuration)
-      .update('translationProvider', provider, vscode.ConfigurationTarget.Global);
-    await this.postTranslationSettings();
-  }
-
-  private async postTranslationSettings() {
+  private async postCapabilitySettings() {
     await this.panel.webview.postMessage({
-      type: 'translationSettings',
+      type: 'capabilitySettings',
       documentId: this.documentId,
-      payload: await this.translation.getSettings()
-    });
-  }
-
-  private async saveWord(
-    storage: ReaderStorage,
-    input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>
-  ) {
-    return storage.addWord(await this.translation.enrichWord(input));
-  }
-
-  private async translate(text: string, documentId: string) {
-    const trimmed = text.trim();
-    const result = await this.translation.translate(trimmed);
-    await this.panel.webview.postMessage({
-      type: 'translationResult',
-      documentId,
-      payload: { sourceText: trimmed, ...result }
-    });
-  }
-
-  private async exportAnnotations(storage: ReaderStorage, documentId: string) {
-    try {
-      const uri = await storage.exportAnnotationsMarkdown();
-      await this.panel.webview.postMessage({
-        type: 'exportResult',
-        documentId,
-        payload: {
-          path: uri.fsPath
-        }
-      });
-      vscode.window.showInformationMessage(`Annotations exported: ${uri.fsPath}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.panel.webview.postMessage({
-        type: 'exportResult',
-        documentId,
-        payload: {
-          error: message
-        }
-      });
-      vscode.window.showErrorMessage(message);
-    }
-  }
-
-  private async copyAnnotationMarkdown(storage: ReaderStorage, id: string, documentId: string) {
-    try {
-      const annotations = await storage.readAnnotations();
-      const annotation = annotations.find(item => item.id === id);
-      if (!annotation) {
-        throw new Error('Annotation not found.');
-      }
-
-      await vscode.env.clipboard.writeText(formatAnnotationMarkdownSnippet(annotation));
-      await this.panel.webview.postMessage({
-        type: 'clipboardResult',
-        documentId,
-        payload: {
-          message: 'Annotation Markdown copied.'
-        }
-      });
-      vscode.window.showInformationMessage('Annotation Markdown copied.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.panel.webview.postMessage({
-        type: 'clipboardResult',
-        documentId,
-        payload: {
-          error: message
-        }
-      });
-      vscode.window.showErrorMessage(message);
-    }
-  }
-
-  private async postAnnotationActionResult(message: string, documentId: string, error?: string) {
-    await this.panel.webview.postMessage({
-      type: 'annotationActionResult',
-      documentId,
       payload: {
-        message,
-        error
+        capabilities: this.capabilityPreferences.getDescriptors(await this.capabilities.readiness())
       }
     });
   }
 
-  private async exportAnnotatedPdf(storage: ReaderStorage, documentId: string) {
-    try {
-      const uri = await storage.exportAnnotatedPdf();
-      await this.panel.webview.postMessage({
-        type: 'exportResult',
-        documentId,
-        payload: {
-          path: uri.fsPath
-        }
-      });
-      vscode.window.showInformationMessage(`Annotated PDF exported: ${uri.fsPath}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.panel.webview.postMessage({
-        type: 'exportResult',
-        documentId,
-        payload: {
-          error: message
-        }
-      });
-      vscode.window.showErrorMessage(message);
+  private capabilityContext() {
+    const documentId = this.documentId;
+    const storage = this.storage;
+    return {
+      documentId,
+      storage,
+      postEvent: (capabilityId: CapabilityId, event: string, payload?: unknown) => (
+        this.postCapabilityEvent(capabilityId, event, payload, documentId)
+      )
+    };
+  }
+
+  private postCapabilityEvent(
+    capabilityId: CapabilityId,
+    event: string,
+    payload: unknown,
+    documentId: string
+  ) {
+    if (documentId !== this.documentId) {
+      return Promise.resolve(false);
     }
+    return this.panel.webview.postMessage({
+      type: 'capabilityEvent',
+      documentId,
+      capabilityId,
+      event,
+      payload
+    });
   }
 
   private async reportError(error: unknown, documentId = this.documentId) {
@@ -438,15 +309,11 @@ export class PaperReaderPanel {
     const pdfWorkerUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'pdf.worker.min.mjs')
     );
-    const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const nonce = getNonce();
     const readerConfig = serializeForInlineScript({
       documentId: this.documentId,
       pdfUrl: pdfWebviewUri.toString(),
       paperName: path.basename(this.pdfUri.fsPath),
-      translationProvider: requireTranslationProvider(config.get('translationProvider')),
-      translationSource: config.get<string>('translationSource') || 'auto',
-      translationTarget: config.get<string>('translationTarget') || 'zh',
       pdfWorkerUrl: pdfWorkerUri.toString(),
       pdfCMapUrl: ensureTrailingSlash(cMapUri.toString()),
       pdfStandardFontDataUrl: ensureTrailingSlash(standardFontDataUri.toString())
@@ -499,7 +366,7 @@ export class PaperReaderPanel {
   }
 
   private dispose() {
-    this.translation.dispose();
+    this.capabilities.dispose();
     PaperReaderPanel.currentPanel = undefined;
     while (this.disposables.length) {
       const disposable = this.disposables.pop();

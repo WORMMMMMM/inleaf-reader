@@ -13,16 +13,10 @@ import 'pdfjs-dist/web/pdf_viewer.css';
 import 'react-pdf-highlighter-plus/style/style.css';
 import './styles.css';
 import {
-  AnnotationItem,
-  AnnotationSummary,
   InlineAnnotationActions,
   InlineAnnotationEditor,
   SelectionToolbar,
   SelectionToolbarContext,
-  WordDetailsBlock,
-  WordItem,
-  annotationStatus,
-  colorOptions,
   type SelectionToolbarContextValue
 } from './components/AnnotationWidgets';
 import { PdfDocumentView } from './components/PdfDocumentView';
@@ -35,7 +29,7 @@ import {
   type AnnotationSortMode,
   type ReaderHighlight
 } from './annotationModel';
-import type { IncomingMessage, SidebarTab, TranslationProvider } from './messages';
+import type { IncomingMessage, WorkspaceTab } from './messages';
 import {
   extractSelectedPdfText,
   filterNonBodyRects,
@@ -45,25 +39,41 @@ import {
 } from './pdfSelection';
 import { readerConfig, setActiveDocumentId, vscode } from './vscodeApi';
 import type { AnnotationKind, AnnotationRecord, ReaderStatePayload, WordDetails } from './types';
+import {
+  resolveCapabilityDescriptors,
+  type CapabilityDescriptor,
+  type CapabilityId,
+  type CapabilityPreference,
+  type ReaderSurface
+} from '../../src/capabilities/contracts';
+import type { TranslationSettingKey, TranslationSettingValue } from '../../src/capabilities/translation/protocol';
+import { useAnnotationsCapability } from './capabilities/annotations/useAnnotationsCapability';
+import { useWordbookCapability } from './capabilities/wordbook/useWordbookCapability';
+import { useTranslationCapability } from './capabilities/translation/useTranslationCapability';
+import { OverviewPanel } from './capabilities/OverviewPanel';
+import { SettingsView } from './capabilities/SettingsView';
+import { ReaderSideSurface, type WorkspacePanelContribution } from './capabilities/ReaderSideSurface';
+import {
+  buildCapabilityPanelContributions,
+  capabilityEnabled,
+  routeCapabilityEvent,
+  visibleCapabilityPanels
+} from './capabilities/registry';
 
 const defaultState: ReaderStatePayload = {
-  annotations: [],
-  words: [],
   progress: { updatedAt: new Date(0).toISOString() },
   paperName: readerConfig.paperName
 };
 
 function App() {
   const [state, setState] = useState<ReaderStatePayload>(defaultState);
+  const annotationsCapability = useAnnotationsCapability();
+  const wordbookCapability = useWordbookCapability();
+  const translationCapability = useTranslationCapability();
   const [selectedText, setSelectedText] = useState('');
-  const [translationOutput, setTranslationOutput] = useState('');
-  const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
-  const [translationSourceText, setTranslationSourceText] = useState('');
-  const [translationProvider, setTranslationProvider] = useState<TranslationProvider>(readerConfig.translationProvider);
-  const [deepSeekModel, setDeepSeekModel] = useState('deepseek-v4-flash');
-  const [hasDeepSeekApiKey, setHasDeepSeekApiKey] = useState(false);
-  const [dictionaryReady, setDictionaryReady] = useState(false);
-  const [argosPythonFound, setArgosPythonFound] = useState(false);
+  const [capabilityDescriptors, setCapabilityDescriptors] = useState<CapabilityDescriptor[]>(
+    () => resolveCapabilityDescriptors(undefined)
+  );
   const [annotationQuery, setAnnotationQuery] = useState('');
   const [tagQuery, setTagQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -79,8 +89,8 @@ function App() {
   const [pdfWorkerSrc, setPdfWorkerSrc] = useState<string | undefined>();
   const [pdfWorkerError, setPdfWorkerError] = useState<string | undefined>();
   const [paperName, setPaperName] = useState(readerConfig.paperName);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('overview');
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<WorkspaceTab>('overview');
+  const [surface, setSurface] = useState<ReaderSurface>('closed');
   const highlighterRef = useRef<PdfHighlighterUtils | null>(null);
   const progressDebounceRef = useRef<number | undefined>(undefined);
   const pendingProgressRef = useRef<number | undefined>(undefined);
@@ -91,6 +101,8 @@ function App() {
   const zoomCommitRef = useRef<number | undefined>(undefined);
   const zoomLabelRef = useRef<HTMLSpanElement | null>(null);
   const documentReadyRef = useRef(false);
+  const settingsReturnSurfaceRef = useRef<ReaderSurface>('closed');
+  const capabilityDescriptorsRef = useRef(capabilityDescriptors);
   const documentIdRef = useRef(readerConfig.documentId);
   const selectionRef = useRef({ selectedText: '', selectionPosition: undefined as ScaledPosition | undefined, currentPage: 1 });
   const pdfDocumentSource = useMemo(() => ({
@@ -270,7 +282,14 @@ function App() {
   }, []);
 
   useEffect(() => {
+    capabilityDescriptorsRef.current = capabilityDescriptors;
+  }, [capabilityDescriptors]);
+
+  useEffect(() => {
     vscode.postMessage({ type: 'ready' });
+  }, []);
+
+  useEffect(() => {
     const listener = (event: MessageEvent<IncomingMessage>) => {
       const message = event.data;
       if (message.type !== 'navigateTo' && message.documentId !== documentIdRef.current) {
@@ -281,13 +300,6 @@ function App() {
         if (message.payload.progress?.page) {
           setCurrentPage(message.payload.progress.page);
         }
-      }
-      if (message.type === 'statePatch') {
-        setState(current => ({
-          ...current,
-          annotations: message.payload.annotations ?? current.annotations,
-          words: message.payload.words ?? current.words
-        }));
       }
       if (message.type === 'navigateTo') {
         flushReadingProgress();
@@ -304,37 +316,56 @@ function App() {
         setStatus('Loading PDF...');
         documentReadyRef.current = false;
         setLastDeleted(undefined);
+        annotationsCapability.reset();
+        wordbookCapability.reset();
+        translationCapability.clearResult();
         clearAnnotationDraft();
       }
       if (message.type === 'stateError') {
         setStatus(message.payload.message);
       }
-      if (message.type === 'translationResult') {
-        if (message.payload.sourceText !== selectionRef.current.selectedText.trim()) {
+      if (message.type === 'capabilitySettings') {
+        setCapabilityDescriptors(message.payload.capabilities);
+      }
+      if (message.type === 'capabilityEvent') {
+        if (message.event === 'error' && isMessagePayload(message.payload)) {
+          setStatus(message.payload.message);
           return;
         }
-        setTranslationSourceText(message.payload.sourceText);
-        setTranslationOutput(message.payload.error || message.payload.translatedText || '');
-        setWordDetails(message.payload.wordDetails);
-        setActiveSidebarTab('translation');
+        const outcome = routeCapabilityEvent(message, {
+          annotations: annotationsCapability.handleEvent,
+          wordbook: wordbookCapability.handleEvent,
+          translation: (event, payload) => translationCapability.handleEvent(
+            event,
+            payload,
+            selectionRef.current.selectedText.trim()
+          )
+        });
+        if (outcome.status) {
+          setStatus(outcome.status);
+        }
+        if (
+          outcome.activatePanel &&
+          capabilityEnabled(capabilityDescriptorsRef.current, outcome.activatePanel)
+        ) {
+          setActiveWorkspaceTab(outcome.activatePanel);
+        }
       }
-      if (message.type === 'translationSettings') {
-        setTranslationProvider(message.payload.provider);
-        setDeepSeekModel(message.payload.deepSeekModel);
-        setHasDeepSeekApiKey(message.payload.hasDeepSeekApiKey);
-        setDictionaryReady(message.payload.dictionaryReady);
-        setArgosPythonFound(message.payload.argosPythonFound);
-      }
-      if (message.type === 'exportResult') {
-        setStatus(message.payload.error ? `Export failed: ${message.payload.error}` : `Exported: ${message.payload.path}`);
-      }
-      if (message.type === 'clipboardResult' || message.type === 'annotationActionResult') {
+      if (message.type === 'clipboardResult') {
         setStatus(message.payload.error || message.payload.message || 'Done.');
       }
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
-  }, [flushReadingProgress]);
+  }, [
+    annotationsCapability.handleEvent,
+    annotationsCapability.reset,
+    flushReadingProgress,
+    translationCapability.clearResult,
+    translationCapability.handleEvent,
+    wordbookCapability.handleEvent,
+    wordbookCapability.reset
+  ]);
 
   useEffect(() => {
     if (!state.progress?.page || !pageTotal) {
@@ -345,19 +376,42 @@ function App() {
   }, [pageTotal, state.progress?.page]);
 
   const highlights = useMemo(
-    () => state.annotations.map(annotationToHighlight).filter(Boolean) as ReaderHighlight[],
-    [state.annotations]
+    () => capabilityEnabled(capabilityDescriptors, 'annotations')
+      ? annotationsCapability.annotations.map(annotationToHighlight).filter(Boolean) as ReaderHighlight[]
+      : [],
+    [annotationsCapability.annotations, capabilityDescriptors]
   );
 
   const filteredAnnotations = useMemo(() => {
-    return filterAnnotations(state.annotations, {
+    return filterAnnotations(annotationsCapability.annotations, {
       query: annotationQuery,
       tags: tagQuery,
       color: colorFilter,
       kind: kindFilter,
       sort: sortMode
     });
-  }, [annotationQuery, colorFilter, kindFilter, sortMode, state.annotations, tagQuery]);
+  }, [annotationQuery, annotationsCapability.annotations, colorFilter, kindFilter, sortMode, tagQuery]);
+
+  const visiblePanels = useMemo(
+    () => visibleCapabilityPanels(capabilityDescriptors),
+    [capabilityDescriptors]
+  );
+
+  useEffect(() => {
+    if (
+      activeWorkspaceTab !== 'overview' &&
+      !visiblePanels.some(panel => panel.id === activeWorkspaceTab)
+    ) {
+      setActiveWorkspaceTab('overview');
+    }
+  }, [activeWorkspaceTab, visiblePanels]);
+
+  useEffect(() => {
+    if (!capabilityEnabled(capabilityDescriptors, 'annotations')) {
+      closeAnnotationTip();
+      highlighterRef.current?.removeGhostHighlight();
+    }
+  }, [capabilityDescriptors]);
 
   function handleSelection(selection: PdfSelection) {
     const nativeSelection = window.getSelection();
@@ -375,9 +429,7 @@ function App() {
     ghost.position = cleanPosition;
     setSelectedText(text);
     setCurrentPage(cleanPosition.boundingRect.pageNumber);
-    setTranslationSourceText('');
-    setTranslationOutput('');
-    setWordDetails(undefined);
+    translationCapability.clearResult();
     selectionRef.current = {
       selectedText: text,
       selectionPosition: cleanPosition,
@@ -444,7 +496,7 @@ function App() {
           annotation={annotation}
           onCancel={closeAnnotationTip}
           onSave={patch => {
-            vscode.postMessage({ type: 'updateAnnotation', payload: { id: annotation.id, patch } });
+            postCapabilityRequest('annotations', 'update', { id: annotation.id, patch });
             setStatus('Annotation saved.');
             closeAnnotationTip();
           }}
@@ -456,7 +508,7 @@ function App() {
 
   function deleteAnnotation(annotation: AnnotationRecord) {
     setLastDeleted(annotation);
-    vscode.postMessage({ type: 'deleteAnnotation', payload: { id: annotation.id } });
+    postCapabilityRequest('annotations', 'delete', { id: annotation.id });
     if (activeId === annotation.id) {
       closeAnnotationTip();
     }
@@ -474,7 +526,7 @@ function App() {
     if (!lastDeleted) {
       return;
     }
-    vscode.postMessage({ type: 'restoreAnnotation', payload: lastDeleted });
+    postCapabilityRequest('annotations', 'restore', lastDeleted);
     setLastDeleted(undefined);
   }
 
@@ -530,12 +582,12 @@ function App() {
     }
     setSelectedText(text);
     setCurrentPage(s.currentPage);
-    setTranslationSourceText(text);
-    setTranslationOutput('Translating...');
-    setWordDetails(undefined);
-    setActiveSidebarTab('translation');
-    vscode.postMessage({ type: 'translate', payload: { text } });
-  }, []);
+    translationCapability.start(text);
+    if (visibleCapabilityPanels(capabilityDescriptors).some(item => item.id === 'translation')) {
+      setActiveWorkspaceTab('translation');
+    }
+    postCapabilityRequest('translation', 'translate', { text });
+  }, [capabilityDescriptors, translationCapability.start]);
 
   const saveSelectionWord = useCallback((details: WordDetails) => {
     const s = selectionRef.current;
@@ -544,9 +596,7 @@ function App() {
       setStatus('Select a word before saving it.');
       return;
     }
-    vscode.postMessage({
-      type: 'saveWord',
-      payload: {
+    postCapabilityRequest('wordbook', 'save', {
         word: details.word,
         translation: summarizeWordDetails(details),
         phonetic: details.phonetic,
@@ -554,24 +604,39 @@ function App() {
         sentence: selected,
         note: '',
         page: s.currentPage
-      }
     });
     highlighterRef.current?.removeGhostHighlight();
-    setActiveSidebarTab('wordbook');
+    if (visibleCapabilityPanels(capabilityDescriptors).some(item => item.id === 'wordbook')) {
+      setActiveWorkspaceTab('wordbook');
+    }
     setStatus('Word saved.');
-  }, []);
+  }, [capabilityDescriptors]);
 
   const selectionToolbarContextValue = useMemo<SelectionToolbarContextValue>(() => ({
     selectedText,
-    translationSourceText,
-    translationText: translationOutput,
-    wordDetails,
+    translationSourceText: translationCapability.sourceText,
+    translationText: translationCapability.output,
+    wordDetails: translationCapability.wordDetails,
+    annotationsEnabled: capabilityEnabled(capabilityDescriptors, 'annotations'),
+    translationEnabled: capabilityEnabled(capabilityDescriptors, 'translation'),
+    wordbookEnabled: capabilityEnabled(capabilityDescriptors, 'wordbook'),
     onHighlight: quickHighlight,
     onUnderline: quickUnderline,
     onSaveNote: saveSelectionNote,
     onTranslate: translateSelection,
     onSaveWord: saveSelectionWord
-  }), [quickHighlight, quickUnderline, saveSelectionNote, saveSelectionWord, selectedText, translateSelection, translationOutput, translationSourceText, wordDetails]);
+  }), [
+    capabilityDescriptors,
+    quickHighlight,
+    quickUnderline,
+    saveSelectionNote,
+    saveSelectionWord,
+    selectedText,
+    translateSelection,
+    translationCapability.output,
+    translationCapability.sourceText,
+    translationCapability.wordDetails
+  ]);
 
   const selectionTip = useMemo(() => <SelectionToolbar />, []);
 
@@ -608,12 +673,29 @@ function App() {
           <button title="Fit page width" onClick={() => applyZoom('page-width')}>Fit</button>
           <button
             className="sidebar-toggle"
-            title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
-            aria-label={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
-            aria-expanded={sidebarVisible}
-            onClick={() => setSidebarVisible(visible => !visible)}
+            title={surface === 'workspace' ? 'Hide panel' : 'Show panel'}
+            aria-label={surface === 'workspace' ? 'Hide panel' : 'Show panel'}
+            aria-expanded={surface === 'workspace'}
+            aria-pressed={surface === 'workspace'}
+            onClick={() => setSurface(current => current === 'workspace' ? 'closed' : 'workspace')}
           >
-            {sidebarVisible ? 'Hide panel' : 'Show panel'}
+            {surface === 'workspace' ? 'Hide panel' : 'Show panel'}
+          </button>
+          <button
+            className="settings-toggle secondary-button"
+            title="Open Inleaf Reader settings"
+            aria-label="Open Inleaf Reader settings"
+            aria-pressed={surface === 'settings'}
+            onClick={() => {
+              if (surface === 'settings') {
+                setSurface(settingsReturnSurfaceRef.current);
+                return;
+              }
+              settingsReturnSurfaceRef.current = surface === 'workspace' ? 'workspace' : 'closed';
+              setSurface('settings');
+            }}
+          >
+            ⚙ Settings
           </button>
           <span className="reader-status">{status}</span>
         </div>
@@ -677,193 +759,106 @@ function App() {
     saveReadingProgress(nextPage);
   }
 
+  function closeSurface() {
+    if (surface === 'settings' && settingsReturnSurfaceRef.current === 'workspace') {
+      setSurface('workspace');
+      return;
+    }
+    setSurface('closed');
+  }
+
+  function updateCapability(capabilityId: CapabilityId, patch: CapabilityPreference) {
+    vscode.postMessage({ type: 'updateCapabilityPreference', payload: { capabilityId, patch } });
+  }
+
+  function moveCapability(capabilityId: CapabilityId, direction: -1 | 1) {
+    const index = capabilityDescriptors.findIndex(item => item.id === capabilityId);
+    const neighbor = capabilityDescriptors[index + direction];
+    if (!neighbor) {
+      return;
+    }
+    updateCapability(capabilityId, { order: neighbor.order + direction });
+  }
+
+  function updateTranslationSetting(key: TranslationSettingKey, value: TranslationSettingValue) {
+    postCapabilityRequest('translation', 'updateSetting', { key, value });
+  }
+
+  const workspacePanels: WorkspacePanelContribution[] = [
+    {
+      id: 'overview',
+      title: 'Overview',
+      content: (
+        <OverviewPanel
+          currentPage={currentPage}
+          pageTotal={pageTotal}
+          annotationCount={annotationsCapability.annotations.length}
+          wordCount={wordbookCapability.words.length}
+          status={status}
+          selectedText={selectedText}
+        />
+      )
+    },
+    ...buildCapabilityPanelContributions(capabilityDescriptors, {
+      annotations: {
+        annotations: filteredAnnotations,
+        total: annotationsCapability.annotations.length,
+        activeId,
+        query: annotationQuery,
+        tagQuery,
+        colorFilter,
+        kindFilter,
+        sortMode,
+        canUndo: !!lastDeleted,
+        onQuery: setAnnotationQuery,
+        onTagQuery: setTagQuery,
+        onColorFilter: setColorFilter,
+        onKindFilter: setKindFilter,
+        onSortMode: setSortMode,
+        onFocus: focusAnnotation,
+        onEdit: editAnnotation,
+        onCopy: annotation => postCapabilityRequest('annotations', 'copyMarkdown', { id: annotation.id }),
+        onDelete: deleteAnnotation,
+        onUndo: restoreLastDeleted,
+        onExportMarkdown: () => postCapabilityRequest('annotations', 'exportMarkdown'),
+        onExportPdf: () => postCapabilityRequest('annotations', 'exportPdf')
+      },
+      wordbook: {
+        words: wordbookCapability.words,
+        onDelete: id => postCapabilityRequest('wordbook', 'delete', { id })
+      },
+      translation: {
+        selectedText,
+        output: translationCapability.output,
+        wordDetails: translationCapability.wordDetails
+      }
+    })
+  ];
+
+  const settingsView = (
+    <SettingsView
+      capabilities={capabilityDescriptors}
+      translation={translationCapability.settings}
+      onCapabilityChange={updateCapability}
+      onMove={moveCapability}
+      onTranslationSetting={updateTranslationSetting}
+      onConfigureDeepSeek={() => postCapabilityRequest('translation', 'configureDeepSeek')}
+      onDiagnoseTranslation={() => postCapabilityRequest('translation', 'diagnose')}
+    />
+  );
+
   return (
-    <main className={`shell${sidebarVisible ? '' : ' sidebar-hidden'}`}>
+    <main className={`shell${surface === 'closed' ? ' sidebar-hidden' : ''}`}>
       {readerView}
-      <aside className="side-panel" aria-hidden={!sidebarVisible}>
-        <header className="side-panel-header">
-          <div>
-            <p className="eyebrow">Inleaf Reader</p>
-            <h1>{paperName || state.paperName || readerConfig.paperName}</h1>
-          </div>
-          <button
-            className="side-panel-close secondary-button"
-            title="Hide sidebar"
-            aria-label="Hide sidebar"
-            onClick={() => setSidebarVisible(false)}
-          >
-            ×
-          </button>
-        </header>
-
-        <nav className="side-tabs" aria-label="Reader panels">
-          <button className={activeSidebarTab === 'overview' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('overview')}>Overview</button>
-          <button className={activeSidebarTab === 'annotations' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('annotations')}>Annotations</button>
-          <button className={activeSidebarTab === 'wordbook' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('wordbook')}>Wordbook</button>
-          <button className={activeSidebarTab === 'translation' ? 'active-tab' : ''} onClick={() => setActiveSidebarTab('translation')}>Translation</button>
-        </nav>
-
-        {activeSidebarTab === 'overview' ? (
-          <section className="side-tab-panel">
-            <div className="overview-grid">
-              <div className="metric-card">
-                <span>Page</span>
-                <strong>{currentPage} / {pageTotal || '-'}</strong>
-              </div>
-              <div className="metric-card">
-                <span>Annotations</span>
-                <strong>{state.annotations.length}</strong>
-              </div>
-              <div className="metric-card">
-                <span>Words</span>
-                <strong>{state.words.length}</strong>
-              </div>
-            </div>
-            <section className="tool-block">
-              <h2>Translation</h2>
-              <dl className="meta-list">
-                <div>
-                  <dt>Provider</dt>
-                  <dd>{translationProvider === 'deepseek' ? 'DeepSeek AI' : translationProvider === 'libretranslate' ? 'LibreTranslate' : 'Local Argos'}</dd>
-                </div>
-                <div>
-                  <dt>Languages</dt>
-                  <dd>{readerConfig.translationSource || 'auto'} {'->'} {readerConfig.translationTarget || 'zh'}</dd>
-                </div>
-              </dl>
-            </section>
-            <section className="tool-block">
-              <h2>Status</h2>
-              <div className="empty compact-empty">{status}</div>
-            </section>
-            <section className="tool-block">
-              <h2>Current selection</h2>
-              {selectedText.trim() ? <p className="selection-preview">{shorten(selectedText, 260)}</p> : <div className="empty compact-empty">Select text in the PDF to act on it.</div>}
-            </section>
-          </section>
-        ) : null}
-
-        {activeSidebarTab === 'annotations' ? (
-          <section className="side-tab-panel list-block">
-            <section className="tool-block">
-              <h2>Saved Annotations</h2>
-              <input type="search" value={annotationQuery} onChange={event => setAnnotationQuery(event.target.value)} placeholder="Search annotations" />
-              <input type="search" value={tagQuery} onChange={event => setTagQuery(event.target.value)} placeholder="Filter by tag" />
-              <select value={colorFilter} onChange={event => setColorFilter(event.target.value)}>
-                <option value="">All colors</option>
-                {colorOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-              <select value={kindFilter} onChange={event => setKindFilter(event.target.value)}>
-                <option value="">All styles</option>
-                <option value="highlight">Highlight</option>
-                <option value="underline">Underline</option>
-              </select>
-              <select value={sortMode} onChange={event => setSortMode(event.target.value as AnnotationSortMode)}>
-                <option value="position">Sort by paper order</option>
-                <option value="created">Sort by newest</option>
-                <option value="updated">Sort by recently edited</option>
-              </select>
-              <div className="actions">
-                <button onClick={() => vscode.postMessage({ type: 'exportAnnotations' })}>Export Markdown</button>
-                <button onClick={() => vscode.postMessage({ type: 'exportAnnotatedPdf' })}>Export PDF</button>
-              </div>
-              {lastDeleted ? <button className="undo-button" onClick={restoreLastDeleted}>Undo delete</button> : null}
-              <div className="status-line">{annotationStatus(filteredAnnotations.length, state.annotations.length)}</div>
-              <AnnotationSummary annotations={filteredAnnotations} />
-              <div className="list">
-                {filteredAnnotations.length ? filteredAnnotations.map(annotation => (
-                  <AnnotationItem
-                    key={annotation.id}
-                    annotation={annotation}
-                    active={annotation.id === activeId}
-                    onFocus={() => focusAnnotation(annotation)}
-                    onEdit={() => editAnnotation(annotation)}
-                    onCopy={() => vscode.postMessage({ type: 'copyAnnotationMarkdown', payload: { id: annotation.id } })}
-                    onDelete={() => deleteAnnotation(annotation)}
-                  />
-                )) : <div className="empty">No annotations saved yet.</div>}
-              </div>
-            </section>
-          </section>
-        ) : null}
-
-        {activeSidebarTab === 'wordbook' ? (
-          <section className="side-tab-panel list-block">
-            <section className="tool-block">
-              <h2>Saved Words ({state.words.length})</h2>
-              {state.words.length ? (
-                <div className="list">
-                  {state.words.map(item => (
-                    <WordItem
-                      key={item.id}
-                      word={item}
-                      onDelete={() => vscode.postMessage({ type: 'deleteWord', payload: { id: item.id } })}
-                    />
-                  ))}
-                </div>
-              ) : <div className="empty">No words saved yet.</div>}
-            </section>
-          </section>
-        ) : null}
-
-        {activeSidebarTab === 'translation' ? (
-          <section className="side-tab-panel">
-            <section className="tool-block">
-              <h2>Translation Mode</h2>
-              <label htmlFor="translationProvider">Choose how selected text is translated</label>
-              <select
-                id="translationProvider"
-                value={translationProvider}
-                onChange={event => {
-                  const provider = event.target.value as TranslationProvider;
-                  vscode.postMessage({ type: 'setTranslationProvider', payload: { provider } });
-                }}
-              >
-                <option value="argos">Argos Translate (local)</option>
-                <option value="libretranslate">LibreTranslate (configured endpoint)</option>
-                <option value="deepseek">DeepSeek ({deepSeekModel})</option>
-              </select>
-              {translationProvider === 'deepseek' ? (
-                <>
-                  <div className={`provider-status ${hasDeepSeekApiKey ? 'ready' : 'missing'}`}>
-                    {hasDeepSeekApiKey ? 'DeepSeek API Key is configured.' : 'DeepSeek API Key is required.'}
-                  </div>
-                  <button
-                    className="secondary-button"
-                    onClick={() => vscode.postMessage({ type: 'configureDeepSeek' })}
-                  >
-                    {hasDeepSeekApiKey ? 'Replace API Key' : 'Set API Key'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className={`provider-status ${dictionaryReady ? 'ready' : 'missing'}`}>
-                    {dictionaryReady ? 'Offline dictionary is ready.' : 'Offline dictionary is missing.'}
-                  </div>
-                  {translationProvider === 'argos' ? (
-                    <div className={`provider-status ${argosPythonFound ? 'ready' : 'missing'}`}>
-                      {argosPythonFound ? 'Argos Python was found.' : 'Argos is not configured for sentence translation.'}
-                    </div>
-                  ) : null}
-                  <button className="secondary-button" onClick={() => vscode.postMessage({ type: 'diagnoseTranslation' })}>
-                    Diagnose translation setup
-                  </button>
-                </>
-              )}
-            </section>
-            <section className="tool-block">
-              <h2>Current Selection</h2>
-              {selectedText.trim() ? <p className="selection-preview">{selectedText}</p> : <div className="empty compact-empty">Select text in the PDF, then use Translate in the selection toolbar.</div>}
-            </section>
-            <section className="tool-block">
-              <h2>Result</h2>
-              {wordDetails ? <WordDetailsBlock details={wordDetails} /> : null}
-              {!wordDetails && translationOutput.trim() ? <p className="translation-preview">{translationOutput}</p> : null}
-              {!wordDetails && !translationOutput.trim() ? <div className="empty compact-empty">No translation yet.</div> : null}
-            </section>
-          </section>
-        ) : null}
-      </aside>
+      <ReaderSideSurface
+        surface={surface}
+        title={paperName || state.paperName || readerConfig.paperName}
+        activePanel={activeWorkspaceTab}
+        panels={workspacePanels}
+        settings={settingsView}
+        onActivePanel={setActiveWorkspaceTab}
+        onClose={closeSurface}
+      />
     </main>
   );
 }
@@ -876,7 +871,7 @@ function doSaveAnnotation(
   if (!payload) {
     return false;
   }
-  vscode.postMessage({ type: 'saveAnnotation', payload });
+  postCapabilityRequest('annotations', 'save', payload);
   return true;
 }
 
@@ -897,9 +892,12 @@ function zoomLabel(value: PdfScaleValue) {
   return value;
 }
 
-function shorten(value: string, max: number) {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length > max ? `${normalized.slice(0, max - 1)}...` : normalized;
+function postCapabilityRequest(capabilityId: CapabilityId, action: string, payload?: unknown) {
+  vscode.postMessage({ type: 'capabilityRequest', capabilityId, action, payload });
+}
+
+function isMessagePayload(value: unknown): value is { message: string } {
+  return typeof value === 'object' && value !== null && 'message' in value && typeof value.message === 'string';
 }
 
 function Bootstrap() {

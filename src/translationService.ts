@@ -40,6 +40,11 @@ export class TranslationService implements vscode.Disposable {
     return {
       provider,
       deepSeekModel: requireDeepSeekModel(config.get('deepSeekModel')),
+      libreTranslateEndpoint: config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate',
+      argosPythonPath: config.get<string>('argosPythonPath') || '',
+      fallbackToLibreTranslate: config.get<boolean>('translationFallbackToLibreTranslate') ?? false,
+      source: config.get<string>('translationSource') || 'auto',
+      target: config.get<string>('translationTarget') || 'zh',
       hasDeepSeekApiKey: !!(await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)),
       dictionaryReady: fs.existsSync(this.extensionPath('scripts', 'ecdict', 'manifest.json')),
       argosPythonFound: fs.existsSync(this.argosPythonPath(config))

@@ -2,7 +2,7 @@
   "name": "inleaf-reader",
   "displayName": "Inleaf Reader",
   "description": "Stay in flow while reading PDFs in VS Code, with portable AI-ready notes and your choice of AI tools.",
-  "version": "0.0.12",
+  "version": "0.1.0",
   "publisher": "ziming",
   "icon": "assets/inleaf-reader-icon.png",
   "license": "Apache-2.0",

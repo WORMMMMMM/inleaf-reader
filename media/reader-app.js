@@ -21930,16 +21930,18 @@ function gc(e, t) {
 //#endregion
 //#region webview/src/components/PdfDocumentView.tsx
 function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
-	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(void 0), _ = (0, y.useRef)(/* @__PURE__ */ new Set());
+	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(void 0), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(/* @__PURE__ */ new Set());
 	(0, y.useEffect)(() => {
 		a(n.numPages);
 	}, [a, n.numPages]);
-	let v = (0, y.useCallback)((e) => {
+	let b = (0, y.useCallback)((e) => {
 		typeof e.pageNumber == "number" && s(e.pageNumber);
-	}, [s]), b = (0, y.useCallback)((e) => {
+	}, [s]), x = (0, y.useCallback)((e) => {
 		let t = p.current, n = e.scale;
 		if (!t || typeof n != "number") return;
-		let r = m.current || t.currentScale || n, i = xc(f.current);
+		let r = m.current || t.currentScale || n;
+		window.cancelAnimationFrame(h.current || 0), h.current = void 0, v.current.clear();
+		let i = xc(f.current);
 		_.current = new Set(i), f.current?.classList.toggle("pdf-scale-in-progress", i.length > 0);
 		for (let e of i) {
 			let t = Number(e.dataset.renderedScale) || r;
@@ -21950,41 +21952,44 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 			let e = p.current;
 			e && vc(e);
 		});
-	}, []), x = (0, y.useCallback)((e) => {
-		let t = p.current;
-		!t || typeof e.pageNumber != "number" || f.current?.classList.contains("pdf-scale-in-progress") && (window.cancelAnimationFrame(h.current || 0), h.current = window.requestAnimationFrame(() => {
-			let n = t.getPageView(e.pageNumber - 1)?.div;
-			for (let e of xc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
-			m.current = t.currentScale, _.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
-		}));
 	}, []), S = (0, y.useCallback)((e) => {
+		let t = p.current;
+		!t || typeof e.pageNumber != "number" || f.current?.classList.contains("pdf-scale-in-progress") && (v.current.add(e.pageNumber), h.current === void 0 && (h.current = window.requestAnimationFrame(() => {
+			h.current = void 0;
+			for (let e of v.current) {
+				let n = t.getPageView(e - 1)?.div;
+				for (let e of xc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
+			}
+			v.current.clear(), m.current = t.currentScale, _.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
+		})));
+	}, []), C = (0, y.useCallback)((e) => {
 		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), c(e.deltaY));
-	}, [c]), C = (0, y.useCallback)((e) => {
+	}, [c]), w = (0, y.useCallback)((e) => {
 		let t = e.target instanceof Element ? e.target : null, n = t?.closest(".page");
 		n && ic(n), f.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
-	}, []), w = (0, y.useCallback)((e) => {
+	}, []), T = (0, y.useCallback)((e) => {
 		let t = e.getEventBus();
-		d.current !== t && (d.current?.off("pagechanging", v), d.current?.off("scalechanging", b), d.current?.off("textlayerrendered", x), d.current?.off("pagerendered", x), t?.on("pagechanging", v), t?.on("scalechanging", b), t?.on("textlayerrendered", x), t?.on("pagerendered", x), d.current = t);
+		d.current !== t && (d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), t?.on("pagechanging", b), t?.on("scalechanging", x), t?.on("textlayerrendered", S), t?.on("pagerendered", S), d.current = t);
 		let n = e.getViewer();
 		p.current = n;
 		let r = n?.container || null;
-		f.current !== r && (f.current?.removeEventListener("wheel", S), f.current?.removeEventListener("pointerdown", C, !0), r?.addEventListener("wheel", S, { passive: !1 }), r?.addEventListener("pointerdown", C, !0), f.current = r, m.current = n?.currentScale), u(e);
+		f.current !== r && (f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0), r?.addEventListener("wheel", C, { passive: !1 }), r?.addEventListener("pointerdown", w, !0), f.current = r, m.current = n?.currentScale), u(e);
 	}, [
-		v,
+		b,
+		w,
 		C,
-		S,
 		u
 	]);
 	return (0, y.useEffect)(() => () => {
-		d.current?.off("pagechanging", v), d.current?.off("scalechanging", b), d.current?.off("textlayerrendered", x), d.current?.off("pagerendered", x), d.current = null, f.current?.removeEventListener("wheel", S), f.current?.removeEventListener("pointerdown", C, !0);
+		d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), d.current = null, f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0);
 		for (let e of _.current) e.style.transform = "", e.style.transformOrigin = "";
-		_.current.clear(), f.current = null, p.current = null, window.cancelAnimationFrame(h.current || 0), window.cancelAnimationFrame(g.current || 0);
+		_.current.clear(), v.current.clear(), f.current = null, p.current = null, window.cancelAnimationFrame(h.current || 0), window.cancelAnimationFrame(g.current || 0);
 	}, [
-		x,
-		v,
-		C,
+		S,
 		b,
-		S
+		w,
+		x,
+		C
 	]), /* @__PURE__ */ (0, L.jsx)(is, {
 		pdfDocument: n,
 		highlights: t,
@@ -21993,7 +21998,7 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		enableAreaSelection: (e) => e.altKey,
 		pdfScaleValue: i,
 		textSelectionColor: "rgba(64, 141, 255, 0.28)",
-		utilsRef: w,
+		utilsRef: T,
 		style: { height: "100%" },
 		children: /* @__PURE__ */ (0, L.jsx)(yc, {
 			activeId: e,
@@ -22186,19 +22191,40 @@ var Ic = {
 	argosPythonFound: !1
 };
 function Lc() {
-	let [e, t] = (0, y.useState)(Ic), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)();
+	let [e, t] = (0, y.useState)(Ic), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), c = (0, y.useRef)(), l = (0, y.useCallback)(() => {
+		c.current &&= (Ec.postMessage({
+			type: "capabilityRequest",
+			capabilityId: "translation",
+			action: "cancel",
+			payload: { requestId: c.current.requestId }
+		}), void 0);
+	}, []);
 	return {
 		settings: e,
 		sourceText: n,
 		output: i,
 		wordDetails: o,
-		handleEvent: (0, y.useCallback)((e, n, i) => Rc(n) ? e === "settings" ? (t(n), {}) : e === "result" && typeof n.sourceText == "string" && n.sourceText === i ? (r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(Rc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, []),
+		handleEvent: (0, y.useCallback)((e, n, i) => Rc(n) ? e === "settings" ? (l(), r(""), a(""), s(void 0), t(n), {}) : e === "result" && typeof n.sourceText == "string" ? !c.current || n.sourceText !== i || n.requestId !== c.current.requestId ? {} : (c.current = void 0, r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(Rc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, [l]),
 		start: (0, y.useCallback)((e) => {
-			r(e), a("Translating..."), s(void 0);
-		}, []),
+			if (c.current?.text === e) return;
+			l();
+			let t = crypto.randomUUID();
+			c.current = {
+				requestId: t,
+				text: e
+			}, r(e), a("Translating..."), s(void 0), Ec.postMessage({
+				type: "capabilityRequest",
+				capabilityId: "translation",
+				action: "translate",
+				payload: {
+					text: e,
+					requestId: t
+				}
+			});
+		}, [l]),
 		clearResult: (0, y.useCallback)(() => {
-			r(""), a(""), s(void 0);
-		}, [])
+			l(), r(""), a(""), s(void 0);
+		}, [l])
 	};
 }
 function Rc(e) {
@@ -22784,7 +22810,7 @@ function nl() {
 		let e = (e) => {
 			let a = e.data;
 			if (a.type === "navigateTo" || a.documentId === ye.current) {
-				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Tc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(tl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), i.clearResult(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && c(a.payload.capabilities), a.type === "capabilityEvent") {
+				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Tc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(tl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), $c(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
 					if (a.event === "error" && sl(a.payload)) {
 						D(a.payload.message);
 						return;
@@ -22943,7 +22969,7 @@ function nl() {
 			D("Select text before translating.");
 			return;
 		}
-		o(t), x(e.currentPage), i.start(t), Zc(s).some((e) => e.id === "translation") && oe("translation"), ol("translation", "translate", { text: t });
+		o(t), x(e.currentPage), i.start(t), Zc(s).some((e) => e.id === "translation") && oe("translation");
 	}, [s, i.start]), Ge = (0, y.useCallback)((e) => {
 		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {

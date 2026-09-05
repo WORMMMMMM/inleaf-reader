@@ -3,10 +3,10 @@ import { INLEAF_IDS } from '../../identity';
 import type { WordRecord } from '../../readerDataTypes';
 import {
   requireDeepSeekModel,
-  requireTranslationProvider,
-  type TranslationProvider
+  requireTranslationProvider
 } from '../../translationContract';
 import { TranslationService } from '../../translationService';
+import type { TranslationSettings } from '../../translationTypes';
 import type { CapabilityReadiness } from '../contracts';
 import type { CapabilityHostContext, HostCapability } from '../hostTypes';
 import {
@@ -18,33 +18,66 @@ import {
 export class TranslationHostCapability implements HostCapability, vscode.Disposable {
   readonly id = 'translation' as const;
   private readonly service: TranslationService;
+  private activeRequest?: { documentId: string; requestId: string; controller: AbortController };
+  private settings?: TranslationSettings;
 
   constructor(extensionUri: vscode.Uri, private readonly secrets: vscode.SecretStorage) {
     this.service = new TranslationService(extensionUri, secrets);
   }
 
   async postInitialState(context: CapabilityHostContext) {
-    await context.postEvent(this.id, 'settings', await this.service.getSettings());
+    this.settings = await this.service.getSettings();
+    await context.postEvent(this.id, 'settings', this.settings);
+  }
+
+  affectsConfiguration(event: vscode.ConfigurationChangeEvent) {
+    return Object.values(TRANSLATION_CONFIGURATION).some(key =>
+      event.affectsConfiguration(`${INLEAF_IDS.configuration}.${key}`));
+  }
+
+  async refreshSettings(context: CapabilityHostContext) {
+    this.cancelPending();
+    await this.postInitialState(context);
   }
 
   async handle(action: string, payload: unknown, context: CapabilityHostContext) {
     const request = decodeTranslationRequest(action, payload);
     switch (request.action) {
       case 'translate': {
+        if (this.activeRequest?.documentId === context.documentId &&
+            this.activeRequest.requestId === request.payload.requestId) return;
+        this.cancelPending();
+        const active = { documentId: context.documentId, requestId: request.payload.requestId,
+          controller: new AbortController() };
+        this.activeRequest = active;
         const sourceText = request.payload.text.trim();
-        await context.postEvent(this.id, 'result', {
-          sourceText,
-          ...await this.service.translate(sourceText)
-        });
+        try {
+          const result = await this.service.translate(sourceText, active.controller.signal);
+          if (this.activeRequest === active && !active.controller.signal.aborted) {
+            await context.postEvent(this.id, 'result', { sourceText, requestId: active.requestId, ...result });
+          }
+        } catch (error) {
+          if (!active.controller.signal.aborted) {
+            if (this.activeRequest === active) {
+              await context.postEvent(this.id, 'result', { sourceText, requestId: active.requestId,
+                error: error instanceof Error ? error.message : String(error) });
+            }
+            throw error;
+          }
+        } finally {
+          if (this.activeRequest === active) this.activeRequest = undefined;
+        }
         return;
       }
+      case 'cancel':
+        if (this.activeRequest?.documentId === context.documentId &&
+            this.activeRequest.requestId === request.payload.requestId) this.cancelPending();
+        return;
       case 'updateSetting':
         await this.updateSetting(request.payload.key, request.payload.value);
-        await this.postInitialState(context);
         return;
       case 'configureDeepSeek':
         await vscode.commands.executeCommand(INLEAF_IDS.commands.setDeepSeekApiKey);
-        await this.postInitialState(context);
         return;
       case 'diagnose':
         await vscode.commands.executeCommand(INLEAF_IDS.commands.diagnoseTranslation);
@@ -57,7 +90,7 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
   }
 
   async readiness(): Promise<{ readiness: CapabilityReadiness; readinessMessage?: string }> {
-    const settings = await this.service.getSettings();
+    const settings = this.settings ??= await this.service.getSettings();
     if (settings.provider === 'deepseek' && !settings.hasDeepSeekApiKey) {
       return { readiness: 'needsSetup', readinessMessage: 'DeepSeek API key is not configured.' };
     }
@@ -71,7 +104,13 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
   }
 
   dispose() {
+    this.cancelPending();
     this.service.dispose();
+  }
+
+  cancelPending() {
+    this.activeRequest?.controller.abort();
+    this.activeRequest = undefined;
   }
 
   private async updateSetting(key: TranslationSettingKey, value: TranslationSettingValue) {
@@ -99,15 +138,16 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
   }
 }
 
+const TRANSLATION_CONFIGURATION: Record<TranslationSettingKey, string> = {
+  provider: 'translationProvider',
+  deepSeekModel: 'deepSeekModel',
+  libreTranslateEndpoint: 'libreTranslateEndpoint',
+  argosPythonPath: 'argosPythonPath',
+  fallbackToLibreTranslate: 'translationFallbackToLibreTranslate',
+  source: 'translationSource',
+  target: 'translationTarget'
+};
+
 function settingConfigurationKey(key: TranslationSettingKey) {
-  const mapping: Record<TranslationSettingKey, string> = {
-    provider: 'translationProvider',
-    deepSeekModel: 'deepSeekModel',
-    libreTranslateEndpoint: 'libreTranslateEndpoint',
-    argosPythonPath: 'argosPythonPath',
-    fallbackToLibreTranslate: 'translationFallbackToLibreTranslate',
-    source: 'translationSource',
-    target: 'translationTarget'
-  };
-  return mapping[key];
+  return TRANSLATION_CONFIGURATION[key];
 }

@@ -108,32 +108,40 @@ function parseAnnotation(input: unknown, location: string): AnnotationRecord {
   return result;
 }
 
-function parseWord(input: unknown, location: string): WordRecord {
-  const record = requireObject(input, location);
-  const result: WordRecord = {
-    id: requireNonEmptyString(record.id, `${location}.id`),
-    word: requireNonEmptyString(record.word, `${location}.word`),
-    createdAt: requireTimestamp(record.createdAt, `${location}.createdAt`),
-    updatedAt: requireTimestamp(record.updatedAt, `${location}.updatedAt`)
+export function decodeWordInput(input: unknown): Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> {
+  const record = requireObject(input, 'word');
+  return parseWordFields(record, 'word');
+}
+
+function parseWordFields(record: Record<string, unknown>, location: string): Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> {
+  const result: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> = {
+    word: requireNonEmptyString(record.word, `${location}.word`)
   };
   assignOptional(result, 'translation', optionalString(record.translation, `${location}.translation`));
   assignOptional(result, 'phonetic', optionalString(record.phonetic, `${location}.phonetic`));
   assignOptional(result, 'sentence', optionalString(record.sentence, `${location}.sentence`));
   assignOptional(result, 'note', optionalString(record.note, `${location}.note`));
   assignOptional(result, 'page', optionalPositiveNumber(record.page, `${location}.page`));
-
   if (record.definitions !== undefined) {
     if (!Array.isArray(record.definitions)) {
       throw invalid(`${location}.definitions`, 'expected an array');
     }
     result.definitions = record.definitions.map((definition, index) => parseDefinition(
-      definition,
-      `${location}.definitions[${index}]`
+      definition, `${location}.definitions[${index}]`
     ));
   }
-  if (record.review !== undefined) {
-    result.review = parseReview(record.review, `${location}.review`);
-  }
+  if (record.review !== undefined) result.review = parseReview(record.review, `${location}.review`);
+  return result;
+}
+
+function parseWord(input: unknown, location: string): WordRecord {
+  const record = requireObject(input, location);
+  const result: WordRecord = {
+    id: requireNonEmptyString(record.id, `${location}.id`),
+    ...parseWordFields(record, location),
+    createdAt: requireTimestamp(record.createdAt, `${location}.createdAt`),
+    updatedAt: requireTimestamp(record.updatedAt, `${location}.updatedAt`)
+  };
   return result;
 }
 

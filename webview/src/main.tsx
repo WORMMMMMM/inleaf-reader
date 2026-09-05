@@ -303,6 +303,7 @@ function App() {
       }
       if (message.type === 'navigateTo') {
         flushReadingProgress();
+        translationCapability.clearResult();
         window.clearTimeout(pageIndicatorTimerRef.current);
         pageIndicatorTimerRef.current = undefined;
         pendingVisiblePageRef.current = undefined;
@@ -318,7 +319,6 @@ function App() {
         setLastDeleted(undefined);
         annotationsCapability.reset();
         wordbookCapability.reset();
-        translationCapability.clearResult();
         clearAnnotationDraft();
       }
       if (message.type === 'stateError') {
@@ -326,6 +326,7 @@ function App() {
       }
       if (message.type === 'capabilitySettings') {
         setCapabilityDescriptors(message.payload.capabilities);
+        if (!capabilityEnabled(message.payload.capabilities, 'translation')) translationCapability.clearResult();
       }
       if (message.type === 'capabilityEvent') {
         if (message.event === 'error' && isMessagePayload(message.payload)) {
@@ -586,7 +587,6 @@ function App() {
     if (visibleCapabilityPanels(capabilityDescriptors).some(item => item.id === 'translation')) {
       setActiveWorkspaceTab('translation');
     }
-    postCapabilityRequest('translation', 'translate', { text });
   }, [capabilityDescriptors, translationCapability.start]);
 
   const saveSelectionWord = useCallback((details: WordDetails) => {

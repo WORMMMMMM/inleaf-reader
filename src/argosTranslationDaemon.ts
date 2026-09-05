@@ -14,14 +14,23 @@ export class ArgosTranslationDaemon {
   private pending = new Map<number, PendingRequest>();
   private requestId = 0;
   private stdoutBuffer = '';
+  private requests: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly pythonPath: () => string,
     private readonly daemonPath: string
   ) {}
 
-  async request<Result>(payload: object): Promise<Result> {
+  request<Result>(payload: object, signal?: AbortSignal): Promise<Result> {
+    const result = this.requests.then(() => this.performRequest<Result>(payload, signal));
+    this.requests = result.catch(() => undefined);
+    return result;
+  }
+
+  private async performRequest<Result>(payload: object, signal?: AbortSignal): Promise<Result> {
+    signal?.throwIfAborted();
     await this.ensureReady();
+    signal?.throwIfAborted();
     return new Promise<Result>((resolve, reject) => {
       const requestId = ++this.requestId;
       const timeout = setTimeout(() => {

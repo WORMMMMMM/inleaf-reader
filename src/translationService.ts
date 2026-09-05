@@ -51,7 +51,8 @@ export class TranslationService implements vscode.Disposable {
     };
   }
 
-  async translate(text: string): Promise<TranslationResult> {
+  async translate(text: string, signal?: AbortSignal): Promise<TranslationResult> {
+    signal?.throwIfAborted();
     const trimmed = text.trim();
     if (!trimmed) {
       return { error: 'Select or paste text before translating.' };
@@ -63,6 +64,7 @@ export class TranslationService implements vscode.Disposable {
     if (isSingleEnglishWord(trimmed)) {
       try {
         const dictionaryResult = await this.lookupWordDetails(trimmed);
+        signal?.throwIfAborted();
         if (dictionaryResult.wordDetails) {
           return dictionaryResult;
         }
@@ -71,14 +73,17 @@ export class TranslationService implements vscode.Disposable {
       }
     }
 
+    signal?.throwIfAborted();
+
     if (provider === 'deepseek') {
-      return this.captureProviderError(() => this.translateWithDeepSeek(trimmed));
+      return this.captureProviderError(() => this.translateWithDeepSeek(trimmed, signal));
     }
 
     if (provider === 'argos') {
       try {
-        return await this.translateWithDaemon(trimmed);
+        return await this.translateWithDaemon(trimmed, signal);
       } catch (error) {
+        signal?.throwIfAborted();
         if (config.get<boolean>('translationFallbackToLibreTranslate') === false) {
           const detail = error instanceof Error ? error.message : String(error);
           return {
@@ -88,7 +93,7 @@ export class TranslationService implements vscode.Disposable {
       }
     }
 
-    return this.captureProviderError(() => this.translateWithLibreTranslate(trimmed));
+    return this.captureProviderError(() => this.translateWithLibreTranslate(trimmed, signal));
   }
 
   async enrichWord(
@@ -147,24 +152,24 @@ export class TranslationService implements vscode.Disposable {
     };
   }
 
-  private async translateWithDaemon(text: string): Promise<TranslationResult> {
+  private async translateWithDaemon(text: string, signal?: AbortSignal): Promise<TranslationResult> {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
     const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
-    const result = await this.argos.request<TranslationResult>({ text, source, target, mode: 'translate' });
+    const result = await this.argos.request<TranslationResult>({ text, source, target, mode: 'translate' }, signal);
     if (result.error) {
       throw new Error(result.error);
     }
     return result;
   }
 
-  private async translateWithDeepSeek(text: string) {
+  private async translateWithDeepSeek(text: string, signal?: AbortSignal) {
     const apiKey = await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey);
     if (!apiKey) {
       throw new Error('DeepSeek API key is not configured. Run “Inleaf Reader: Set DeepSeek API Key”.');
     }
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
-      const model = requireDeepSeekModel(config.get('deepSeekModel'));
+    const model = requireDeepSeekModel(config.get('deepSeekModel'));
     const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
@@ -186,7 +191,7 @@ export class TranslationService implements vscode.Disposable {
           max_tokens: 4096,
           stream: false
         }),
-        signal: controller.signal
+        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
       });
       const responseText = await response.text();
       let data: { choices?: { message?: { content?: string | null } }[]; error?: { message?: string } } = {};
@@ -219,7 +224,7 @@ export class TranslationService implements vscode.Disposable {
     }
   }
 
-  private async translateWithLibreTranslate(text: string) {
+  private async translateWithLibreTranslate(text: string, signal?: AbortSignal) {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const endpoint = config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate';
     const controller = new AbortController();
@@ -234,7 +239,7 @@ export class TranslationService implements vscode.Disposable {
           target: config.get<string>('translationTarget') || 'zh',
           format: 'text'
         }),
-        signal: controller.signal
+        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
       });
       if (!response.ok) {
         throw new Error(`LibreTranslate returned HTTP ${response.status}.`);

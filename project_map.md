@@ -120,6 +120,9 @@ VS Code command
   and standard fonts.
 - `scripts/test-*.mjs`: Contract and regression tests for storage, exports,
   identity, dictionary lookup, Webview behavior, and manifest contributions.
+- `scripts/test-reader-concurrency.mjs`: Behavior checks with controlled I/O,
+  frame scheduling, and request completion order for settings, zoom, wordbook
+  validation, translation cancellation, and selective configuration refresh.
 
 ## Product and Build Files
 

@@ -18,6 +18,7 @@ export class PaperReaderPanel {
   private readonly recoveryNotifications = new WeakSet<ReaderStorage>();
   private readonly capabilities: HostCapabilityRegistry;
   private readonly capabilityPreferences = new CapabilityPreferenceService();
+  private settingsRefresh: Promise<void> = Promise.resolve();
 
   static createOrShow(
     extensionUri: vscode.Uri,
@@ -78,16 +79,30 @@ export class PaperReaderPanel {
     vscode.workspace.onDidChangeConfiguration(
       event => {
         if (event.affectsConfiguration(INLEAF_IDS.configuration)) {
-          void this.postCapabilitySettings();
-          void this.capabilities.postInitialState(this.capabilityContext());
+          this.refreshSettings(context => this.capabilities.configurationChanged(event, context));
         }
       },
       null,
       this.disposables
     );
+    secrets.onDidChange(event => {
+      this.refreshSettings(context => this.capabilities.secretChanged(event.key, context));
+    }, null, this.disposables);
+  }
+
+  private refreshSettings(refresh: (context: ReturnType<PaperReaderPanel['capabilityContext']>) => Promise<boolean>) {
+    this.settingsRefresh = this.settingsRefresh.then(async () => {
+      const context = this.capabilityContext();
+      try {
+        if (await refresh(context)) await this.postCapabilitySettings();
+      } catch (error) {
+        await this.reportError(error, context.documentId);
+      }
+    }).catch(error => { vscode.window.showErrorMessage(String(error)); });
   }
 
   private async navigateTo(pdfUri: vscode.Uri) {
+    this.capabilities.cancelPending();
     const previous = {
       documentId: this.documentId,
       pdfUri: this.pdfUri,
@@ -183,8 +198,6 @@ export class PaperReaderPanel {
         break;
       case 'updateCapabilityPreference':
         await this.capabilityPreferences.update(message.payload.capabilityId, message.payload.patch);
-        await this.postCapabilitySettings();
-        await this.capabilities.postInitialState(this.capabilityContext());
         break;
       case 'capabilityRequest':
         await this.capabilities.handle(
@@ -223,10 +236,8 @@ export class PaperReaderPanel {
         `The unreadable file was preserved at ${notice.corruptPath}.`
       );
     }
-    await Promise.all([
-      this.postCapabilitySettings(),
-      this.capabilities.postInitialState(this.capabilityContext())
-    ]);
+    await this.capabilities.postInitialState(this.capabilityContext());
+    if (storage === this.storage) await this.postCapabilitySettings();
   }
 
   private async prepareStorage(storage: ReaderStorage) {
@@ -242,11 +253,14 @@ export class PaperReaderPanel {
   }
 
   private async postCapabilitySettings() {
+    const documentId = this.documentId;
+    const readiness = await this.capabilities.readiness();
+    if (documentId !== this.documentId) return;
     await this.panel.webview.postMessage({
       type: 'capabilitySettings',
-      documentId: this.documentId,
+      documentId,
       payload: {
-        capabilities: this.capabilityPreferences.getDescriptors(await this.capabilities.readiness())
+        capabilities: this.capabilityPreferences.getDescriptors(readiness)
       }
     });
   }

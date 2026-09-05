@@ -74,6 +74,7 @@ export function PdfDocumentView({
   const highlightSyncFrameRef = useRef<number | undefined>(undefined);
   const horizontalCenterFrameRef = useRef<number | undefined>(undefined);
   const pendingHighlightLayersRef = useRef(new Set<HTMLElement>());
+  const renderedPagesRef = useRef(new Set<number>());
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -92,6 +93,9 @@ export function PdfDocumentView({
       return;
     }
     const renderedScale = renderedHighlightScaleRef.current || viewer.currentScale || nextScale;
+    window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
+    highlightSyncFrameRef.current = undefined;
+    renderedPagesRef.current.clear();
     const layers = getHighlightLayers(viewerContainerRef.current);
     pendingHighlightLayersRef.current = new Set(layers);
     viewerContainerRef.current?.classList.toggle('pdf-scale-in-progress', layers.length > 0);
@@ -119,16 +123,20 @@ export function PdfDocumentView({
     if (!viewerContainerRef.current?.classList.contains('pdf-scale-in-progress')) {
       return;
     }
-    window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
+    renderedPagesRef.current.add(event.pageNumber);
+    if (highlightSyncFrameRef.current !== undefined) return;
     highlightSyncFrameRef.current = window.requestAnimationFrame(() => {
-      const pageView = viewer.getPageView(event.pageNumber! - 1);
-      const pageElement = pageView?.div as HTMLElement | undefined;
-      for (const layer of getHighlightLayers(pageElement || null)) {
-        layer.style.transform = '';
-        layer.style.transformOrigin = '';
-        layer.dataset.renderedScale = String(viewer.currentScale);
-        pendingHighlightLayersRef.current.delete(layer);
+      highlightSyncFrameRef.current = undefined;
+      for (const pageNumber of renderedPagesRef.current) {
+        const pageElement = viewer.getPageView(pageNumber - 1)?.div;
+        for (const layer of getHighlightLayers(pageElement || null)) {
+          layer.style.transform = '';
+          layer.style.transformOrigin = '';
+          layer.dataset.renderedScale = String(viewer.currentScale);
+          pendingHighlightLayersRef.current.delete(layer);
+        }
       }
+      renderedPagesRef.current.clear();
       renderedHighlightScaleRef.current = viewer.currentScale;
       if (pendingHighlightLayersRef.current.size === 0) {
         viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
@@ -197,6 +205,7 @@ export function PdfDocumentView({
       layer.style.transformOrigin = '';
     }
     pendingHighlightLayersRef.current.clear();
+    renderedPagesRef.current.clear();
     viewerContainerRef.current = null;
     pdfViewerRef.current = null;
     window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);

@@ -5,6 +5,7 @@ import type { CapabilityHostContext, HostCapability } from './hostTypes';
 import { AnnotationHostCapability } from './annotations/host';
 import { TranslationHostCapability } from './translation/host';
 import { WordbookHostCapability } from './wordbook/host';
+import { INLEAF_IDS } from '../identity';
 
 export interface HostRegistryContext {
   documentId: string;
@@ -47,6 +48,30 @@ export class HostCapabilityRegistry implements vscode.Disposable {
 
   async readiness() {
     return { translation: await this.translation.readiness() };
+  }
+
+  async configurationChanged(event: vscode.ConfigurationChangeEvent, context: HostRegistryContext) {
+    const preferencesChanged = event.affectsConfiguration(`${INLEAF_IDS.configuration}.capabilities`);
+    if (this.translation.affectsConfiguration(event)) {
+      await this.translation.refreshSettings(context);
+      return true;
+    }
+    if (preferencesChanged) {
+      const preferences = vscode.workspace.getConfiguration(INLEAF_IDS.configuration)
+        .get<{ translation?: { enabled?: boolean } }>('capabilities');
+      if (preferences?.translation?.enabled === false) this.cancelPending();
+    }
+    return preferencesChanged;
+  }
+
+  async secretChanged(key: string, context: HostRegistryContext) {
+    if (key !== INLEAF_IDS.secrets.deepSeekApiKey) return false;
+    await this.translation.refreshSettings(context);
+    return true;
+  }
+
+  cancelPending() {
+    this.translation.cancelPending();
   }
 
   dispose() {

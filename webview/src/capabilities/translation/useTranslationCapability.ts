@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { TranslationSettings } from '../../../../src/translationTypes';
 import type { WordDetails } from '../../types';
+import { vscode } from '../../vscodeApi';
 
 const defaultSettings: TranslationSettings = {
   provider: 'argos',
@@ -20,19 +21,33 @@ export function useTranslationCapability() {
   const [sourceText, setSourceText] = useState('');
   const [output, setOutput] = useState('');
   const [wordDetails, setWordDetails] = useState<WordDetails | undefined>();
+  const pending = useRef<{ requestId: string; text: string }>();
+
+  const cancel = useCallback(() => {
+    if (pending.current) {
+      vscode.postMessage({ type: 'capabilityRequest', capabilityId: 'translation', action: 'cancel',
+        payload: { requestId: pending.current.requestId } });
+      pending.current = undefined;
+    }
+  }, []);
 
   const handleEvent = useCallback((event: string, payload: unknown, expectedSourceText: string) => {
     if (!isRecord(payload)) {
       return {};
     }
     if (event === 'settings') {
+      cancel();
+      setSourceText('');
+      setOutput('');
+      setWordDetails(undefined);
       setSettings(payload as unknown as TranslationSettings);
       return {};
     }
     if (event === 'result' && typeof payload.sourceText === 'string') {
-      if (payload.sourceText !== expectedSourceText) {
+      if (!pending.current || payload.sourceText !== expectedSourceText || payload.requestId !== pending.current.requestId) {
         return {};
       }
+      pending.current = undefined;
       setSourceText(payload.sourceText);
       setOutput(typeof payload.error === 'string'
         ? payload.error
@@ -41,19 +56,26 @@ export function useTranslationCapability() {
       return { activatePanel: 'translation' as const };
     }
     return {};
-  }, []);
+  }, [cancel]);
 
   const start = useCallback((text: string) => {
+    if (pending.current?.text === text) return;
+    cancel();
+    const requestId = crypto.randomUUID();
+    pending.current = { requestId, text };
     setSourceText(text);
     setOutput('Translating...');
     setWordDetails(undefined);
-  }, []);
+    vscode.postMessage({ type: 'capabilityRequest', capabilityId: 'translation', action: 'translate',
+      payload: { text, requestId } });
+  }, [cancel]);
 
   const clearResult = useCallback(() => {
+    cancel();
     setSourceText('');
     setOutput('');
     setWordDetails(undefined);
-  }, []);
+  }, [cancel]);
 
   return { settings, sourceText, output, wordDetails, handleEvent, start, clearResult };
 }

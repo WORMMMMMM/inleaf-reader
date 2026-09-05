@@ -12,13 +12,20 @@ import {
 const CONFIGURATION_KEY = 'capabilities';
 
 export class CapabilityPreferenceService {
+  private updates: Promise<void> = Promise.resolve();
   getDescriptors(
     readiness?: Parameters<typeof resolveCapabilityDescriptors>[1]
   ): CapabilityDescriptor[] {
     return resolveCapabilityDescriptors(this.configuration().get(CONFIGURATION_KEY), readiness);
   }
 
-  async update(capabilityId: CapabilityId, patch: CapabilityPreference) {
+  update(capabilityId: CapabilityId, patch: CapabilityPreference) {
+    const next = this.updates.then(() => this.applyUpdate(capabilityId, patch));
+    this.updates = next.catch(() => undefined);
+    return next;
+  }
+
+  private async applyUpdate(capabilityId: CapabilityId, patch: CapabilityPreference) {
     if (!isCapabilityId(capabilityId)) {
       throw new Error(`Unknown reader capability: ${String(capabilityId)}`);
     }

@@ -18,6 +18,7 @@ import {
   decodeAnnotations,
   decodeProgress,
   decodeWords,
+  decodeWordInput,
   DecodedSidecar,
   encodeAnnotations,
   encodeProgress,
@@ -169,12 +170,13 @@ export class ReaderStorage {
   }
 
   async addWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
+    const validated = decodeWordInput(input);
     return this.enqueueMutation(async () => {
       this.wordsCache = undefined;
       const now = new Date().toISOString();
       const words = await this.loadWords();
       const updated = [{
-        ...input,
+        ...validated,
         id: cryptoRandomId(),
         createdAt: now,
         updatedAt: now

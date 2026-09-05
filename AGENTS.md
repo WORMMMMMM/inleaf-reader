@@ -166,6 +166,11 @@ public documentation.
 - Ordinary settings are edited in the in-reader Settings surface and persisted
   through VS Code configuration. Secrets stay in Extension Host SecretStorage;
   the Webview receives readiness booleans only.
+- Serialize capability preference writes and read the current value inside the
+  queue. Configuration/secret events are the refresh entry point: publish only
+  affected settings and descriptors, never reload every capability's data.
+- Validate wordbook mutations with the same field rules as persisted word
+  records; discard client-supplied ids and timestamps before writing.
 
 ## Translation Contract
 
@@ -187,6 +192,10 @@ public documentation.
   logs, or source files.
 - Translation responses remain tied to both the source text and active document
   session so stale asynchronous results cannot replace newer work.
+- Carry a unique translation request id through each request and result. Only
+  the active request may update the UI, even when two requests have identical
+  source text. Cancel obsolete remote requests; skip cancelled queued Argos
+  requests without killing an active local computation.
 
 ## Code Quality Principles
 
@@ -219,6 +228,8 @@ public documentation.
   through in-place `navigateTo` messages.
 - Avoid React state updates for every event in rapid scroll or zoom bursts when
   a throttled visual update and debounced persistence are sufficient.
+- Batch rendered page numbers during zoom into one animation-frame update;
+  events from different pages must not cancel each other's highlight cleanup.
 
 ## AI Reading Order
 

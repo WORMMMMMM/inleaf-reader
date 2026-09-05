@@ -1,4 +1,5 @@
 import type { WordRecord } from '../../readerDataTypes';
+import { decodeWordInput } from '../../sidecarSchemas';
 import { isRecord } from '../contracts';
 
 export type WordbookCapabilityRequest =
@@ -18,7 +19,7 @@ export function decodeWordbookRequest(action: string, payload: unknown): Wordboo
     if (typeof payload.word !== 'string' || !payload.word.trim()) {
       throw new Error('A word is required before it can be saved.');
     }
-    return { action, payload: payload as unknown as Extract<WordbookCapabilityRequest, { action: 'save' }>['payload'] };
+    return { action, payload: decodeWordInput(payload) };
   }
   if (action === 'delete') {
     if (typeof payload.id !== 'string' || !payload.id.trim()) {

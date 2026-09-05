@@ -75,6 +75,10 @@ try {
   };
   const storage = new ReaderStorage(Uri.file(pdfPath), memento);
 
+  await assert.rejects(storage.addWord({ word: 'algorithm', page: -1 }), /page/);
+  await assert.rejects(storage.addWord({ word: 'algorithm', definitions: 'invalid' }), /definitions/);
+  await assert.rejects(stat(path.join(directory, '.inleaf-reader', 'paper.pdf.wordbook.json')), /ENOENT/);
+
   await Promise.all(Array.from({ length: 12 }, (_, index) => storage.addAnnotation({
     page: 1,
     selectedText: `selection-${index}`,

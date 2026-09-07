@@ -2,8 +2,10 @@
   <img src="assets/inleaf-reader-logo.png" width="112" alt="Inleaf Reader logo">
   <h1>Inleaf Reader</h1>
   <p><strong>Your Books. Your AI. Your Flow.</strong></p>
-  <p>在 VS Code 里阅读 PDF，用你自己的 AI 随时提问，让思考不断流。</p>
+  <p>Read PDFs in VS Code, ask your own AI, and keep your thoughts flowing.</p>
 </div>
+
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 ![Inleaf Reader open beside an AI assistant, with PDF highlights and annotations](assets/inleaf-reader-example.png)
 
@@ -29,17 +31,20 @@ use, and is straightforward for AI tools to inspect and work with.
 - **Keep data AI-ready:** annotations, vocabulary, exports, and progress use portable files beside the document.
 - **Stay focused:** the side panel starts hidden and appears only when you ask for it.
 
-## 整理阅读笔记（试用）
+## Organize reading notes (preview)
 
-打开批注面板，点击 **整理阅读笔记**。选择当前 PDF 或多个 PDF，
-分别输入 PDF 页码范围（如 `1-5, 8`，留空代表全部），再选择标签、
-是否仅包含带评论的高亮，以及忠实摘录、主题整理或分享文章。
-确认向导显示的批注数量后选择保存目录，即可得到 `notes.md`、
-`notes.json` 和 `整理说明.md`。跨页批注完整保留，不截断引用。
+Open the annotations panel and click **整理阅读笔记** (Organize reading notes).
+Choose the current PDF or multiple PDFs, enter PDF page ranges for each
+(such as `1-5, 8`; leave blank for all pages), and choose tags, whether to include
+only highlights with comments, and an output style: faithful excerpts, thematic
+notes, or a shareable article. Confirm the annotation count and choose a folder
+to export `notes.md`, `notes.json`, and `整理说明.md`. Cross-page annotations
+are preserved in full rather than truncated.
 
-把整个整理包交给你自己的 AI，按说明生成预览，再写入你的 Notion。
-扩展本身不连接或自动上传 Notion；导出包含原文、个人批注和来源标识，
-不包含本机完整路径。标题、作者和印刷页码未识别时保持未知。
+Give the packet to your own AI to produce a preview before writing to Notion.
+The extension does not connect to or automatically upload to Notion. Exports
+include original text, personal notes, and source identifiers, but no absolute
+local paths. Unidentified titles, authors, and printed page numbers remain unknown.
 
 ## Who is it for?
 

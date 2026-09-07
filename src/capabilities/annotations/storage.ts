@@ -12,6 +12,7 @@ export interface AnnotationCapabilityStorage {
   restore(record: AnnotationRecord): Promise<AnnotationRecord[]>;
   exportMarkdown(): Promise<{ fsPath: string }>;
   exportPdf(): Promise<{ fsPath: string }>;
+  readNotesSource: ReaderStorage['readNotesSource'];
 }
 
 export function annotationStorage(storage: ReaderStorage): AnnotationCapabilityStorage {
@@ -22,6 +23,7 @@ export function annotationStorage(storage: ReaderStorage): AnnotationCapabilityS
     delete: id => storage.deleteAnnotation(id),
     restore: record => storage.restoreAnnotation(record),
     exportMarkdown: () => storage.exportAnnotationsMarkdown(),
-    exportPdf: () => storage.exportAnnotatedPdf()
+    exportPdf: () => storage.exportAnnotatedPdf(),
+    readNotesSource: uri => storage.readNotesSource(uri)
   };
 }

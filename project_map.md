@@ -64,6 +64,9 @@ VS Code command
 - `src/readerDataTypes.ts`: Provider-neutral wordbook and progress records used
   across storage, translation, and message boundaries.
 - `src/annotationExports.ts`: Pure Markdown formatting and annotated-PDF export.
+- `src/readingNotes.ts`: Page-range filtering and portable AI reading-note packets.
+- `src/capabilities/annotations/organizeNotes.ts`: File/range/filter selection and
+  export wizard for Markdown, JSON, and AI-to-Notion instructions.
 - `src/translationService.ts`: Translation facade and provider routing; also
   enriches wordbook entries and reports provider readiness.
 - `src/translationTypes.ts`: Provider-neutral translation and dictionary types.
@@ -99,8 +102,9 @@ VS Code command
   `react-pdf-highlighter-plus`, PDF.js events, zoom, and highlight rendering.
 - `webview/src/components/AnnotationWidgets.tsx`: Annotation list/editor,
   selection toolbar, dictionary result, and wordbook presentation components.
-- `webview/src/annotationModel.ts`: Pure annotation conversion, filtering,
-  sorting, payload, tag, and word-summary functions.
+- `webview/src/annotationModel.ts`: Pure annotation conversion, visual-line
+  geometry coalescing, filtering, sorting, payload, tag, and word-summary
+  functions.
 - `webview/src/pdfSelection.ts`: Lazy margin/figure classification and clean
   cross-page PDF selection reconstruction.
 - `webview/src/messages.ts`: Extension-to-Webview discriminated message union.

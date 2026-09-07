@@ -76,6 +76,40 @@ assert.equal('unexpected' in word, false);
 const timestamp = new Date().toISOString();
 assert.equal(decodeWords(encodeWords([{ ...word, id: 'real', createdAt: timestamp, updatedAt: timestamp }])).value[0].word, 'algorithm');
 
+// Fragmented PDF spans become one coherent rectangle per visual line while
+// distant columns, following lines, and other pages remain separate.
+const { annotationToHighlight, coalesceTextHighlightPosition } = loadSource('webview/src/annotationModel.ts');
+const scaledRect = (x1, y1, x2, y2, pageNumber = 1) => ({
+  x1, y1, x2, y2, width: 1000, height: 1200, pageNumber
+});
+const fragmentedPosition = {
+  boundingRect: scaledRect(100, 200, 760, 290),
+  rects: [
+    scaledRect(100, 200, 180, 220),
+    scaledRect(186, 201, 320, 221),
+    scaledRect(700, 200, 760, 220),
+    scaledRect(100, 270, 220, 290),
+    scaledRect(226, 270, 400, 290),
+    scaledRect(100, 200, 190, 220, 2)
+  ]
+};
+const coherentPosition = coalesceTextHighlightPosition(fragmentedPosition);
+assert.equal(coherentPosition.rects.length, 4);
+assert.deepEqual(
+  Array.from(coherentPosition.rects, rect => [rect.pageNumber, rect.x1, rect.y1, rect.x2, rect.y2]),
+  [
+    [1, 100, 200, 320, 221],
+    [1, 700, 200, 760, 220],
+    [1, 100, 270, 400, 290],
+    [2, 100, 200, 190, 220]
+  ]
+);
+assert.equal(fragmentedPosition.rects[0].x2, 180, 'coalescing must not mutate persisted positions');
+assert.equal(annotationToHighlight({
+  id: 'existing', selectedText: 'existing annotation', note: '',
+  createdAt: timestamp, updatedAt: timestamp, highlighterPosition: fragmentedPosition
+}).position.rects.length, 4, 'existing annotations should also render with coherent rectangles');
+
 // Exercise PdfDocumentView through the event bus with a deterministic frame scheduler.
 let frameId = 0;
 const frames = new Map();
@@ -260,4 +294,4 @@ networkCancel.abort(); await networkResult;
 assert.equal(fetchSignal.aborted, true);
 networkService.dispose();
 
-console.log('Reader concurrency behavior tests passed: settings, word validation, multi-page zoom, translation identity/cancellation, and targeted refresh.');
+console.log('Reader behavior tests passed: settings, word validation, coherent selection geometry, multi-page zoom, translation identity/cancellation, and targeted refresh.');

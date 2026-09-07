@@ -21287,26 +21287,58 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 });
 //#endregion
 //#region webview/src/annotationModel.ts
-function js(e) {
-	let t = e.highlighterPosition || Ns(e.rects);
-	if (t) return {
+var js = .55, Ms = 1.5, Ns = .002;
+function Ps(e) {
+	if (e.usePdfCoordinates || e.rects.length < 2) return e;
+	let t = [];
+	for (let n of [...e.rects].sort(Ks)) {
+		let e;
+		for (let r = t.length - 1; r >= 0; --r) if (Js(t[r][0], n)) {
+			e = t[r];
+			break;
+		}
+		e ? e.push(n) : t.push([n]);
+	}
+	let n = t.flatMap((e) => {
+		let t = [];
+		for (let n of e.sort(qs)) {
+			let e = t.at(-1);
+			if (!e || !Ys(e, n)) {
+				t.push({ ...n });
+				continue;
+			}
+			e.x1 = Math.min(e.x1, n.x1), e.y1 = Math.min(e.y1, n.y1), e.x2 = Math.max(e.x2, n.x2), e.y2 = Math.max(e.y2, n.y2);
+		}
+		return t;
+	});
+	return n.length === e.rects.length ? e : {
+		...e,
+		boundingRect: Zs(n, e.boundingRect),
+		rects: n
+	};
+}
+function Fs(e) {
+	let t = e.highlighterPosition || Ls(e.rects);
+	if (!t) return;
+	let n = Ps(t);
+	return {
 		id: e.id,
 		type: e.selectedText ? "text" : "area",
 		content: { text: e.selectedText || e.note },
-		position: t,
+		position: n,
 		annotation: e
 	};
 }
-function Ms(e) {
+function Is(e) {
 	return (e.rects.length ? e.rects : [e.boundingRect]).map((e) => ({
 		page: e.pageNumber,
-		x: Vs(e.x1, e.width),
-		y: Vs(e.y1, e.height),
-		width: Vs(e.x2 - e.x1, e.width),
-		height: Vs(e.y2 - e.y1, e.height)
+		x: Gs(e.x1, e.width),
+		y: Gs(e.y1, e.height),
+		width: Gs(e.x2 - e.x1, e.width),
+		height: Gs(e.y2 - e.y1, e.height)
 	}));
 }
-function Ns(e) {
+function Ls(e) {
 	if (!e?.length) return;
 	let t = e.map((e) => ({
 		x1: e.x,
@@ -21330,8 +21362,8 @@ function Ns(e) {
 		rects: r
 	};
 }
-function Ps(e, t) {
-	let n = t.query.trim().toLowerCase(), r = Is(t.tags);
+function Rs(e, t) {
+	let n = t.query.trim().toLowerCase(), r = Bs(t.tags);
 	return [...e].filter((e) => {
 		let i = [
 			e.selectedText,
@@ -21341,53 +21373,85 @@ function Ps(e, t) {
 			...e.tags || []
 		].join(" ").toLowerCase();
 		return (!n || i.includes(n)) && (!r.length || r.every((t) => (e.tags || []).includes(t))) && (!t.color || (e.color || "#ffd654") === t.color) && (!t.kind || (e.kind || "highlight") === t.kind);
-	}).sort((e, n) => Rs(e, n, t.sort));
+	}).sort((e, n) => Hs(e, n, t.sort));
 }
-function Fs(e, t) {
+function zs(e, t) {
 	let n = t.note?.trim() || "";
-	if (!(!e.selectedText.trim() || t.note !== void 0 && !n)) return {
-		page: e.selectionPosition?.boundingRect.pageNumber || e.currentPage,
+	if (!e.selectedText.trim() || t.note !== void 0 && !n) return;
+	let r = e.selectionPosition ? Ps(e.selectionPosition) : void 0;
+	return {
+		page: r?.boundingRect.pageNumber || e.currentPage,
 		selectedText: e.selectedText,
 		note: n,
 		tags: [],
 		color: t.color,
 		kind: t.kind,
-		highlighterPosition: e.selectionPosition,
-		rects: e.selectionPosition ? Ms(e.selectionPosition) : void 0
-	};
-}
-function Is(e) {
-	let t = Array.isArray(e) ? e : e.split(/[,\s#]+/);
-	return [...new Set(t.map((e) => e.trim().replace(/^#/, "").toLowerCase()).filter(Boolean))];
-}
-function Ls(e) {
-	let t = e.definitions.map((e) => e.translation || e.meaning).map((e) => e.trim()).filter(Boolean);
-	return [...new Set(t)].slice(0, 4).join("; ");
-}
-function Rs(e, t, n) {
-	if (n === "created") return Bs(t.createdAt) - Bs(e.createdAt);
-	if (n === "updated") return Bs(t.updatedAt) - Bs(e.updatedAt);
-	let r = zs(e), i = zs(t);
-	return r.page - i.page || r.y - i.y || r.x - i.x || Bs(e.createdAt) - Bs(t.createdAt);
-}
-function zs(e) {
-	let t = e.rects?.[0], n = e.highlighterPosition?.boundingRect;
-	return {
-		page: t?.page || n?.pageNumber || e.page || 2 ** 53 - 1,
-		y: t?.y ?? (n ? Vs(n.y1, n.height) : 2 ** 53 - 1),
-		x: t?.x ?? (n ? Vs(n.x1, n.width) : 2 ** 53 - 1)
+		highlighterPosition: r,
+		rects: r ? Is(r) : void 0
 	};
 }
 function Bs(e) {
+	let t = Array.isArray(e) ? e : e.split(/[,\s#]+/);
+	return [...new Set(t.map((e) => e.trim().replace(/^#/, "").toLowerCase()).filter(Boolean))];
+}
+function Vs(e) {
+	let t = e.definitions.map((e) => e.translation || e.meaning).map((e) => e.trim()).filter(Boolean);
+	return [...new Set(t)].slice(0, 4).join("; ");
+}
+function Hs(e, t, n) {
+	if (n === "created") return Ws(t.createdAt) - Ws(e.createdAt);
+	if (n === "updated") return Ws(t.updatedAt) - Ws(e.updatedAt);
+	let r = Us(e), i = Us(t);
+	return r.page - i.page || r.y - i.y || r.x - i.x || Ws(e.createdAt) - Ws(t.createdAt);
+}
+function Us(e) {
+	let t = e.rects?.[0], n = e.highlighterPosition?.boundingRect;
+	return {
+		page: t?.page || n?.pageNumber || e.page || 2 ** 53 - 1,
+		y: t?.y ?? (n ? Gs(n.y1, n.height) : 2 ** 53 - 1),
+		x: t?.x ?? (n ? Gs(n.x1, n.width) : 2 ** 53 - 1)
+	};
+}
+function Ws(e) {
 	let t = Date.parse(e);
 	return Number.isNaN(t) ? 0 : t;
 }
-function Vs(e, t) {
+function Gs(e, t) {
 	return t ? e / t : 0;
+}
+function Ks(e, t) {
+	return e.pageNumber - t.pageNumber || Xs(e) - Xs(t) || qs(e, t);
+}
+function qs(e, t) {
+	return Gs(e.x1, e.width) - Gs(t.x1, t.width);
+}
+function Js(e, t) {
+	if (e.pageNumber !== t.pageNumber) return !1;
+	let n = Gs(e.y2 - e.y1, e.height), r = Gs(t.y2 - t.y1, t.height), i = Math.max(n, r);
+	return Math.abs(Xs(e) - Xs(t)) <= i * js;
+}
+function Ys(e, t) {
+	let n = Gs(e.y2 - e.y1, e.height), r = Gs(t.y2 - t.y1, t.height), i = Math.max(n, r);
+	return Gs(t.x1, t.width) - Gs(e.x2, e.width) <= Math.max(Ns, i * Ms);
+}
+function Xs(e) {
+	return Gs(e.y1 + e.y2, e.height * 2);
+}
+function Zs(e, t) {
+	let n = Math.min(...e.map((e) => e.pageNumber)), r = e.filter((e) => e.pageNumber === n), i = r[0];
+	return i ? {
+		x1: Math.min(...r.map((e) => e.x1)),
+		y1: Math.min(...r.map((e) => e.y1)),
+		x2: Math.max(...r.map((e) => e.x2)),
+		y2: Math.max(...r.map((e) => e.y2)),
+		width: i.width,
+		height: i.height,
+		pageNumber: n
+	} : t;
 }
 //#endregion
 //#region webview/src/components/AnnotationWidgets.tsx
-var Hs = y.createContext(void 0), Us = [
+var Qs = y.createContext(void 0), $s = [
 	{
 		label: "Yellow",
 		value: "#ffd654"
@@ -21409,16 +21473,16 @@ var Hs = y.createContext(void 0), Us = [
 		value: "#d7b8ff"
 	}
 ];
-function Ws({ annotation: e, active: t, onFocus: n, onEdit: r, onCopy: i, onDelete: a }) {
+function ec({ annotation: e, active: t, onFocus: n, onEdit: r, onCopy: i, onDelete: a }) {
 	return /* @__PURE__ */ (0, L.jsxs)("article", {
 		className: `item annotation-item${t ? " active-item" : ""}`,
 		onClick: n,
 		children: [
 			/* @__PURE__ */ (0, L.jsxs)("strong", { children: ["Page ", e.page || e.highlighterPosition?.boundingRect.pageNumber || "-"] }),
-			/* @__PURE__ */ (0, L.jsx)("p", { children: Zs(e.selectedText || e.note || "Page note", 220) }),
+			/* @__PURE__ */ (0, L.jsx)("p", { children: sc(e.selectedText || e.note || "Page note", 220) }),
 			e.note ? /* @__PURE__ */ (0, L.jsx)("p", {
 				className: "note",
-				children: Zs(e.note, 180)
+				children: sc(e.note, 180)
 			}) : null,
 			e.tags?.length ? /* @__PURE__ */ (0, L.jsx)("div", {
 				className: "annotation-tags",
@@ -21428,19 +21492,19 @@ function Ws({ annotation: e, active: t, onFocus: n, onEdit: r, onCopy: i, onDele
 				className: "annotation-actions",
 				children: [
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: $s(n),
+						onClick: lc(n),
 						children: "Jump"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: $s(r),
+						onClick: lc(r),
 						children: "Edit"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: $s(i),
+						onClick: lc(i),
 						children: "Copy MD"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: $s(a),
+						onClick: lc(a),
 						children: "Delete"
 					})
 				]
@@ -21448,7 +21512,7 @@ function Ws({ annotation: e, active: t, onFocus: n, onEdit: r, onCopy: i, onDele
 		]
 	});
 }
-function Gs({ annotations: e }) {
+function tc({ annotations: e }) {
 	if (!e.length) return null;
 	let t = e.filter((e) => (e.kind || "highlight") === "highlight").length, n = e.filter((e) => e.kind === "underline").length, r = /* @__PURE__ */ new Map();
 	e.forEach((e) => (e.tags || []).forEach((e) => r.set(e, (r.get(e) || 0) + 1)));
@@ -21467,7 +21531,7 @@ function Gs({ annotations: e }) {
 		]
 	});
 }
-function Ks({ word: e, onDelete: t }) {
+function nc({ word: e, onDelete: t }) {
 	return /* @__PURE__ */ (0, L.jsxs)("article", {
 		className: "item",
 		children: [
@@ -21503,7 +21567,7 @@ function Ks({ word: e, onDelete: t }) {
 		]
 	});
 }
-function qs({ annotation: e, onCancel: t, onSave: n }) {
+function rc({ annotation: e, onCancel: t, onSave: n }) {
 	let [r, i] = (0, y.useState)(e.selectedText || ""), [a, o] = (0, y.useState)(e.note || ""), [s, c] = (0, y.useState)((e.tags || []).join(", ")), [l, u] = (0, y.useState)(e.color || "#ffd654"), [d, f] = (0, y.useState)(e.kind || "highlight"), p = (0, y.useRef)(null), m = !!(r.trim() || a.trim());
 	(0, y.useEffect)(() => {
 		p.current?.focus();
@@ -21516,7 +21580,7 @@ function qs({ annotation: e, onCancel: t, onSave: n }) {
 		n({
 			selectedText: r.trim(),
 			note: a.trim(),
-			tags: Is(s),
+			tags: Bs(s),
 			color: l,
 			kind: d
 		});
@@ -21538,7 +21602,7 @@ function qs({ annotation: e, onCancel: t, onSave: n }) {
 			/* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "selection-toolbar-row",
 				children: [
-					Us.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+					$s.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
 						className: `swatch${l === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
@@ -21567,7 +21631,7 @@ function qs({ annotation: e, onCancel: t, onSave: n }) {
 				rows: 3,
 				value: a,
 				onChange: (e) => o(e.target.value),
-				onKeyDown: (e) => Qs(e, h),
+				onKeyDown: (e) => cc(e, h),
 				placeholder: "Write a note..."
 			})] }),
 			/* @__PURE__ */ (0, L.jsxs)("label", { children: ["Tags", /* @__PURE__ */ (0, L.jsx)("input", {
@@ -21589,7 +21653,7 @@ function qs({ annotation: e, onCancel: t, onSave: n }) {
 		]
 	});
 }
-function Js({ onDelete: e, onEdit: t }) {
+function ic({ onDelete: e, onEdit: t }) {
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "selection-toolbar annotation-inline-actions",
 		onClick: (e) => e.stopPropagation(),
@@ -21605,8 +21669,8 @@ function Js({ onDelete: e, onEdit: t }) {
 		})]
 	});
 }
-function Ys() {
-	let e = y.useContext(Hs);
+function ac() {
+	let e = y.useContext(Qs);
 	if (!e) return null;
 	let { selectedText: t, translationSourceText: n, translationText: r, wordDetails: i, annotationsEnabled: a, translationEnabled: o, wordbookEnabled: s, onHighlight: c, onUnderline: l, onSaveNote: u, onTranslate: d, onSaveWord: f } = e, [p, m] = (0, y.useState)("#ffd654"), [h, g] = (0, y.useState)(), [_, v] = (0, y.useState)(""), b = (0, y.useRef)(null);
 	(0, y.useEffect)(() => {
@@ -21641,7 +21705,7 @@ function Ys() {
 			/* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "selection-toolbar-row",
 				children: [a ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-					Us.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+					$s.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
 						className: `swatch${p === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
@@ -21673,7 +21737,7 @@ function Ys() {
 					value: _,
 					onChange: (e) => v(e.target.value),
 					onKeyDown: (e) => {
-						Qs(e, x) || e.key === "Escape" && (e.preventDefault(), g(void 0));
+						cc(e, x) || e.key === "Escape" && (e.preventDefault(), g(void 0));
 					},
 					placeholder: "Write a note...",
 					rows: 3
@@ -21696,7 +21760,7 @@ function Ys() {
 						className: "selection-result-status",
 						children: "Looking up..."
 					}) : null,
-					!w && T ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)(ec, { details: T }), /* @__PURE__ */ (0, L.jsxs)("div", {
+					!w && T ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)(uc, { details: T }), /* @__PURE__ */ (0, L.jsxs)("div", {
 						className: "selection-note-actions",
 						children: [s ? /* @__PURE__ */ (0, L.jsx)("button", {
 							onClick: () => f(T),
@@ -21725,22 +21789,22 @@ function Ys() {
 		]
 	});
 }
-function Xs(e, t) {
+function oc(e, t) {
 	return t ? e === t ? `${t} annotation${t === 1 ? "" : "s"}` : `${e} of ${t} annotations` : "0 annotations";
 }
-function Zs(e, t) {
+function sc(e, t) {
 	let n = e.replace(/\s+/g, " ").trim();
 	return n.length > t ? `${n.slice(0, t - 1)}...` : n;
 }
-function Qs(e, t) {
+function cc(e, t) {
 	return e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing ? !1 : (e.preventDefault(), t(), !0);
 }
-function $s(e) {
+function lc(e) {
 	return (t) => {
 		t.stopPropagation(), e();
 	};
 }
-function ec({ details: e }) {
+function uc({ details: e }) {
 	if (!e.definitions.length) return null;
 	let t = e.definitions.filter((e, t, n) => n.findIndex((t) => t.pos === e.pos && t.meaning === e.meaning) === t);
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
@@ -21764,50 +21828,50 @@ function ec({ details: e }) {
 }
 //#endregion
 //#region webview/src/pdfSelection.ts
-var tc = .08, nc = .04, rc = /^(?:figure|fig\.)\s*\d+/i;
-function ic(e) {
+var dc = .08, Q = .04, fc = /^(?:figure|fig\.)\s*\d+/i;
+function pc(e) {
 	let t = e.querySelector(".textLayer");
 	if (!t || t.dataset.readerSelectionRegionsMarked === "true" || !t.querySelector(".endOfContent")) return;
 	let n = e.getBoundingClientRect();
 	if (!n.width || !n.height) return;
-	let r = n.top + n.height * tc, i = n.bottom - n.height * tc, a = n.left + n.width * nc, o = n.right - n.width * nc, s = t.querySelectorAll("span");
+	let r = n.top + n.height * dc, i = n.bottom - n.height * dc, a = n.left + n.width * Q, o = n.right - n.width * Q, s = t.querySelectorAll("span");
 	if (!s.length) return;
 	for (let e of s) {
 		if (e.querySelector("span") || !e.textContent?.trim()) continue;
 		let t = e.getBoundingClientRect(), n = t.left + t.width / 2, s = t.top + t.height / 2;
 		e.classList.toggle("reader-margin-text", t.width > 0 && t.height > 0 && (s < r || s > i || n < a || n > o));
 	}
-	let c = cc(e, s);
+	let c = _c(e, s);
 	for (let e of s) {
-		let t = e.getBoundingClientRect(), r = gc(t.top + t.height / 2 - n.top, n.height);
+		let t = e.getBoundingClientRect(), r = Ec(t.top + t.height / 2 - n.top, n.height);
 		e.classList.toggle("reader-figure-text", c.some((e) => r >= e.top && r <= e.bottom));
 	}
 	e.dataset.readerFigureRegions = JSON.stringify(c), t.dataset.readerSelectionRegionsMarked = "true";
 }
-function ac(e) {
-	return !!fc(e?.anchorNode)?.closest(".reader-margin-text, .reader-figure-text");
+function mc(e) {
+	return !!Sc(e?.anchorNode)?.closest(".reader-margin-text, .reader-figure-text");
 }
-function oc(e, t) {
+function hc(e, t) {
 	if (!e || e.isCollapsed || !e.rangeCount) return "";
 	let n = e.getRangeAt(0), r = n.commonAncestorContainer.ownerDocument || window.document, i = [];
-	for (let e of uc(n)) {
-		ic(e);
+	for (let e of yc(n)) {
+		pc(e);
 		let a = e.querySelector(".textLayer");
 		if (!a) continue;
 		let o = r.createTreeWalker(a, NodeFilter.SHOW_TEXT, { acceptNode(e) {
-			if (!e.textContent || !dc(n, e)) return NodeFilter.FILTER_REJECT;
-			let r = fc(e);
+			if (!e.textContent || !bc(n, e)) return NodeFilter.FILTER_REJECT;
+			let r = Sc(e);
 			return !t && r?.closest(".reader-margin-text, .reader-figure-text") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
 		} }), s = o.nextNode();
 		for (; s;) {
-			let e = Q(n, s);
+			let e = xc(n, s);
 			e && i.push(e), s = o.nextNode();
 		}
 	}
 	return i.join(" ").replace(/\s+/g, " ").trim();
 }
-function sc(e) {
-	let t = e.rects.filter((e) => !pc(e) && !mc(e));
+function gc(e) {
+	let t = e.rects.filter((e) => !Cc(e) && !wc(e));
 	if (!t.length) return e;
 	let n = Math.min(...t.map((e) => e.pageNumber)), r = t.filter((e) => e.pageNumber === n);
 	return {
@@ -21824,12 +21888,12 @@ function sc(e) {
 		rects: t
 	};
 }
-function cc(e, t) {
-	let n = lc(t, e.getBoundingClientRect()), r = [];
+function _c(e, t) {
+	let n = vc(t, e.getBoundingClientRect()), r = [];
 	for (let e = 0; e < n.length; e += 1) {
 		let t = n[e];
-		if (!rc.test(t.text)) continue;
-		let i = n.slice(0, e), a = hc(n.map((e) => e.height)) || .015, o = Math.max(a * 2.5, .025), s = t.top;
+		if (!fc.test(t.text)) continue;
+		let i = n.slice(0, e), a = Tc(n.map((e) => e.height)) || .015, o = Math.max(a * 2.5, .025), s = t.top;
 		for (let e = 1; e < i.length; e += 1) if (i[e].top - i[e - 1].bottom >= o) {
 			s = (i[e - 1].bottom + i[e].top) / 2;
 			break;
@@ -21847,15 +21911,15 @@ function cc(e, t) {
 	}
 	return r;
 }
-function lc(e, t) {
+function vc(e, t) {
 	let n = Array.from(e).filter((e) => !e.querySelector("span") && !e.classList.contains("reader-margin-text") && !!e.textContent?.trim()).map((e) => {
 		let n = e.getBoundingClientRect();
 		return {
 			text: e.textContent.trim(),
-			left: gc(n.left - t.left, t.width),
-			top: gc(n.top - t.top, t.height),
-			bottom: gc(n.bottom - t.top, t.height),
-			height: gc(n.height, t.height)
+			left: Ec(n.left - t.left, t.width),
+			top: Ec(n.top - t.top, t.height),
+			bottom: Ec(n.bottom - t.top, t.height),
+			height: Ec(n.height, t.height)
 		};
 	}).filter((e) => e.height > 0).sort((e, t) => e.top - t.top || e.left - t.left), r = [];
 	for (let e of n) {
@@ -21882,8 +21946,8 @@ function lc(e, t) {
 		height: e.height
 	})).sort((e, t) => e.top - t.top);
 }
-function uc(e) {
-	let t = fc(e.startContainer)?.closest(".page"), n = fc(e.endContainer)?.closest(".page");
+function yc(e) {
+	let t = Sc(e.startContainer)?.closest(".page"), n = Sc(e.endContainer)?.closest(".page");
 	if (!t && !n) return [];
 	if (!t || !n || t === n) return [t || n];
 	let r = t.closest(".PdfHighlighter");
@@ -21891,45 +21955,45 @@ function uc(e) {
 	let i = Array.from(r.querySelectorAll(".page")), a = i.indexOf(t), o = i.indexOf(n);
 	return a < 0 || o < 0 ? [t, n] : i.slice(Math.min(a, o), Math.max(a, o) + 1);
 }
-function dc(e, t) {
+function bc(e, t) {
 	try {
 		return e.intersectsNode(t);
 	} catch {
 		return !1;
 	}
 }
-function Q(e, t) {
+function xc(e, t) {
 	let n = t.textContent || "", r = e.startContainer === t ? e.startOffset : 0, i = e.endContainer === t ? e.endOffset : n.length;
 	return n.slice(r, i);
 }
-function fc(e) {
+function Sc(e) {
 	return e ? e instanceof Element ? e : e.parentElement : null;
 }
-function pc(e) {
-	let t = gc(e.x1 + e.x2, e.width * 2), n = gc(e.y1 + e.y2, e.height * 2);
-	return n < tc || n > .92 || t < nc || t > .96;
+function Cc(e) {
+	let t = Ec(e.x1 + e.x2, e.width * 2), n = Ec(e.y1 + e.y2, e.height * 2);
+	return n < dc || n > .92 || t < Q || t > .96;
 }
-function mc(e) {
+function wc(e) {
 	let t = document.querySelector(`.PdfHighlighter .page[data-page-number="${e.pageNumber}"]`);
 	if (!t?.dataset.readerFigureRegions) return !1;
 	try {
-		let n = JSON.parse(t.dataset.readerFigureRegions), r = gc(e.y1 + e.y2, e.height * 2);
+		let n = JSON.parse(t.dataset.readerFigureRegions), r = Ec(e.y1 + e.y2, e.height * 2);
 		return n.some((e) => r >= e.top && r <= e.bottom);
 	} catch {
 		return !1;
 	}
 }
-function hc(e) {
+function Tc(e) {
 	if (!e.length) return 0;
 	let t = [...e].sort((e, t) => e - t), n = Math.floor(t.length / 2);
 	return t.length % 2 ? t[n] : (t[n - 1] + t[n]) / 2;
 }
-function gc(e, t) {
+function Ec(e, t) {
 	return t ? e / t : 0;
 }
 //#endregion
 //#region webview/src/components/PdfDocumentView.tsx
-function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
+function Dc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
 	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(void 0), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(/* @__PURE__ */ new Set());
 	(0, y.useEffect)(() => {
 		a(n.numPages);
@@ -21941,7 +22005,7 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		if (!t || typeof n != "number") return;
 		let r = m.current || t.currentScale || n;
 		window.cancelAnimationFrame(h.current || 0), h.current = void 0, v.current.clear();
-		let i = xc(f.current);
+		let i = jc(f.current);
 		_.current = new Set(i), f.current?.classList.toggle("pdf-scale-in-progress", i.length > 0);
 		for (let e of i) {
 			let t = Number(e.dataset.renderedScale) || r;
@@ -21950,7 +22014,7 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		window.cancelAnimationFrame(g.current || 0), g.current = window.requestAnimationFrame(() => {
 			g.current = void 0;
 			let e = p.current;
-			e && vc(e);
+			e && Oc(e);
 		});
 	}, []), S = (0, y.useCallback)((e) => {
 		let t = p.current;
@@ -21958,7 +22022,7 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 			h.current = void 0;
 			for (let e of v.current) {
 				let n = t.getPageView(e - 1)?.div;
-				for (let e of xc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
+				for (let e of jc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
 			}
 			v.current.clear(), m.current = t.currentScale, _.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
 		})));
@@ -21966,7 +22030,7 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), c(e.deltaY));
 	}, [c]), w = (0, y.useCallback)((e) => {
 		let t = e.target instanceof Element ? e.target : null, n = t?.closest(".page");
-		n && ic(n), f.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
+		n && pc(n), f.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
 	}, []), T = (0, y.useCallback)((e) => {
 		let t = e.getEventBus();
 		d.current !== t && (d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), t?.on("pagechanging", b), t?.on("scalechanging", x), t?.on("textlayerrendered", S), t?.on("pagerendered", S), d.current = t);
@@ -22000,19 +22064,19 @@ function _c({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		textSelectionColor: "rgba(64, 141, 255, 0.28)",
 		utilsRef: T,
 		style: { height: "100%" },
-		children: /* @__PURE__ */ (0, L.jsx)(yc, {
+		children: /* @__PURE__ */ (0, L.jsx)(kc, {
 			activeId: e,
 			onOpen: o
 		})
 	});
 }
-function vc(e) {
+function Oc(e) {
 	let t = e.getPageView(e.currentPageNumber - 1)?.div;
 	if (!t) return;
 	let { container: n } = e, r = n.getBoundingClientRect(), i = t.getBoundingClientRect(), a = i.left - r.left + i.width / 2, o = n.scrollLeft + a - n.clientWidth / 2, s = Math.max(0, n.scrollWidth - n.clientWidth);
 	n.scrollLeft = Math.min(s, Math.max(0, o));
 }
-function yc({ activeId: e, onOpen: t }) {
+function kc({ activeId: e, onOpen: t }) {
 	let { highlight: n, isScrolledTo: r, highlightBindings: i } = No(), a = n.annotation, o = a?.id === e ? " active-highlight" : "";
 	if (!a) return n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
 		highlight: n,
@@ -22026,7 +22090,7 @@ function yc({ activeId: e, onOpen: t }) {
 	});
 	let s = a.note || a.tags?.length ? {
 		position: n.position,
-		content: /* @__PURE__ */ (0, L.jsx)(bc, { annotation: a })
+		content: /* @__PURE__ */ (0, L.jsx)(Ac, { annotation: a })
 	} : void 0, c = n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
 		highlight: n,
 		isScrolledTo: r,
@@ -22047,7 +22111,7 @@ function yc({ activeId: e, onOpen: t }) {
 		children: c || l
 	}) : c || l;
 }
-function bc({ annotation: e }) {
+function Ac({ annotation: e }) {
 	return !e.note && !e.tags?.length ? null : /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "highlight-tooltip",
 		children: [e.note ? /* @__PURE__ */ (0, L.jsx)("p", { children: e.note }) : null, e.tags?.length ? /* @__PURE__ */ (0, L.jsx)("div", {
@@ -22056,29 +22120,29 @@ function bc({ annotation: e }) {
 		}) : null]
 	});
 }
-function xc(e) {
+function jc(e) {
 	return e ? Array.from(e.querySelectorAll(".PdfHighlighter__highlight-layer, .PdfHighlighter__note-layer, .PdfHighlighter__config-layer")) : [];
 }
 //#endregion
 //#region webview/src/vscodeApi.ts
-var Sc = window.readerConfig, Cc = window.acquireVsCodeApi(), wc = Sc.documentId;
-function Tc(e) {
-	wc = e;
+var Mc = window.readerConfig, Nc = window.acquireVsCodeApi(), Pc = Mc.documentId;
+function Fc(e) {
+	Pc = e;
 }
-var Ec = {
+var Ic = {
 	postMessage(e) {
-		Cc.postMessage({
+		Nc.postMessage({
 			...e,
-			documentId: wc
+			documentId: Pc
 		});
 	},
-	getState: () => Cc.getState(),
-	setState: (e) => Cc.setState(e)
-}, Dc = [
+	getState: () => Nc.getState(),
+	setState: (e) => Nc.setState(e)
+}, Lc = [
 	"annotations",
 	"wordbook",
 	"translation"
-], Oc = [
+], Rc = [
 	{
 		id: "annotations",
 		title: "Annotations",
@@ -22122,9 +22186,9 @@ var Ec = {
 		}
 	}
 ];
-function kc(e, t = {}) {
-	let n = Ac(e);
-	return Oc.map((e) => {
+function zc(e, t = {}) {
+	let n = Bc(e);
+	return Rc.map((e) => {
 		let r = n[e.id];
 		return {
 			...e,
@@ -22136,49 +22200,49 @@ function kc(e, t = {}) {
 		};
 	}).sort((e, t) => e.order - t.order || e.title.localeCompare(t.title));
 }
-function Ac(e) {
-	if (!jc(e)) return {};
+function Bc(e) {
+	if (!$(e)) return {};
 	let t = {};
-	for (let n of Dc) {
+	for (let n of Lc) {
 		let r = e[n];
-		if (!jc(r)) continue;
+		if (!$(r)) continue;
 		let i = {};
 		typeof r.enabled == "boolean" && (i.enabled = r.enabled), typeof r.showInPanel == "boolean" && (i.showInPanel = r.showInPanel), typeof r.order == "number" && Number.isFinite(r.order) && (i.order = r.order), t[n] = i;
 	}
 	return t;
 }
-function jc(e) {
+function $(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
 //#region webview/src/capabilities/annotations/useAnnotationsCapability.ts
-function Mc() {
+function Vc() {
 	let [e, t] = (0, y.useState)([]);
 	return {
 		annotations: e,
-		handleEvent: (0, y.useCallback)((e, n) => Nc(n) ? (e === "state" && Array.isArray(n.annotations) && t(n.annotations), { ...e === "result" && typeof n.message == "string" ? { status: n.message } : {} }) : {}, []),
+		handleEvent: (0, y.useCallback)((e, n) => Hc(n) ? (e === "state" && Array.isArray(n.annotations) && t(n.annotations), { ...e === "result" && typeof n.message == "string" ? { status: n.message } : {} }) : {}, []),
 		reset: (0, y.useCallback)(() => t([]), [])
 	};
 }
-function Nc(e) {
+function Hc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
 //#region webview/src/capabilities/wordbook/useWordbookCapability.ts
-function Pc() {
+function Uc() {
 	let [e, t] = (0, y.useState)([]);
 	return {
 		words: e,
-		handleEvent: (0, y.useCallback)((e, n) => (e !== "state" || !Fc(n) || !Array.isArray(n.words) || t(n.words), {}), []),
+		handleEvent: (0, y.useCallback)((e, n) => (e !== "state" || !Wc(n) || !Array.isArray(n.words) || t(n.words), {}), []),
 		reset: (0, y.useCallback)(() => t([]), [])
 	};
 }
-function Fc(e) {
+function Wc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
 //#region webview/src/capabilities/translation/useTranslationCapability.ts
-var Ic = {
+var Gc = {
 	provider: "argos",
 	deepSeekModel: "deepseek-v4-flash",
 	libreTranslateEndpoint: "http://localhost:5000/translate",
@@ -22190,9 +22254,9 @@ var Ic = {
 	dictionaryReady: !1,
 	argosPythonFound: !1
 };
-function Lc() {
-	let [e, t] = (0, y.useState)(Ic), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), c = (0, y.useRef)(), l = (0, y.useCallback)(() => {
-		c.current &&= (Ec.postMessage({
+function Kc() {
+	let [e, t] = (0, y.useState)(Gc), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), c = (0, y.useRef)(), l = (0, y.useCallback)(() => {
+		c.current &&= (Ic.postMessage({
 			type: "capabilityRequest",
 			capabilityId: "translation",
 			action: "cancel",
@@ -22204,7 +22268,7 @@ function Lc() {
 		sourceText: n,
 		output: i,
 		wordDetails: o,
-		handleEvent: (0, y.useCallback)((e, n, i) => Rc(n) ? e === "settings" ? (l(), r(""), a(""), s(void 0), t(n), {}) : e === "result" && typeof n.sourceText == "string" ? !c.current || n.sourceText !== i || n.requestId !== c.current.requestId ? {} : (c.current = void 0, r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(Rc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, [l]),
+		handleEvent: (0, y.useCallback)((e, n, i) => qc(n) ? e === "settings" ? (l(), r(""), a(""), s(void 0), t(n), {}) : e === "result" && typeof n.sourceText == "string" ? !c.current || n.sourceText !== i || n.requestId !== c.current.requestId ? {} : (c.current = void 0, r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(qc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, [l]),
 		start: (0, y.useCallback)((e) => {
 			if (c.current?.text === e) return;
 			l();
@@ -22212,7 +22276,7 @@ function Lc() {
 			c.current = {
 				requestId: t,
 				text: e
-			}, r(e), a("Translating..."), s(void 0), Ec.postMessage({
+			}, r(e), a("Translating..."), s(void 0), Ic.postMessage({
 				type: "capabilityRequest",
 				capabilityId: "translation",
 				action: "translate",
@@ -22227,27 +22291,27 @@ function Lc() {
 		}, [l])
 	};
 }
-function Rc(e) {
+function qc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
 //#region webview/src/capabilities/OverviewPanel.tsx
-function zc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
+function Jc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "side-tab-panel",
 		children: [
 			/* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "overview-grid",
 				children: [
-					/* @__PURE__ */ (0, L.jsx)(Bc, {
+					/* @__PURE__ */ (0, L.jsx)(Yc, {
 						label: "Page",
 						value: `${e} / ${t || "-"}`
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Bc, {
+					/* @__PURE__ */ (0, L.jsx)(Yc, {
 						label: "Annotations",
 						value: n
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Bc, {
+					/* @__PURE__ */ (0, L.jsx)(Yc, {
 						label: "Words",
 						value: r
 					})
@@ -22264,7 +22328,7 @@ function zc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, st
 				className: "tool-block",
 				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current selection" }), a.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
 					className: "selection-preview",
-					children: $(a, 260)
+					children: Xc(a, 260)
 				}) : /* @__PURE__ */ (0, L.jsx)("div", {
 					className: "empty compact-empty",
 					children: "Select text in the PDF to act on it."
@@ -22273,19 +22337,19 @@ function zc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, st
 		]
 	});
 }
-function Bc({ label: e, value: t }) {
+function Yc({ label: e, value: t }) {
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "metric-card",
 		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("strong", { children: t })]
 	});
 }
-function $(e, t) {
+function Xc(e, t) {
 	let n = e.replace(/\s+/g, " ").trim();
 	return n.length > t ? `${n.slice(0, t - 1)}...` : n;
 }
 //#endregion
 //#region webview/src/capabilities/SettingsView.tsx
-function Vc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
+function Zc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "settings-view",
 		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22305,7 +22369,7 @@ function Vc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 								className: "capability-card-heading",
 								children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("h3", { children: t.title }), /* @__PURE__ */ (0, L.jsx)("p", { children: t.description })] }), /* @__PURE__ */ (0, L.jsx)("span", {
 									className: `capability-readiness ${t.readiness}`,
-									children: Gc(t.readiness)
+									children: tl(t.readiness)
 								})]
 							}),
 							t.readinessMessage ? /* @__PURE__ */ (0, L.jsx)("p", {
@@ -22348,7 +22412,7 @@ function Vc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 					}, t.id))
 				})
 			]
-		}), /* @__PURE__ */ (0, L.jsx)(Hc, {
+		}), /* @__PURE__ */ (0, L.jsx)(Qc, {
 			settings: t,
 			onSetting: i,
 			onConfigureDeepSeek: a,
@@ -22356,12 +22420,12 @@ function Vc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 		})]
 	});
 }
-function Hc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
+function Qc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "settings-section",
 		children: [
 			/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation" }),
-			/* @__PURE__ */ (0, L.jsxs)(Uc, {
+			/* @__PURE__ */ (0, L.jsxs)($c, {
 				label: "Provider",
 				value: e.provider,
 				onChange: (e) => t("provider", e),
@@ -22381,7 +22445,7 @@ function Hc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 				]
 			}),
 			e.provider === "deepseek" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsxs)(Uc, {
+				/* @__PURE__ */ (0, L.jsxs)($c, {
 					label: "DeepSeek model",
 					value: e.deepSeekModel,
 					onChange: (e) => t("deepSeekModel", e),
@@ -22403,23 +22467,23 @@ function Hc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 					children: e.hasDeepSeekApiKey ? "Replace API Key" : "Set API Key"
 				})
 			] }) : null,
-			/* @__PURE__ */ (0, L.jsx)(Wc, {
+			/* @__PURE__ */ (0, L.jsx)(el, {
 				label: "Source language",
 				value: e.source,
 				onCommit: (e) => t("source", e)
 			}),
-			/* @__PURE__ */ (0, L.jsx)(Wc, {
+			/* @__PURE__ */ (0, L.jsx)(el, {
 				label: "Target language",
 				value: e.target,
 				onCommit: (e) => t("target", e)
 			}),
-			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(Wc, {
+			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(el, {
 				label: "LibreTranslate endpoint",
 				value: e.libreTranslateEndpoint,
 				onCommit: (e) => t("libreTranslateEndpoint", e)
 			}) : null,
 			e.provider === "argos" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsx)(Wc, {
+				/* @__PURE__ */ (0, L.jsx)(el, {
 					label: "Argos Python path",
 					value: e.argosPythonPath,
 					placeholder: "Use the bundled .venv-translate path",
@@ -22450,7 +22514,7 @@ function Hc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 		]
 	});
 }
-function Uc({ label: e, value: t, onChange: n, children: r }) {
+function $c({ label: e, value: t, onChange: n, children: r }) {
 	return /* @__PURE__ */ (0, L.jsxs)("label", {
 		className: "setting-field",
 		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("select", {
@@ -22460,7 +22524,7 @@ function Uc({ label: e, value: t, onChange: n, children: r }) {
 		})]
 	});
 }
-function Wc({ label: e, value: t, placeholder: n, onCommit: r }) {
+function el({ label: e, value: t, placeholder: n, onCommit: r }) {
 	let [i, a] = (0, y.useState)(t);
 	return (0, y.useEffect)(() => a(t), [t]), /* @__PURE__ */ (0, L.jsxs)("label", {
 		className: "setting-field",
@@ -22475,12 +22539,12 @@ function Wc({ label: e, value: t, placeholder: n, onCommit: r }) {
 		})]
 	});
 }
-function Gc(e) {
+function tl(e) {
 	return e === "needsSetup" ? "Needs setup" : e[0].toUpperCase() + e.slice(1);
 }
 //#endregion
 //#region webview/src/capabilities/ReaderSideSurface.tsx
-function Kc({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
+function nl({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
 	return /* @__PURE__ */ (0, L.jsxs)("aside", {
 		className: "side-panel",
 		"aria-hidden": e === "closed",
@@ -22509,7 +22573,7 @@ function Kc({ surface: e, title: t, activePanel: n, panels: r, settings: i, onAc
 }
 //#endregion
 //#region webview/src/capabilities/annotations/AnnotationsPanel.tsx
-function qc(e) {
+function rl(e) {
 	return /* @__PURE__ */ (0, L.jsx)("section", {
 		className: "side-tab-panel list-block",
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22534,7 +22598,7 @@ function qc(e) {
 					children: [/* @__PURE__ */ (0, L.jsx)("option", {
 						value: "",
 						children: "All colors"
-					}), Us.map((e) => /* @__PURE__ */ (0, L.jsx)("option", {
+					}), $s.map((e) => /* @__PURE__ */ (0, L.jsx)("option", {
 						value: e.value,
 						children: e.label
 					}, e.value))]
@@ -22577,13 +22641,20 @@ function qc(e) {
 				}),
 				/* @__PURE__ */ (0, L.jsxs)("div", {
 					className: "actions",
-					children: [/* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: e.onExportMarkdown,
-						children: "Export Markdown"
-					}), /* @__PURE__ */ (0, L.jsx)("button", {
-						onClick: e.onExportPdf,
-						children: "Export PDF"
-					})]
+					children: [
+						/* @__PURE__ */ (0, L.jsx)("button", {
+							onClick: e.onOrganizeNotes,
+							children: "整理阅读笔记"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("button", {
+							onClick: e.onExportMarkdown,
+							children: "Export Markdown"
+						}),
+						/* @__PURE__ */ (0, L.jsx)("button", {
+							onClick: e.onExportPdf,
+							children: "Export PDF"
+						})
+					]
 				}),
 				e.canUndo ? /* @__PURE__ */ (0, L.jsx)("button", {
 					className: "undo-button",
@@ -22592,12 +22663,12 @@ function qc(e) {
 				}) : null,
 				/* @__PURE__ */ (0, L.jsx)("div", {
 					className: "status-line",
-					children: Xs(e.annotations.length, e.total)
+					children: oc(e.annotations.length, e.total)
 				}),
-				/* @__PURE__ */ (0, L.jsx)(Gs, { annotations: e.annotations }),
+				/* @__PURE__ */ (0, L.jsx)(tc, { annotations: e.annotations }),
 				/* @__PURE__ */ (0, L.jsx)("div", {
 					className: "list",
-					children: e.annotations.length ? e.annotations.map((t) => /* @__PURE__ */ (0, L.jsx)(Ws, {
+					children: e.annotations.length ? e.annotations.map((t) => /* @__PURE__ */ (0, L.jsx)(ec, {
 						annotation: t,
 						active: t.id === e.activeId,
 						onFocus: () => e.onFocus(t),
@@ -22615,7 +22686,7 @@ function qc(e) {
 }
 //#endregion
 //#region webview/src/capabilities/translation/TranslationPanel.tsx
-function Jc({ selectedText: e, output: t, wordDetails: n }) {
+function il({ selectedText: e, output: t, wordDetails: n }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "side-tab-panel",
 		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22631,7 +22702,7 @@ function Jc({ selectedText: e, output: t, wordDetails: n }) {
 			className: "tool-block",
 			children: [
 				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Result" }),
-				n ? /* @__PURE__ */ (0, L.jsx)(ec, { details: n }) : null,
+				n ? /* @__PURE__ */ (0, L.jsx)(uc, { details: n }) : null,
 				!n && t.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
 					className: "translation-preview",
 					children: t
@@ -22646,7 +22717,7 @@ function Jc({ selectedText: e, output: t, wordDetails: n }) {
 }
 //#endregion
 //#region webview/src/capabilities/wordbook/WordbookPanel.tsx
-function Yc({ words: e, onDelete: t }) {
+function al({ words: e, onDelete: t }) {
 	return /* @__PURE__ */ (0, L.jsx)("section", {
 		className: "side-tab-panel list-block",
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22657,7 +22728,7 @@ function Yc({ words: e, onDelete: t }) {
 				")"
 			] }), e.length ? /* @__PURE__ */ (0, L.jsx)("div", {
 				className: "list",
-				children: e.map((e) => /* @__PURE__ */ (0, L.jsx)(Ks, {
+				children: e.map((e) => /* @__PURE__ */ (0, L.jsx)(nc, {
 					word: e,
 					onDelete: () => t(e.id)
 				}, e.id))
@@ -22670,27 +22741,27 @@ function Yc({ words: e, onDelete: t }) {
 }
 //#endregion
 //#region webview/src/capabilities/registry.ts
-var Xc = [
+var ol = [
 	{
 		id: "annotations",
-		render: (e) => y.createElement(qc, e.annotations)
+		render: (e) => y.createElement(rl, e.annotations)
 	},
 	{
 		id: "wordbook",
-		render: (e) => y.createElement(Yc, e.wordbook)
+		render: (e) => y.createElement(al, e.wordbook)
 	},
 	{
 		id: "translation",
-		render: (e) => y.createElement(Jc, e.translation)
+		render: (e) => y.createElement(il, e.translation)
 	}
 ];
-function Zc(e) {
+function sl(e) {
 	let t = new Map(e.map((e) => [e.id, e]));
-	return Xc.map((e) => t.get(e.id)).filter((e) => !!e && e.enabled && e.showInPanel).sort((e, t) => e.order - t.order);
+	return ol.map((e) => t.get(e.id)).filter((e) => !!e && e.enabled && e.showInPanel).sort((e, t) => e.order - t.order);
 }
-function Qc(e, t) {
-	let n = new Map(Zc(e).map((e) => [e.id, e])), r = [];
-	for (let e of Xc) {
+function cl(e, t) {
+	let n = new Map(sl(e).map((e) => [e.id, e])), r = [];
+	for (let e of ol) {
 		let i = n.get(e.id);
 		i && r.push({
 			id: i.id,
@@ -22700,28 +22771,28 @@ function Qc(e, t) {
 	}
 	return r.sort((e, t) => (n.get(e.id)?.order ?? 0) - (n.get(t.id)?.order ?? 0));
 }
-function $c(e, t) {
+function ll(e, t) {
 	return e.find((e) => e.id === t)?.enabled ?? !0;
 }
-function el(e, t) {
+function ul(e, t) {
 	return t[e.capabilityId]?.(e.event, e.payload) ?? {};
 }
 //#endregion
 //#region webview/src/main.tsx
-var tl = {
+var dl = {
 	progress: { updatedAt: (/* @__PURE__ */ new Date(0)).toISOString() },
-	paperName: Sc.paperName
+	paperName: Mc.paperName
 };
-function nl() {
-	let [e, t] = (0, y.useState)(tl), n = Mc(), r = Pc(), i = Lc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => kc(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Sc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Sc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Sc.documentId), be = (0, y.useRef)({
+function fl() {
+	let [e, t] = (0, y.useState)(dl), n = Vc(), r = Uc(), i = Kc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => zc(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Mc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Mc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Mc.documentId), be = (0, y.useRef)({
 		selectedText: "",
 		selectionPosition: void 0,
 		currentPage: 1
 	}), xe = (0, y.useMemo)(() => ({
 		url: M,
-		cMapUrl: Sc.pdfCMapUrl,
+		cMapUrl: Mc.pdfCMapUrl,
 		cMapPacked: !0,
-		standardFontDataUrl: Sc.pdfStandardFontDataUrl,
+		standardFontDataUrl: Mc.pdfStandardFontDataUrl,
 		useWorkerFetch: !1,
 		disableStream: !0,
 		disableAutoFetch: !0,
@@ -22732,13 +22803,13 @@ function nl() {
 		useSystemFonts: !1
 	}), [M]), Se = (0, y.useCallback)((e) => {
 		ue.current = e, window.clearTimeout(le.current), le.current = window.setTimeout(() => {
-			Ec.postMessage({
+			Ic.postMessage({
 				type: "saveProgress",
 				payload: { page: e }
 			}), ue.current = void 0;
 		}, 350);
 	}, []), Ce = (0, y.useCallback)(() => {
-		window.clearTimeout(le.current), ue.current !== void 0 && (Ec.postMessage({
+		window.clearTimeout(le.current), ue.current !== void 0 && (Ic.postMessage({
 			type: "saveProgress",
 			payload: { page: ue.current }
 		}), ue.current = void 0);
@@ -22753,7 +22824,7 @@ function nl() {
 		let t = ce.current?.getViewer();
 		t && (t.currentScaleValue = e.toString());
 	}, []), De = (0, y.useCallback)((e, t = !1) => {
-		let n = ce.current?.getViewer(), r = il((me.current ?? n?.currentScale ?? 1) * e);
+		let n = ce.current?.getViewer(), r = ml((me.current ?? n?.currentScale ?? 1) * e);
 		if (!t) {
 			window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, n && (n.currentScale = r), window.clearTimeout(he.current), T(r);
 			return;
@@ -22764,7 +22835,7 @@ function nl() {
 			me.current = void 0;
 			let t = ce.current?.getViewer();
 			t && e !== void 0 && (t.currentScale = e);
-		})), ge.current && (ge.current.textContent = al(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
+		})), ge.current && (ge.current.textContent = hl(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
 			T(r);
 		}, 140);
 	}, []), Oe = (0, y.useCallback)((e) => {
@@ -22775,7 +22846,7 @@ function nl() {
 		Ce(), window.clearTimeout(de.current), window.cancelAnimationFrame(pe.current || 0), window.clearTimeout(he.current), pe.current = void 0, me.current = void 0, document.body.classList.remove("reader-mounted");
 	}), [Ce]), (0, y.useEffect)(() => {
 		let e = !1, t;
-		return fl(Sc.pdfWorkerUrl).then((n) => {
+		return Sl(Mc.pdfWorkerUrl).then((n) => {
 			if (e) {
 				URL.revokeObjectURL(n);
 				return;
@@ -22792,7 +22863,7 @@ function nl() {
 			let t = document.activeElement;
 			if (t instanceof HTMLElement && t.closest("input, textarea, [contenteditable=\"true\"]")) return;
 			let n = be.current.selectedText.trim();
-			n && (e.preventDefault(), Ec.postMessage({
+			n && (e.preventDefault(), Ic.postMessage({
 				type: "copySelection",
 				payload: { text: n }
 			}));
@@ -22805,22 +22876,22 @@ function nl() {
 	(0, y.useEffect)(() => {
 		ve.current = s;
 	}, [s]), (0, y.useEffect)(() => {
-		Ec.postMessage({ type: "ready" });
+		Ic.postMessage({ type: "ready" });
 	}, []), (0, y.useEffect)(() => {
 		let e = (e) => {
 			let a = e.data;
 			if (a.type === "navigateTo" || a.documentId === ye.current) {
-				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Tc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(tl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), $c(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
-					if (a.event === "error" && sl(a.payload)) {
+				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Fc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(dl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), ll(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
+					if (a.event === "error" && _l(a.payload)) {
 						D(a.payload.message);
 						return;
 					}
-					let e = el(a, {
+					let e = ul(a, {
 						annotations: n.handleEvent,
 						wordbook: r.handleEvent,
 						translation: (e, t) => i.handleEvent(e, t, be.current.selectedText.trim())
 					});
-					e.status && D(e.status), e.activatePanel && $c(ve.current, e.activatePanel) && oe(e.activatePanel);
+					e.status && D(e.status), e.activatePanel && ll(ve.current, e.activatePanel) && oe(e.activatePanel);
 				}
 				a.type === "clipboardResult" && D(a.payload.error || a.payload.message || "Done.");
 			}
@@ -22836,10 +22907,10 @@ function nl() {
 		r.reset
 	]), (0, y.useEffect)(() => {
 		if (!e.progress?.page || !S) return;
-		let t = window.setTimeout(() => Xe(e.progress.page || 1, !1), 250);
+		let t = window.setTimeout(() => Ze(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
 	}, [S, e.progress?.page]);
-	let Ae = (0, y.useMemo)(() => $c(s, "annotations") ? n.annotations.map(js).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Ps(n.annotations, {
+	let Ae = (0, y.useMemo)(() => ll(s, "annotations") ? n.annotations.map(Fs).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Rs(n.annotations, {
 		query: l,
 		tags: d,
 		color: p,
@@ -22852,16 +22923,16 @@ function nl() {
 		h,
 		_,
 		d
-	]), Me = (0, y.useMemo)(() => Zc(s), [s]);
+	]), Me = (0, y.useMemo)(() => sl(s), [s]);
 	(0, y.useEffect)(() => {
 		ae !== "overview" && !Me.some((e) => e.id === ae) && oe("overview");
 	}, [ae, Me]), (0, y.useEffect)(() => {
-		$c(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
+		ll(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
 	}, [s]);
 	function Ne(e) {
 		let t = window.getSelection();
-		t?.rangeCount && uc(t.getRangeAt(0)).forEach(ic);
-		let n = ac(t), r = oc(t, n), a = e.makeGhostHighlight(), s = n ? a.position : sc(a.position), c = r || a.content.text || "";
+		t?.rangeCount && yc(t.getRangeAt(0)).forEach(pc);
+		let n = mc(t), r = hc(t, n), a = e.makeGhostHighlight(), s = Ps(n ? a.position : gc(a.position)), c = r || a.content.text || "";
 		a.content.text = c, a.position = s, o(c), x(s.boundingRect.pageNumber), i.clearResult(), be.current = {
 			selectedText: c,
 			selectionPosition: s,
@@ -22869,7 +22940,7 @@ function nl() {
 		}, D("Selection captured.");
 	}
 	function Pe(e, t) {
-		let n = ce.current, r = n?.getViewer(), i = e.highlighterPosition || Ns(e.rects), a = t || (i && r ? fo(i, r) : void 0);
+		let n = ce.current, r = n?.getViewer(), i = e.highlighterPosition || Ls(e.rects), a = t || (i && r ? fo(i, r) : void 0);
 		if (!n || !a) {
 			D("This annotation cannot be opened inline because its position is unavailable.");
 			return;
@@ -22885,7 +22956,7 @@ function nl() {
 		let { tipPosition: r, utils: i } = n;
 		k(e.id), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
-			content: /* @__PURE__ */ (0, L.jsx)(Js, {
+			content: /* @__PURE__ */ (0, L.jsx)(ic, {
 				onEdit: () => Ie(e, r),
 				onDelete: () => {
 					Le(e), Re();
@@ -22897,13 +22968,13 @@ function nl() {
 		let n = Pe(e, t);
 		if (!n) return;
 		let { tipPosition: r, utils: i } = n;
-		k(e.id), Ye(e), i.toggleEditInProgress(!0), i.setTip({
+		k(e.id), Xe(e), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
-			content: /* @__PURE__ */ (0, L.jsx)(qs, {
+			content: /* @__PURE__ */ (0, L.jsx)(rc, {
 				annotation: e,
 				onCancel: Re,
 				onSave: (t) => {
-					ol("annotations", "update", {
+					gl("annotations", "update", {
 						id: e.id,
 						patch: t
 					}), D("Annotation saved."), Re();
@@ -22912,14 +22983,14 @@ function nl() {
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
 	function Le(e) {
-		j(e), ol("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
+		j(e), gl("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
 	}
 	function Re() {
 		let e = ce.current;
 		e?.setTip(null), e?.toggleEditInProgress(!1), k(void 0);
 	}
 	function ze() {
-		A && (ol("annotations", "restore", A), j(void 0));
+		A && (gl("annotations", "restore", A), j(void 0));
 	}
 	function Be() {
 		o(""), k(void 0), be.current = {
@@ -22928,9 +22999,20 @@ function nl() {
 			currentPage: 1
 		};
 	}
-	let Ve = (0, y.useCallback)((e) => {
+	let Ve = (0, y.useCallback)(() => {
+		let e = ce.current;
+		e?.setTip(null), e?.removeGhostHighlight(), e?.toggleEditInProgress(!1), Be(), i.clearResult();
+	}, [i.clearResult]);
+	(0, y.useEffect)(() => {
+		function e(e) {
+			let t = e.target instanceof Element ? e.target : null;
+			!t || t.closest(".PdfHighlighter__tip-container, .selection-toolbar") || Ve();
+		}
+		return document.addEventListener("pointerdown", e, !0), () => document.removeEventListener("pointerdown", e, !0);
+	}, [Ve]);
+	let He = (0, y.useCallback)((e) => {
 		let t = be.current;
-		if (!rl(t, {
+		if (!pl(t, {
 			color: e,
 			kind: "highlight"
 		})) {
@@ -22938,9 +23020,9 @@ function nl() {
 			return;
 		}
 		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
-	}, []), He = (0, y.useCallback)((e) => {
+	}, []), Ue = (0, y.useCallback)((e) => {
 		let t = be.current;
-		if (!rl(t, {
+		if (!pl(t, {
 			color: e,
 			kind: "underline"
 		})) {
@@ -22948,13 +23030,13 @@ function nl() {
 			return;
 		}
 		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
-	}, []), Ue = (0, y.useCallback)((e, t) => {
+	}, []), We = (0, y.useCallback)((e, t) => {
 		let n = be.current;
 		if (!n.selectedText.trim()) {
 			D("Select text before adding a note.");
 			return;
 		}
-		if (!rl(n, {
+		if (!pl(n, {
 			color: t,
 			kind: "highlight",
 			note: e
@@ -22963,54 +23045,54 @@ function nl() {
 			return;
 		}
 		Be(), ce.current?.removeGhostHighlight(), D("Note saved.");
-	}, []), We = (0, y.useCallback)(() => {
+	}, []), Ge = (0, y.useCallback)(() => {
 		let e = be.current, t = e.selectedText.trim();
 		if (!t) {
 			D("Select text before translating.");
 			return;
 		}
-		o(t), x(e.currentPage), i.start(t), Zc(s).some((e) => e.id === "translation") && oe("translation");
-	}, [s, i.start]), Ge = (0, y.useCallback)((e) => {
+		o(t), x(e.currentPage), i.start(t), sl(s).some((e) => e.id === "translation") && oe("translation");
+	}, [s, i.start]), Ke = (0, y.useCallback)((e) => {
 		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
 			D("Select a word before saving it.");
 			return;
 		}
-		ol("wordbook", "save", {
+		gl("wordbook", "save", {
 			word: e.word,
-			translation: Ls(e),
+			translation: Vs(e),
 			phonetic: e.phonetic,
 			definitions: e.definitions,
 			sentence: n,
 			note: "",
 			page: t.currentPage
-		}), ce.current?.removeGhostHighlight(), Zc(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
-	}, [s]), Ke = (0, y.useMemo)(() => ({
+		}), ce.current?.removeGhostHighlight(), sl(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
+	}, [s]), qe = (0, y.useMemo)(() => ({
 		selectedText: a,
 		translationSourceText: i.sourceText,
 		translationText: i.output,
 		wordDetails: i.wordDetails,
-		annotationsEnabled: $c(s, "annotations"),
-		translationEnabled: $c(s, "translation"),
-		wordbookEnabled: $c(s, "wordbook"),
-		onHighlight: Ve,
-		onUnderline: He,
-		onSaveNote: Ue,
-		onTranslate: We,
-		onSaveWord: Ge
+		annotationsEnabled: ll(s, "annotations"),
+		translationEnabled: ll(s, "translation"),
+		wordbookEnabled: ll(s, "wordbook"),
+		onHighlight: He,
+		onUnderline: Ue,
+		onSaveNote: We,
+		onTranslate: Ge,
+		onSaveWord: Ke
 	}), [
 		s,
-		Ve,
 		He,
 		Ue,
-		Ge,
-		a,
 		We,
+		Ke,
+		a,
+		Ge,
 		i.output,
 		i.sourceText,
 		i.wordDetails
-	]), qe = (0, y.useMemo)(() => /* @__PURE__ */ (0, L.jsx)(Ys, {}), []), Je = /* @__PURE__ */ (0, L.jsx)(Hs.Provider, {
-		value: Ke,
+	]), Je = (0, y.useMemo)(() => /* @__PURE__ */ (0, L.jsx)(ac, {}), []), Ye = /* @__PURE__ */ (0, L.jsx)(Qs.Provider, {
+		value: qe,
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
 			className: "reader",
 			children: [/* @__PURE__ */ (0, L.jsxs)("div", {
@@ -23018,7 +23100,7 @@ function nl() {
 				children: [
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Previous page",
-						onClick: () => Xe(b - 1),
+						onClick: () => Ze(b - 1),
 						children: "Prev"
 					}),
 					/* @__PURE__ */ (0, L.jsxs)("label", {
@@ -23031,9 +23113,9 @@ function nl() {
 								max: S || void 0,
 								value: b,
 								onChange: (e) => x(Number(e.target.value) || 1),
-								onBlur: () => Xe(b),
+								onBlur: () => Ze(b),
 								onKeyDown: (e) => {
-									e.key === "Enter" && Xe(b);
+									e.key === "Enter" && Ze(b);
 								}
 							}),
 							/* @__PURE__ */ (0, L.jsxs)("span", { children: ["/ ", S || "-"] })
@@ -23041,7 +23123,7 @@ function nl() {
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Next page",
-						onClick: () => Xe(b + 1),
+						onClick: () => Ze(b + 1),
 						children: "Next"
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
@@ -23052,7 +23134,7 @@ function nl() {
 					/* @__PURE__ */ (0, L.jsx)("span", {
 						ref: ge,
 						className: "zoom-value",
-						children: al(w)
+						children: hl(w)
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Zoom in",
@@ -23109,13 +23191,13 @@ function nl() {
 						children: ["Could not load PDF: ", e.message]
 					}),
 					onError: (e) => {
-						ul(e) || D(`Could not load PDF: ${e.message}`);
+						bl(e) || D(`Could not load PDF: ${e.message}`);
 					},
-					children: (e) => /* @__PURE__ */ (0, L.jsx)(_c, {
+					children: (e) => /* @__PURE__ */ (0, L.jsx)(Dc, {
 						activeId: O,
 						highlights: Ae,
 						pdfDocument: e,
-						selectionTip: qe,
+						selectionTip: Je,
 						zoom: w,
 						onDocumentReady: ke,
 						onOpen: Fe,
@@ -23131,28 +23213,28 @@ function nl() {
 			})]
 		})
 	});
-	function Ye(e) {
+	function Xe(e) {
 		k(e.id);
-		let t = js(e);
+		let t = Fs(e);
 		if (t) {
 			ce.current?.scrollToHighlight(t);
 			return;
 		}
-		Xe(e.page || 1);
+		Ze(e.page || 1);
 	}
-	function Xe(e, t = !0) {
+	function Ze(e, t = !0) {
 		let n = Math.min(Math.max(e, 1), S || e || 1);
 		x(n), ce.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && Se(n);
 	}
-	function Ze() {
+	function Qe() {
 		if (F === "settings" && I.current === "workspace") {
 			se("workspace");
 			return;
 		}
 		se("closed");
 	}
-	function Qe(e, t) {
-		Ec.postMessage({
+	function $e(e, t) {
+		Ic.postMessage({
 			type: "updateCapabilityPreference",
 			payload: {
 				capabilityId: e,
@@ -23160,20 +23242,20 @@ function nl() {
 			}
 		});
 	}
-	function $e(e, t) {
-		let n = s.findIndex((t) => t.id === e), r = s[n + t];
-		r && Qe(e, { order: r.order + t });
-	}
 	function et(e, t) {
-		ol("translation", "updateSetting", {
+		let n = s.findIndex((t) => t.id === e), r = s[n + t];
+		r && $e(e, { order: r.order + t });
+	}
+	function tt(e, t) {
+		gl("translation", "updateSetting", {
 			key: e,
 			value: t
 		});
 	}
-	let tt = [{
+	let nt = [{
 		id: "overview",
 		title: "Overview",
-		content: /* @__PURE__ */ (0, L.jsx)(zc, {
+		content: /* @__PURE__ */ (0, L.jsx)(Jc, {
 			currentPage: b,
 			pageTotal: S,
 			annotationCount: n.annotations.length,
@@ -23181,7 +23263,7 @@ function nl() {
 			status: E,
 			selectedText: a
 		})
-	}, ...Qc(s, {
+	}, ...cl(s, {
 		annotations: {
 			annotations: je,
 			total: n.annotations.length,
@@ -23197,77 +23279,78 @@ function nl() {
 			onColorFilter: m,
 			onKindFilter: g,
 			onSortMode: v,
-			onFocus: Ye,
+			onFocus: Xe,
 			onEdit: Ie,
-			onCopy: (e) => ol("annotations", "copyMarkdown", { id: e.id }),
+			onCopy: (e) => gl("annotations", "copyMarkdown", { id: e.id }),
 			onDelete: Le,
 			onUndo: ze,
-			onExportMarkdown: () => ol("annotations", "exportMarkdown"),
-			onExportPdf: () => ol("annotations", "exportPdf")
+			onExportMarkdown: () => gl("annotations", "exportMarkdown"),
+			onExportPdf: () => gl("annotations", "exportPdf"),
+			onOrganizeNotes: () => gl("annotations", "organizeNotes")
 		},
 		wordbook: {
 			words: r.words,
-			onDelete: (e) => ol("wordbook", "delete", { id: e })
+			onDelete: (e) => gl("wordbook", "delete", { id: e })
 		},
 		translation: {
 			selectedText: a,
 			output: i.output,
 			wordDetails: i.wordDetails
 		}
-	})], nt = /* @__PURE__ */ (0, L.jsx)(Vc, {
+	})], rt = /* @__PURE__ */ (0, L.jsx)(Zc, {
 		capabilities: s,
 		translation: i.settings,
-		onCapabilityChange: Qe,
-		onMove: $e,
-		onTranslationSetting: et,
-		onConfigureDeepSeek: () => ol("translation", "configureDeepSeek"),
-		onDiagnoseTranslation: () => ol("translation", "diagnose")
+		onCapabilityChange: $e,
+		onMove: et,
+		onTranslationSetting: tt,
+		onConfigureDeepSeek: () => gl("translation", "configureDeepSeek"),
+		onDiagnoseTranslation: () => gl("translation", "diagnose")
 	});
 	return /* @__PURE__ */ (0, L.jsxs)("main", {
 		className: `shell${F === "closed" ? " sidebar-hidden" : ""}`,
-		children: [Je, /* @__PURE__ */ (0, L.jsx)(Kc, {
+		children: [Ye, /* @__PURE__ */ (0, L.jsx)(nl, {
 			surface: F,
-			title: ie || e.paperName || Sc.paperName,
+			title: ie || e.paperName || Mc.paperName,
 			activePanel: ae,
-			panels: tt,
-			settings: nt,
+			panels: nt,
+			settings: rt,
 			onActivePanel: oe,
-			onClose: Ze
+			onClose: Qe
 		})]
 	});
 }
-function rl(e, t) {
-	let n = Fs(e, t);
-	return n ? (ol("annotations", "save", n), !0) : !1;
+function pl(e, t) {
+	let n = zs(e, t);
+	return n ? (gl("annotations", "save", n), !0) : !1;
 }
-function il(e) {
+function ml(e) {
 	return Math.min(Math.max(e, .5), 2.4);
 }
-function al(e) {
+function hl(e) {
 	return typeof e == "number" ? `${Math.round(e * 100)}%` : e === "page-width" ? "Fit" : e === "page-actual" ? "100%" : e;
 }
-function ol(e, t, n) {
-	Ec.postMessage({
+function gl(e, t, n) {
+	Ic.postMessage({
 		type: "capabilityRequest",
 		capabilityId: e,
 		action: t,
 		payload: n
 	});
 }
-function sl(e) {
+function _l(e) {
 	return typeof e == "object" && !!e && "message" in e && typeof e.message == "string";
 }
-function cl() {
+function vl() {
 	let [e, t] = (0, y.useState)();
 	return (0, y.useEffect)(() => {
 		let e = (e) => {
-			if (ll(e.error || e.message)) {
+			if (yl(e.error || e.message)) {
 				e.preventDefault();
 				return;
 			}
 			t(e.message || String(e.error || "Unknown Webview error"));
 		}, n = (e) => {
-			if (ll(e.reason)) {
+			if (yl(e.reason)) {
 				e.preventDefault();
 				return;
 			}
@@ -23279,24 +23362,24 @@ function cl() {
 	}, []), e ? /* @__PURE__ */ (0, L.jsxs)("main", {
 		className: "fatal-error",
 		children: [/* @__PURE__ */ (0, L.jsx)("h1", { children: "Reader failed to start" }), /* @__PURE__ */ (0, L.jsx)("pre", { children: e })]
-	}) : /* @__PURE__ */ (0, L.jsx)(nl, {});
+	}) : /* @__PURE__ */ (0, L.jsx)(fl, {});
 }
-function ll(e) {
-	return ul(e) || dl(e);
+function yl(e) {
+	return bl(e) || xl(e);
 }
-function ul(e) {
+function bl(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /worker was (?:terminated|destroyed)/i.test(t) || /loading aborted/i.test(t);
 }
-function dl(e) {
+function xl(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/i.test(t.trim());
 }
-async function fl(e) {
+async function Sl(e) {
 	let t = await fetch(e);
 	if (!t.ok) throw Error(`Worker resource request failed with HTTP ${t.status}.`);
 	let n = await t.arrayBuffer();
 	return URL.createObjectURL(new Blob([n], { type: "text/javascript" }));
 }
-(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(cl, {}));
+(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(vl, {}));
 //#endregion

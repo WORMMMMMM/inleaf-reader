@@ -30,6 +30,7 @@ export interface AnnotationsPanelProps {
   onUndo(): void;
   onExportMarkdown(): void;
   onExportPdf(): void;
+  onOrganizeNotes(): void;
 }
 
 export function AnnotationsPanel(props: AnnotationsPanelProps) {
@@ -54,6 +55,7 @@ export function AnnotationsPanel(props: AnnotationsPanelProps) {
           <option value="updated">Sort by recently edited</option>
         </select>
         <div className="actions">
+          <button onClick={props.onOrganizeNotes}>整理阅读笔记</button>
           <button onClick={props.onExportMarkdown}>Export Markdown</button>
           <button onClick={props.onExportPdf}>Export PDF</button>
         </div>

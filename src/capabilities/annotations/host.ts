@@ -3,6 +3,7 @@ import { formatAnnotationMarkdownSnippet } from '../../annotationExports';
 import type { CapabilityHostContext, HostCapability } from '../hostTypes';
 import { decodeAnnotationRequest } from './protocol';
 import { annotationStorage } from './storage';
+import { organizeNotes } from './organizeNotes';
 
 export class AnnotationHostCapability implements HostCapability {
   readonly id = 'annotations' as const;
@@ -15,6 +16,11 @@ export class AnnotationHostCapability implements HostCapability {
     const request = decodeAnnotationRequest(action, payload);
     const storage = annotationStorage(context.storage);
     switch (request.action) {
+      case 'organizeNotes': {
+        const uri = await organizeNotes(storage);
+        if (uri) await context.postEvent(this.id, 'result', { message: `Reading notes exported: ${uri.fsPath}`, path: uri.fsPath });
+        return;
+      }
       case 'save':
         await this.postState(context, await storage.add(request.payload));
         return;

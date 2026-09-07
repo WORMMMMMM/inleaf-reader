@@ -90,6 +90,12 @@ See `project_map.md` for the complete file-by-file navigation map.
 
 ## Runtime Data Contract
 
+Reading-note packets are user-invoked exports through the annotations capability.
+They include selected annotations from explicit PDFs, PDF page ranges, source
+fingerprints, and separate original-text/user-note fields. Do not include local
+absolute paths or invent bibliographic metadata. Notion writing is performed by
+the user's AI after a preview, not automatically by the export action.
+
 For `paper.pdf`, newly written data is:
 
 ```text
@@ -135,9 +141,15 @@ public documentation.
   repeating provider or setup fields.
 - Clicking a saved highlight opens inline `Edit` and `Delete` actions near the
   PDF content. `Edit` then opens the inline annotation editor.
+- A selection or annotation action tip is transient. Pointer input outside the
+  inline tip dismisses it, clears its temporary selection/highlight state, and
+  cancels any pending inline translation result.
 - The original selected text remains editable so OCR mistakes can be corrected.
 - Selection uses one `Translate` action: single English words may show
   dictionary details and `Save to Wordbook`; longer text shows translation.
+- Merge neighboring PDF text fragments on the same visual line into one
+  continuous highlight rectangle. Keep distant columns and separate lines
+  distinct so unselected content is never covered.
 - New reading actions should be designed as composable capabilities rather
   than hard-coded exceptions in the top-level UI.
 - Extension-host handler errors must reach both the Webview through

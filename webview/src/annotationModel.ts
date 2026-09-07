@@ -24,11 +24,69 @@ export interface NewAnnotationOptions {
   note?: string;
 }
 
+const SAME_LINE_CENTER_TOLERANCE = 0.55;
+const MAX_INLINE_GAP_IN_LINE_HEIGHTS = 1.5;
+const MIN_INLINE_GAP_RATIO = 0.002;
+
+/**
+ * PDF text layers often split one visual line into several neighboring spans.
+ * Coalesce only nearby spans on the same line so a saved selection reads as one
+ * continuous highlight without bridging columns or unrelated text.
+ */
+export function coalesceTextHighlightPosition(position: ScaledPosition): ScaledPosition {
+  if (position.usePdfCoordinates || position.rects.length < 2) {
+    return position;
+  }
+
+  const lines: Array<Array<ScaledPosition['rects'][number]>> = [];
+  for (const rect of [...position.rects].sort(compareScaledRects)) {
+    let line: Array<ScaledPosition['rects'][number]> | undefined;
+    for (let index = lines.length - 1; index >= 0; index -= 1) {
+      if (sameVisualLine(lines[index][0], rect)) {
+        line = lines[index];
+        break;
+      }
+    }
+    if (line) {
+      line.push(rect);
+    } else {
+      lines.push([rect]);
+    }
+  }
+
+  const rects = lines.flatMap(line => {
+    const merged: ScaledPosition['rects'] = [];
+    for (const rect of line.sort(compareScaledRectsHorizontally)) {
+      const previous = merged.at(-1);
+      if (!previous || !hasNearbyHorizontalGap(previous, rect)) {
+        merged.push({ ...rect });
+        continue;
+      }
+      previous.x1 = Math.min(previous.x1, rect.x1);
+      previous.y1 = Math.min(previous.y1, rect.y1);
+      previous.x2 = Math.max(previous.x2, rect.x2);
+      previous.y2 = Math.max(previous.y2, rect.y2);
+    }
+    return merged;
+  });
+
+  if (rects.length === position.rects.length) {
+    return position;
+  }
+
+  return {
+    ...position,
+    boundingRect: boundingRectFromRects(rects, position.boundingRect),
+    rects
+  };
+}
+
 export function annotationToHighlight(annotation: AnnotationRecord): ReaderHighlight | undefined {
-  const position = annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects);
-  if (!position) {
+  const storedPosition = annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects);
+  if (!storedPosition) {
     return undefined;
   }
+  const position = coalesceTextHighlightPosition(storedPosition);
   return {
     id: annotation.id,
     type: annotation.selectedText ? 'text' : 'area',
@@ -106,16 +164,19 @@ export function buildAnnotationPayload(selection: SelectionDraft, options: NewAn
   if (!selection.selectedText.trim() || (options.note !== undefined && !note)) {
     return undefined;
   }
+  const selectionPosition = selection.selectionPosition
+    ? coalesceTextHighlightPosition(selection.selectionPosition)
+    : undefined;
   return {
-    page: selection.selectionPosition?.boundingRect.pageNumber || selection.currentPage,
+    page: selectionPosition?.boundingRect.pageNumber || selection.currentPage,
     selectedText: selection.selectedText,
     note,
     tags: [] as string[],
     color: options.color,
     kind: options.kind,
-    highlighterPosition: selection.selectionPosition,
-    rects: selection.selectionPosition
-      ? highlighterPositionToRects(selection.selectionPosition)
+    highlighterPosition: selectionPosition,
+    rects: selectionPosition
+      ? highlighterPositionToRects(selectionPosition)
       : undefined
   };
 }
@@ -165,4 +226,63 @@ function dateValue(value: string) {
 
 function safeRatio(value: number, total: number) {
   return total ? value / total : 0;
+}
+
+function compareScaledRects(left: ScaledPosition['rects'][number], right: ScaledPosition['rects'][number]) {
+  return left.pageNumber - right.pageNumber
+    || rectCenterY(left) - rectCenterY(right)
+    || compareScaledRectsHorizontally(left, right);
+}
+
+function compareScaledRectsHorizontally(
+  left: ScaledPosition['rects'][number],
+  right: ScaledPosition['rects'][number]
+) {
+  return safeRatio(left.x1, left.width) - safeRatio(right.x1, right.width);
+}
+
+function sameVisualLine(
+  left: ScaledPosition['rects'][number],
+  right: ScaledPosition['rects'][number]
+) {
+  if (left.pageNumber !== right.pageNumber) return false;
+  const leftHeight = safeRatio(left.y2 - left.y1, left.height);
+  const rightHeight = safeRatio(right.y2 - right.y1, right.height);
+  const lineHeight = Math.max(leftHeight, rightHeight);
+  return Math.abs(rectCenterY(left) - rectCenterY(right))
+    <= lineHeight * SAME_LINE_CENTER_TOLERANCE;
+}
+
+function hasNearbyHorizontalGap(
+  left: ScaledPosition['rects'][number],
+  right: ScaledPosition['rects'][number]
+) {
+  const leftHeight = safeRatio(left.y2 - left.y1, left.height);
+  const rightHeight = safeRatio(right.y2 - right.y1, right.height);
+  const lineHeight = Math.max(leftHeight, rightHeight);
+  const horizontalGap = safeRatio(right.x1, right.width) - safeRatio(left.x2, left.width);
+  return horizontalGap <= Math.max(MIN_INLINE_GAP_RATIO, lineHeight * MAX_INLINE_GAP_IN_LINE_HEIGHTS);
+}
+
+function rectCenterY(rect: ScaledPosition['rects'][number]) {
+  return safeRatio(rect.y1 + rect.y2, rect.height * 2);
+}
+
+function boundingRectFromRects(
+  rects: ScaledPosition['rects'],
+  fallback: ScaledPosition['boundingRect']
+) {
+  const firstPage = Math.min(...rects.map(rect => rect.pageNumber));
+  const pageRects = rects.filter(rect => rect.pageNumber === firstPage);
+  const reference = pageRects[0];
+  if (!reference) return fallback;
+  return {
+    x1: Math.min(...pageRects.map(rect => rect.x1)),
+    y1: Math.min(...pageRects.map(rect => rect.y1)),
+    x2: Math.max(...pageRects.map(rect => rect.x2)),
+    y2: Math.max(...pageRects.map(rect => rect.y2)),
+    width: reference.width,
+    height: reference.height,
+    pageNumber: firstPage
+  };
 }

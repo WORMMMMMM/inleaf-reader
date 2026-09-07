@@ -21,6 +21,14 @@ assert.match(
   /<button onClick=\{onEdit\}>Edit<\/button>\s*<button className="danger-button" onClick=\{onDelete\}>Delete<\/button>/
 );
 assert.match(source, /utils\.setTip\(/);
+assert.match(source, /function handleOutsidePointerDown\(event: PointerEvent\)/);
+assert.match(source, /target\.closest\('\.PdfHighlighter__tip-container, \.selection-toolbar'\)/);
+assert.match(source, /document\.addEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
+assert.match(source, /document\.removeEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
+assert.match(
+  source,
+  /const dismissInlineContext = useCallback\(\(\) => \{[\s\S]*?setTip\(null\);[\s\S]*?removeGhostHighlight\(\);[\s\S]*?clearAnnotationDraft\(\);/
+);
 assert.match(source, /postCapabilityRequest\('annotations', 'update'/);
 assert.doesNotMatch(pdfViewSource, /\bonStyleChange=/);
 assert.doesNotMatch(pdfViewSource, /\bonDelete=/);

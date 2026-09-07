@@ -23,6 +23,7 @@ import { PdfDocumentView } from './components/PdfDocumentView';
 import {
   annotationToHighlight,
   buildAnnotationPayload,
+  coalesceTextHighlightPosition,
   filterAnnotations,
   rectsToHighlighterPosition,
   summarizeWordDetails,
@@ -422,9 +423,10 @@ function App() {
     const startsInNonBodyText = selectionStartsInNonBodyText(nativeSelection);
     const cleanText = extractSelectedPdfText(nativeSelection, startsInNonBodyText);
     const ghost = selection.makeGhostHighlight();
-    const cleanPosition = startsInNonBodyText
+    const filteredPosition = startsInNonBodyText
       ? ghost.position
       : filterNonBodyRects(ghost.position);
+    const cleanPosition = coalesceTextHighlightPosition(filteredPosition);
     const text = cleanText || ghost.content.text || '';
     ghost.content.text = text;
     ghost.position = cleanPosition;
@@ -536,6 +538,28 @@ function App() {
     setActiveId(undefined);
     selectionRef.current = { selectedText: '', selectionPosition: undefined, currentPage: 1 };
   }
+
+  const dismissInlineContext = useCallback(() => {
+    const utils = highlighterRef.current;
+    utils?.setTip(null);
+    utils?.removeGhostHighlight();
+    utils?.toggleEditInProgress(false);
+    clearAnnotationDraft();
+    translationCapability.clearResult();
+  }, [translationCapability.clearResult]);
+
+  useEffect(() => {
+    function handleOutsidePointerDown(event: PointerEvent) {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || target.closest('.PdfHighlighter__tip-container, .selection-toolbar')) {
+        return;
+      }
+      dismissInlineContext();
+    }
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+  }, [dismissInlineContext]);
 
   const quickHighlight = useCallback((color: string) => {
     const s = selectionRef.current;
@@ -821,7 +845,8 @@ function App() {
         onDelete: deleteAnnotation,
         onUndo: restoreLastDeleted,
         onExportMarkdown: () => postCapabilityRequest('annotations', 'exportMarkdown'),
-        onExportPdf: () => postCapabilityRequest('annotations', 'exportPdf')
+        onExportPdf: () => postCapabilityRequest('annotations', 'exportPdf'),
+        onOrganizeNotes: () => postCapabilityRequest('annotations', 'organizeNotes')
       },
       wordbook: {
         words: wordbookCapability.words,

@@ -15,6 +15,7 @@ export type AnnotationCapabilityRequest =
   | { action: 'restore'; payload: AnnotationRecord }
   | { action: 'copyMarkdown'; payload: { id: string } }
   | { action: 'exportMarkdown'; payload?: undefined }
+  | { action: 'organizeNotes'; payload?: undefined }
   | { action: 'exportPdf'; payload?: undefined };
 
 export type AnnotationCapabilityEvent =
@@ -43,6 +44,7 @@ export function decodeAnnotationRequest(action: string, payload: unknown): Annot
     case 'restore':
       return { action, payload: parseAnnotationRecord(payload) };
     case 'exportMarkdown':
+    case 'organizeNotes':
     case 'exportPdf':
       return { action };
     default:

@@ -29,6 +29,18 @@ use, and is straightforward for AI tools to inspect and work with.
 - **Keep data AI-ready:** annotations, vocabulary, exports, and progress use portable files beside the document.
 - **Stay focused:** the side panel starts hidden and appears only when you ask for it.
 
+## 整理阅读笔记（试用）
+
+打开批注面板，点击 **整理阅读笔记**。选择当前 PDF 或多个 PDF，
+分别输入 PDF 页码范围（如 `1-5, 8`，留空代表全部），再选择标签、
+是否仅包含带评论的高亮，以及忠实摘录、主题整理或分享文章。
+确认向导显示的批注数量后选择保存目录，即可得到 `notes.md`、
+`notes.json` 和 `整理说明.md`。跨页批注完整保留，不截断引用。
+
+把整个整理包交给你自己的 AI，按说明生成预览，再写入你的 Notion。
+扩展本身不连接或自动上传 Notion；导出包含原文、个人批注和来源标识，
+不包含本机完整路径。标题、作者和印刷页码未识别时保持未知。
+
 ## Who is it for?
 
 Inleaf Reader is especially useful if you:
@@ -49,7 +61,7 @@ then choose **Extensions: Install from VSIX...** in VS Code.
 You can also install it from a terminal:
 
 ```bash
-code --install-extension inleaf-reader-0.1.1.vsix
+code --install-extension inleaf-reader-0.1.3.vsix
 ```
 
 After installation, run **Developer: Reload Window** once if the reader command

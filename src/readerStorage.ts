@@ -72,6 +72,13 @@ export class ReaderStorage {
     return this.loadAnnotations();
   }
 
+  async readNotesSource(uri = this.pdfUri) {
+    const storage = uri.toString() === this.pdfUri.toString()
+      ? this : new ReaderStorage(uri, this.globalState);
+    const annotations = await storage.readAnnotations();
+    return { documentId: await fingerprintPdf(uri.fsPath), fileName: path.basename(uri.fsPath), annotations };
+  }
+
   async readWords(): Promise<WordRecord[]> {
     await this.mutationQueue;
     return this.loadWords();

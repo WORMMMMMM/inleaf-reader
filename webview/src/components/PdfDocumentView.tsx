@@ -13,9 +13,12 @@ import {
 } from 'react-pdf-highlighter-plus';
 import type { ReaderHighlight } from '../annotationModel';
 import { markPageSelectionRegions } from '../pdfSelection';
+import { trackSelectionShade } from '../selectionShade';
 import type { AnnotationRecord } from '../types';
 
 type PdfPageChangingEvent = { pageNumber?: number };
+// Native and retained text selections share one overlay (selectionShade.ts).
+const TEXT_SELECTION_COLOR = 'transparent';
 type PdfScaleChangingEvent = { scale?: number };
 type PdfLayerRenderedEvent = { pageNumber?: number };
 type PdfEventMap = {
@@ -70,15 +73,17 @@ export function PdfDocumentView({
   const eventBusRef = useRef<PdfEventBus | null>(null);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const pdfViewerRef = useRef<PdfViewerInstance | null>(null);
-  const renderedHighlightScaleRef = useRef<number | undefined>(undefined);
   const highlightSyncFrameRef = useRef<number | undefined>(undefined);
   const horizontalCenterFrameRef = useRef<number | undefined>(undefined);
   const pendingHighlightLayersRef = useRef(new Set<HTMLElement>());
   const renderedPagesRef = useRef(new Set<number>());
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
   }, [onDocumentReady, pdfDocument.numPages]);
+
+  useEffect(() => trackSelectionShade(() => viewerContainerRef.current), [pdfDocument]);
 
   const handlePageChanging = useCallback((event: PdfPageChangingEvent) => {
     if (typeof event.pageNumber === 'number') {
@@ -92,7 +97,6 @@ export function PdfDocumentView({
     if (!viewer || typeof nextScale !== 'number') {
       return;
     }
-    const renderedScale = renderedHighlightScaleRef.current || viewer.currentScale || nextScale;
     window.cancelAnimationFrame(highlightSyncFrameRef.current || 0);
     highlightSyncFrameRef.current = undefined;
     renderedPagesRef.current.clear();
@@ -100,9 +104,10 @@ export function PdfDocumentView({
     pendingHighlightLayersRef.current = new Set(layers);
     viewerContainerRef.current?.classList.toggle('pdf-scale-in-progress', layers.length > 0);
     for (const layer of layers) {
-      const layerScale = Number(layer.dataset.renderedScale) || renderedScale;
-      layer.style.transformOrigin = '0 0';
-      layer.style.transform = `scale(${nextScale / layerScale})`;
+      // PDF.js and the highlighter already update their own geometry. Scaling
+      // this layer as well can double-scale newly rendered highlight positions.
+      layer.style.transformOrigin = '';
+      layer.style.transform = '';
     }
     window.cancelAnimationFrame(horizontalCenterFrameRef.current || 0);
     horizontalCenterFrameRef.current = window.requestAnimationFrame(() => {
@@ -137,7 +142,6 @@ export function PdfDocumentView({
         }
       }
       renderedPagesRef.current.clear();
-      renderedHighlightScaleRef.current = viewer.currentScale;
       if (pendingHighlightLayersRef.current.size === 0) {
         viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
       }
@@ -154,6 +158,7 @@ export function PdfDocumentView({
   }, [onPinchZoom]);
 
   const handlePointerDown = useCallback((event: PointerEvent) => {
+    pointerStartRef.current = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
     const target = event.target instanceof Element ? event.target : null;
     const pageElement = target?.closest<HTMLElement>('.page');
     if (pageElement) {
@@ -164,6 +169,35 @@ export function PdfDocumentView({
       !!target?.closest('.reader-margin-text, .reader-figure-text')
     );
   }, []);
+
+  const handleTextHighlightClick = useCallback((event: MouseEvent) => {
+    const start = pointerStartRef.current;
+    pointerStartRef.current = null;
+    const selection = window.getSelection();
+    if (!start || event.button !== 0 || event.detail > 1 || event.altKey ||
+      Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4 ||
+      (selection && !selection.isCollapsed)) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || !viewerContainerRef.current?.contains(target)) return;
+    if (target?.closest('.PdfHighlighter__tip-container, a, button, input, textarea')) return;
+    const page = target?.closest('.page');
+    if (!page) return;
+    // Paint stays pointer-transparent; hit-test only a click, never a scroll or drag.
+    for (const part of page.querySelectorAll<HTMLElement>('[data-reader-annotation-id] .TextHighlight__part')) {
+      const rect = part.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom) continue;
+      const id = part.closest<HTMLElement>('[data-reader-annotation-id]')?.dataset.readerAnnotationId;
+      const annotation = highlights.find(item => item.annotation?.id === id)?.annotation;
+      if (annotation) onOpen(annotation);
+      return;
+    }
+  }, [highlights, onOpen]);
+
+  useEffect(() => {
+    document.addEventListener('click', handleTextHighlightClick, true);
+    return () => document.removeEventListener('click', handleTextHighlightClick, true);
+  }, [handleTextHighlightClick, pdfDocument]);
 
   const captureUtils = useCallback((utils: PdfHighlighterUtils) => {
     const nextEventBus = utils.getEventBus() as PdfEventBus | null;
@@ -187,7 +221,6 @@ export function PdfDocumentView({
       nextViewerContainer?.addEventListener('wheel', handleWheel, { passive: false });
       nextViewerContainer?.addEventListener('pointerdown', handlePointerDown, true);
       viewerContainerRef.current = nextViewerContainer;
-      renderedHighlightScaleRef.current = nextViewer?.currentScale;
     }
     utilsRef(utils);
   }, [handlePageChanging, handlePointerDown, handleWheel, utilsRef]);
@@ -220,7 +253,7 @@ export function PdfDocumentView({
       selectionTip={selectionTip}
       enableAreaSelection={event => event.altKey}
       pdfScaleValue={zoom}
-      textSelectionColor="rgba(64, 141, 255, 0.28)"
+      textSelectionColor={TEXT_SELECTION_COLOR}
       utilsRef={captureUtils}
       style={{ height: '100%' }}
     >
@@ -265,17 +298,19 @@ function HighlightContainer({
           highlight={highlight}
           isScrolledTo={isScrolledTo}
           bounds={highlightBindings.textLayer}
-          highlightColor="#ffd654"
+          highlightColor={TEXT_SELECTION_COLOR}
         />
       );
     }
 
     return (
-      <TextHighlight
-        highlight={highlight}
-        isScrolledTo={isScrolledTo}
-        highlightColor="#ffd654"
-      />
+      <div className="reader-selection-preview">
+        <TextHighlight
+          highlight={highlight}
+          isScrolledTo={isScrolledTo}
+          highlightColor={TEXT_SELECTION_COLOR}
+        />
+      </div>
     );
   }
 
@@ -294,7 +329,7 @@ function HighlightContainer({
   ) : null;
 
   const textHighlight = highlight.type !== 'area' ? (
-    <span className={activeClass}>
+    <span className={`reader-text-highlight${activeClass}`} data-reader-annotation-id={annotation.id}>
       <TextHighlight
         highlight={highlight}
         isScrolledTo={isScrolledTo}

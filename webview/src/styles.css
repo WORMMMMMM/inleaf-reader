@@ -191,6 +191,14 @@ textarea {
   user-select: text;
 }
 
+.reader-selection-shade {
+  position: fixed;
+  z-index: 25;
+  pointer-events: none;
+  /* Logo inner-book blue (#075EEA), translucent so PDF glyphs stay readable. */
+  background: rgba(7, 94, 234, 0.32);
+}
+
 .pdf-host .textLayer :is(.reader-margin-text, .reader-figure-text) {
   user-select: none !important;
 }
@@ -225,6 +233,18 @@ textarea {
 
 .active-highlight .TextHighlight__part {
   outline: 2px solid var(--vscode-focusBorder, #007fd4);
+}
+
+.pdf-host .reader-text-highlight,
+.pdf-host .reader-text-highlight *,
+.pdf-host .reader-selection-preview * {
+  pointer-events: none !important;
+}
+
+/* Geometry only: the same overlay paints dragging and retained selection. */
+.reader-selection-preview .TextHighlight__part {
+  box-shadow: none;
+  transition: none;
 }
 
 .side-panel {

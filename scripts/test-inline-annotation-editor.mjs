@@ -14,6 +14,18 @@ assert.doesNotMatch(source, /onSave=\{patch => \{[^}]*setSurface/s);
 assert.match(source, /function InlineAnnotationActions/);
 assert.match(source, /function InlineAnnotationEditor/);
 assert.match(source, /onOpen\(annotation, highlight\.position\)/);
+assert.match(pdfViewSource, /selection && !selection\.isCollapsed/);
+assert.match(pdfViewSource, /event\.detail > 1/);
+assert.match(pdfViewSource, /data-reader-annotation-id/);
+const styles = await readFile(new URL('../webview/src/styles.css', import.meta.url), 'utf8');
+assert.doesNotMatch(styles, /\.pdf-host \.textLayer > span,/);
+assert.match(styles, /\.reader-selection-shade\s*\{[^}]*pointer-events: none;/);
+assert.match(styles, /\.pdf-host \.reader-selection-preview \*\s*\{\s*pointer-events: none !important;/);
+assert.match(pdfViewSource, /textSelectionColor=\{TEXT_SELECTION_COLOR\}/);
+const ghostRendering = pdfViewSource.slice(pdfViewSource.indexOf('if (!annotation) {'), pdfViewSource.indexOf('const hasTooltip'));
+assert.doesNotMatch(ghostRendering, /#ffd654/);
+assert.match(ghostRendering, /className="reader-selection-preview"/);
+assert.match(ghostRendering, /highlightColor=\{TEXT_SELECTION_COLOR\}/);
 assert.match(source, /onOpen=\{openAnnotationActions\}/);
 assert.match(source, /onEdit=\{\(\) => editAnnotation\(annotation, tipPosition\)\}/);
 assert.match(

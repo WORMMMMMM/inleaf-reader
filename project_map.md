@@ -107,6 +107,8 @@ VS Code command
   functions.
 - `webview/src/pdfSelection.ts`: Lazy margin/figure classification and clean
   cross-page PDF selection reconstruction.
+- `webview/src/selectionShade.ts`: Pointer-transparent native-selection shading
+  without changing PDF text or highlight geometry.
 - `webview/src/messages.ts`: Extension-to-Webview discriminated message union.
 - `webview/src/types.ts`: Webview-side persisted and translation data types.
 - `webview/src/vscodeApi.ts`: Session-aware wrapper around `acquireVsCodeApi()`

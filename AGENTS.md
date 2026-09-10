@@ -145,6 +145,14 @@ public documentation.
   inline tip dismisses it, clears its temporary selection/highlight state, and
   cancels any pending inline translation result.
 - The original selected text remains editable so OCR mistakes can be corrected.
+- Saved text highlights must not intercept native text selection. Open inline
+  actions only for a click, not a drag or a non-collapsed text selection.
+- Native text selection darkens only the selected region above saved highlights;
+  do not change text-run stacking or double-scale PDF.js highlight geometry.
+- Releasing a text selection keeps the transient preview in the selection color,
+  not the annotation color. Apply annotation colors only after an explicit save.
+- Dragging and retained text selection use one translucent logo-blue overlay;
+  never stack a second dark mask or ghost background on release.
 - Selection uses one `Translate` action: single English words may show
   dictionary details and `Save to Wordbook`; longer text shows translation.
 - Merge neighboring PDF text fragments on the same visual line into one

@@ -21992,52 +21992,103 @@ function Ec(e, t) {
 	return t ? e / t : 0;
 }
 //#endregion
+//#region webview/src/selectionShade.ts
+function Dc(e) {
+	let t, n = [], r = () => {
+		n.splice(0).forEach((e) => e.remove());
+	}, i = () => {
+		t = void 0, r();
+		let i = e(), a = window.getSelection();
+		if (!i) return;
+		let o = a && !a.isCollapsed && a.rangeCount && i.contains(a.anchorNode) && i.contains(a.focusNode), s = i.getBoundingClientRect(), c = (o ? Array.from(a.getRangeAt(0).getClientRects()) : Array.from(i.querySelectorAll(".reader-selection-preview .TextHighlight__part"), (e) => e.getBoundingClientRect())).flatMap((e) => {
+			let t = Math.max(e.left, s.left), n = Math.max(e.top, s.top), r = Math.min(e.right, s.right), i = Math.min(e.bottom, s.bottom);
+			return r > t && i > n ? [`M${t},${n}H${r}V${i}H${t}Z`] : [];
+		}).join(" ");
+		if (!c) return;
+		let l = document.createElement("div");
+		l.className = "reader-selection-shade", l.setAttribute("aria-hidden", "true"), l.style.inset = "0", l.style.clipPath = `path("${c}")`, document.body.appendChild(l), n.push(l);
+	}, a = () => {
+		t === void 0 && (t = window.requestAnimationFrame(i));
+	};
+	document.addEventListener("selectionchange", a), document.addEventListener("scroll", a, !0), window.addEventListener("resize", a);
+	let o = new MutationObserver((e) => {
+		let t = (e) => e instanceof Element && (e.matches(".reader-selection-preview") || e.closest(".reader-selection-preview") || e.querySelector(".reader-selection-preview"));
+		e.some((e) => e.target instanceof Element && e.target.closest(".reader-selection-preview") || [...e.addedNodes, ...e.removedNodes].some(t)) && a();
+	});
+	return o.observe(document.body, {
+		childList: !0,
+		subtree: !0,
+		attributes: !0,
+		attributeFilter: ["style"]
+	}), () => {
+		o.disconnect(), document.removeEventListener("selectionchange", a), document.removeEventListener("scroll", a, !0), window.removeEventListener("resize", a), t !== void 0 && window.cancelAnimationFrame(t), r();
+	};
+}
+//#endregion
 //#region webview/src/components/PdfDocumentView.tsx
-function Dc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
-	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(void 0), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(/* @__PURE__ */ new Set());
+var Oc = "transparent";
+function kc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
+	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(/* @__PURE__ */ new Set()), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(null);
 	(0, y.useEffect)(() => {
 		a(n.numPages);
-	}, [a, n.numPages]);
+	}, [a, n.numPages]), (0, y.useEffect)(() => Dc(() => f.current), [n]);
 	let b = (0, y.useCallback)((e) => {
 		typeof e.pageNumber == "number" && s(e.pageNumber);
 	}, [s]), x = (0, y.useCallback)((e) => {
 		let t = p.current, n = e.scale;
 		if (!t || typeof n != "number") return;
-		let r = m.current || t.currentScale || n;
-		window.cancelAnimationFrame(h.current || 0), h.current = void 0, v.current.clear();
-		let i = jc(f.current);
-		_.current = new Set(i), f.current?.classList.toggle("pdf-scale-in-progress", i.length > 0);
-		for (let e of i) {
-			let t = Number(e.dataset.renderedScale) || r;
-			e.style.transformOrigin = "0 0", e.style.transform = `scale(${n / t})`;
-		}
-		window.cancelAnimationFrame(g.current || 0), g.current = window.requestAnimationFrame(() => {
-			g.current = void 0;
+		window.cancelAnimationFrame(m.current || 0), m.current = void 0, _.current.clear();
+		let r = Nc(f.current);
+		g.current = new Set(r), f.current?.classList.toggle("pdf-scale-in-progress", r.length > 0);
+		for (let e of r) e.style.transformOrigin = "", e.style.transform = "";
+		window.cancelAnimationFrame(h.current || 0), h.current = window.requestAnimationFrame(() => {
+			h.current = void 0;
 			let e = p.current;
-			e && Oc(e);
+			e && Ac(e);
 		});
 	}, []), S = (0, y.useCallback)((e) => {
 		let t = p.current;
-		!t || typeof e.pageNumber != "number" || f.current?.classList.contains("pdf-scale-in-progress") && (v.current.add(e.pageNumber), h.current === void 0 && (h.current = window.requestAnimationFrame(() => {
-			h.current = void 0;
-			for (let e of v.current) {
+		!t || typeof e.pageNumber != "number" || f.current?.classList.contains("pdf-scale-in-progress") && (_.current.add(e.pageNumber), m.current === void 0 && (m.current = window.requestAnimationFrame(() => {
+			m.current = void 0;
+			for (let e of _.current) {
 				let n = t.getPageView(e - 1)?.div;
-				for (let e of jc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
+				for (let e of Nc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), g.current.delete(e);
 			}
-			v.current.clear(), m.current = t.currentScale, _.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
+			_.current.clear(), g.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
 		})));
 	}, []), C = (0, y.useCallback)((e) => {
 		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), c(e.deltaY));
 	}, [c]), w = (0, y.useCallback)((e) => {
+		v.current = e.button === 0 ? {
+			x: e.clientX,
+			y: e.clientY
+		} : null;
 		let t = e.target instanceof Element ? e.target : null, n = t?.closest(".page");
 		n && pc(n), f.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
 	}, []), T = (0, y.useCallback)((e) => {
+		let n = v.current;
+		v.current = null;
+		let r = window.getSelection();
+		if (!n || e.button !== 0 || e.detail > 1 || e.altKey || Math.hypot(e.clientX - n.x, e.clientY - n.y) > 4 || r && !r.isCollapsed) return;
+		let i = e.target instanceof Element ? e.target : null;
+		if (!i || !f.current?.contains(i) || i?.closest(".PdfHighlighter__tip-container, a, button, input, textarea")) return;
+		let a = i?.closest(".page");
+		if (a) for (let n of a.querySelectorAll("[data-reader-annotation-id] .TextHighlight__part")) {
+			let r = n.getBoundingClientRect();
+			if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
+			let i = n.closest("[data-reader-annotation-id]")?.dataset.readerAnnotationId, a = t.find((e) => e.annotation?.id === i)?.annotation;
+			a && o(a);
+			return;
+		}
+	}, [t, o]);
+	(0, y.useEffect)(() => (document.addEventListener("click", T, !0), () => document.removeEventListener("click", T, !0)), [T, n]);
+	let E = (0, y.useCallback)((e) => {
 		let t = e.getEventBus();
 		d.current !== t && (d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), t?.on("pagechanging", b), t?.on("scalechanging", x), t?.on("textlayerrendered", S), t?.on("pagerendered", S), d.current = t);
 		let n = e.getViewer();
 		p.current = n;
 		let r = n?.container || null;
-		f.current !== r && (f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0), r?.addEventListener("wheel", C, { passive: !1 }), r?.addEventListener("pointerdown", w, !0), f.current = r, m.current = n?.currentScale), u(e);
+		f.current !== r && (f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0), r?.addEventListener("wheel", C, { passive: !1 }), r?.addEventListener("pointerdown", w, !0), f.current = r), u(e);
 	}, [
 		b,
 		w,
@@ -22046,8 +22097,8 @@ function Dc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 	]);
 	return (0, y.useEffect)(() => () => {
 		d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), d.current = null, f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0);
-		for (let e of _.current) e.style.transform = "", e.style.transformOrigin = "";
-		_.current.clear(), v.current.clear(), f.current = null, p.current = null, window.cancelAnimationFrame(h.current || 0), window.cancelAnimationFrame(g.current || 0);
+		for (let e of g.current) e.style.transform = "", e.style.transformOrigin = "";
+		g.current.clear(), _.current.clear(), f.current = null, p.current = null, window.cancelAnimationFrame(m.current || 0), window.cancelAnimationFrame(h.current || 0);
 	}, [
 		S,
 		b,
@@ -22061,43 +22112,47 @@ function Dc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom:
 		selectionTip: r,
 		enableAreaSelection: (e) => e.altKey,
 		pdfScaleValue: i,
-		textSelectionColor: "rgba(64, 141, 255, 0.28)",
-		utilsRef: T,
+		textSelectionColor: Oc,
+		utilsRef: E,
 		style: { height: "100%" },
-		children: /* @__PURE__ */ (0, L.jsx)(kc, {
+		children: /* @__PURE__ */ (0, L.jsx)(jc, {
 			activeId: e,
 			onOpen: o
 		})
 	});
 }
-function Oc(e) {
+function Ac(e) {
 	let t = e.getPageView(e.currentPageNumber - 1)?.div;
 	if (!t) return;
 	let { container: n } = e, r = n.getBoundingClientRect(), i = t.getBoundingClientRect(), a = i.left - r.left + i.width / 2, o = n.scrollLeft + a - n.clientWidth / 2, s = Math.max(0, n.scrollWidth - n.clientWidth);
 	n.scrollLeft = Math.min(s, Math.max(0, o));
 }
-function kc({ activeId: e, onOpen: t }) {
+function jc({ activeId: e, onOpen: t }) {
 	let { highlight: n, isScrolledTo: r, highlightBindings: i } = No(), a = n.annotation, o = a?.id === e ? " active-highlight" : "";
 	if (!a) return n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
 		highlight: n,
 		isScrolledTo: r,
 		bounds: i.textLayer,
-		highlightColor: "#ffd654"
-	}) : /* @__PURE__ */ (0, L.jsx)(_s, {
-		highlight: n,
-		isScrolledTo: r,
-		highlightColor: "#ffd654"
+		highlightColor: Oc
+	}) : /* @__PURE__ */ (0, L.jsx)("div", {
+		className: "reader-selection-preview",
+		children: /* @__PURE__ */ (0, L.jsx)(_s, {
+			highlight: n,
+			isScrolledTo: r,
+			highlightColor: Oc
+		})
 	});
 	let s = a.note || a.tags?.length ? {
 		position: n.position,
-		content: /* @__PURE__ */ (0, L.jsx)(Ac, { annotation: a })
+		content: /* @__PURE__ */ (0, L.jsx)(Mc, { annotation: a })
 	} : void 0, c = n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
 		highlight: n,
 		isScrolledTo: r,
 		bounds: i.textLayer,
 		highlightColor: a.color || "#ffd654"
 	}) : null, l = n.type === "area" ? null : /* @__PURE__ */ (0, L.jsx)("span", {
-		className: o,
+		className: `reader-text-highlight${o}`,
+		"data-reader-annotation-id": a.id,
 		children: /* @__PURE__ */ (0, L.jsx)(_s, {
 			highlight: n,
 			isScrolledTo: r,
@@ -22111,7 +22166,7 @@ function kc({ activeId: e, onOpen: t }) {
 		children: c || l
 	}) : c || l;
 }
-function Ac({ annotation: e }) {
+function Mc({ annotation: e }) {
 	return !e.note && !e.tags?.length ? null : /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "highlight-tooltip",
 		children: [e.note ? /* @__PURE__ */ (0, L.jsx)("p", { children: e.note }) : null, e.tags?.length ? /* @__PURE__ */ (0, L.jsx)("div", {
@@ -22120,29 +22175,29 @@ function Ac({ annotation: e }) {
 		}) : null]
 	});
 }
-function jc(e) {
+function Nc(e) {
 	return e ? Array.from(e.querySelectorAll(".PdfHighlighter__highlight-layer, .PdfHighlighter__note-layer, .PdfHighlighter__config-layer")) : [];
 }
 //#endregion
 //#region webview/src/vscodeApi.ts
-var Mc = window.readerConfig, Nc = window.acquireVsCodeApi(), Pc = Mc.documentId;
-function Fc(e) {
-	Pc = e;
+var Pc = window.readerConfig, Fc = window.acquireVsCodeApi(), Ic = Pc.documentId;
+function Lc(e) {
+	Ic = e;
 }
-var Ic = {
+var Rc = {
 	postMessage(e) {
-		Nc.postMessage({
+		Fc.postMessage({
 			...e,
-			documentId: Pc
+			documentId: Ic
 		});
 	},
-	getState: () => Nc.getState(),
-	setState: (e) => Nc.setState(e)
-}, Lc = [
+	getState: () => Fc.getState(),
+	setState: (e) => Fc.setState(e)
+}, zc = [
 	"annotations",
 	"wordbook",
 	"translation"
-], Rc = [
+], Bc = [
 	{
 		id: "annotations",
 		title: "Annotations",
@@ -22186,9 +22241,9 @@ var Ic = {
 		}
 	}
 ];
-function zc(e, t = {}) {
-	let n = Bc(e);
-	return Rc.map((e) => {
+function $(e, t = {}) {
+	let n = Vc(e);
+	return Bc.map((e) => {
 		let r = n[e.id];
 		return {
 			...e,
@@ -22200,40 +22255,27 @@ function zc(e, t = {}) {
 		};
 	}).sort((e, t) => e.order - t.order || e.title.localeCompare(t.title));
 }
-function Bc(e) {
-	if (!$(e)) return {};
+function Vc(e) {
+	if (!Hc(e)) return {};
 	let t = {};
-	for (let n of Lc) {
+	for (let n of zc) {
 		let r = e[n];
-		if (!$(r)) continue;
+		if (!Hc(r)) continue;
 		let i = {};
 		typeof r.enabled == "boolean" && (i.enabled = r.enabled), typeof r.showInPanel == "boolean" && (i.showInPanel = r.showInPanel), typeof r.order == "number" && Number.isFinite(r.order) && (i.order = r.order), t[n] = i;
 	}
 	return t;
 }
-function $(e) {
-	return typeof e == "object" && !!e && !Array.isArray(e);
-}
-//#endregion
-//#region webview/src/capabilities/annotations/useAnnotationsCapability.ts
-function Vc() {
-	let [e, t] = (0, y.useState)([]);
-	return {
-		annotations: e,
-		handleEvent: (0, y.useCallback)((e, n) => Hc(n) ? (e === "state" && Array.isArray(n.annotations) && t(n.annotations), { ...e === "result" && typeof n.message == "string" ? { status: n.message } : {} }) : {}, []),
-		reset: (0, y.useCallback)(() => t([]), [])
-	};
-}
 function Hc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
-//#region webview/src/capabilities/wordbook/useWordbookCapability.ts
+//#region webview/src/capabilities/annotations/useAnnotationsCapability.ts
 function Uc() {
 	let [e, t] = (0, y.useState)([]);
 	return {
-		words: e,
-		handleEvent: (0, y.useCallback)((e, n) => (e !== "state" || !Wc(n) || !Array.isArray(n.words) || t(n.words), {}), []),
+		annotations: e,
+		handleEvent: (0, y.useCallback)((e, n) => Wc(n) ? (e === "state" && Array.isArray(n.annotations) && t(n.annotations), { ...e === "result" && typeof n.message == "string" ? { status: n.message } : {} }) : {}, []),
 		reset: (0, y.useCallback)(() => t([]), [])
 	};
 }
@@ -22241,8 +22283,21 @@ function Wc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
+//#region webview/src/capabilities/wordbook/useWordbookCapability.ts
+function Gc() {
+	let [e, t] = (0, y.useState)([]);
+	return {
+		words: e,
+		handleEvent: (0, y.useCallback)((e, n) => (e !== "state" || !Kc(n) || !Array.isArray(n.words) || t(n.words), {}), []),
+		reset: (0, y.useCallback)(() => t([]), [])
+	};
+}
+function Kc(e) {
+	return typeof e == "object" && !!e && !Array.isArray(e);
+}
+//#endregion
 //#region webview/src/capabilities/translation/useTranslationCapability.ts
-var Gc = {
+var qc = {
 	provider: "argos",
 	deepSeekModel: "deepseek-v4-flash",
 	libreTranslateEndpoint: "http://localhost:5000/translate",
@@ -22254,9 +22309,9 @@ var Gc = {
 	dictionaryReady: !1,
 	argosPythonFound: !1
 };
-function Kc() {
-	let [e, t] = (0, y.useState)(Gc), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), c = (0, y.useRef)(), l = (0, y.useCallback)(() => {
-		c.current &&= (Ic.postMessage({
+function Jc() {
+	let [e, t] = (0, y.useState)(qc), [n, r] = (0, y.useState)(""), [i, a] = (0, y.useState)(""), [o, s] = (0, y.useState)(), c = (0, y.useRef)(), l = (0, y.useCallback)(() => {
+		c.current &&= (Rc.postMessage({
 			type: "capabilityRequest",
 			capabilityId: "translation",
 			action: "cancel",
@@ -22268,7 +22323,7 @@ function Kc() {
 		sourceText: n,
 		output: i,
 		wordDetails: o,
-		handleEvent: (0, y.useCallback)((e, n, i) => qc(n) ? e === "settings" ? (l(), r(""), a(""), s(void 0), t(n), {}) : e === "result" && typeof n.sourceText == "string" ? !c.current || n.sourceText !== i || n.requestId !== c.current.requestId ? {} : (c.current = void 0, r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(qc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, [l]),
+		handleEvent: (0, y.useCallback)((e, n, i) => Yc(n) ? e === "settings" ? (l(), r(""), a(""), s(void 0), t(n), {}) : e === "result" && typeof n.sourceText == "string" ? !c.current || n.sourceText !== i || n.requestId !== c.current.requestId ? {} : (c.current = void 0, r(n.sourceText), a(typeof n.error == "string" ? n.error : typeof n.translatedText == "string" ? n.translatedText : ""), s(Yc(n.wordDetails) ? n.wordDetails : void 0), { activatePanel: "translation" }) : {} : {}, [l]),
 		start: (0, y.useCallback)((e) => {
 			if (c.current?.text === e) return;
 			l();
@@ -22276,7 +22331,7 @@ function Kc() {
 			c.current = {
 				requestId: t,
 				text: e
-			}, r(e), a("Translating..."), s(void 0), Ic.postMessage({
+			}, r(e), a("Translating..."), s(void 0), Rc.postMessage({
 				type: "capabilityRequest",
 				capabilityId: "translation",
 				action: "translate",
@@ -22291,27 +22346,27 @@ function Kc() {
 		}, [l])
 	};
 }
-function qc(e) {
+function Yc(e) {
 	return typeof e == "object" && !!e && !Array.isArray(e);
 }
 //#endregion
 //#region webview/src/capabilities/OverviewPanel.tsx
-function Jc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
+function Xc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "side-tab-panel",
 		children: [
 			/* @__PURE__ */ (0, L.jsxs)("div", {
 				className: "overview-grid",
 				children: [
-					/* @__PURE__ */ (0, L.jsx)(Yc, {
+					/* @__PURE__ */ (0, L.jsx)(Zc, {
 						label: "Page",
 						value: `${e} / ${t || "-"}`
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Yc, {
+					/* @__PURE__ */ (0, L.jsx)(Zc, {
 						label: "Annotations",
 						value: n
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Yc, {
+					/* @__PURE__ */ (0, L.jsx)(Zc, {
 						label: "Words",
 						value: r
 					})
@@ -22328,7 +22383,7 @@ function Jc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, st
 				className: "tool-block",
 				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current selection" }), a.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
 					className: "selection-preview",
-					children: Xc(a, 260)
+					children: Qc(a, 260)
 				}) : /* @__PURE__ */ (0, L.jsx)("div", {
 					className: "empty compact-empty",
 					children: "Select text in the PDF to act on it."
@@ -22337,19 +22392,19 @@ function Jc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, st
 		]
 	});
 }
-function Yc({ label: e, value: t }) {
+function Zc({ label: e, value: t }) {
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "metric-card",
 		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("strong", { children: t })]
 	});
 }
-function Xc(e, t) {
+function Qc(e, t) {
 	let n = e.replace(/\s+/g, " ").trim();
 	return n.length > t ? `${n.slice(0, t - 1)}...` : n;
 }
 //#endregion
 //#region webview/src/capabilities/SettingsView.tsx
-function Zc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
+function $c({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
 	return /* @__PURE__ */ (0, L.jsxs)("div", {
 		className: "settings-view",
 		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22369,7 +22424,7 @@ function Zc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 								className: "capability-card-heading",
 								children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("h3", { children: t.title }), /* @__PURE__ */ (0, L.jsx)("p", { children: t.description })] }), /* @__PURE__ */ (0, L.jsx)("span", {
 									className: `capability-readiness ${t.readiness}`,
-									children: tl(t.readiness)
+									children: rl(t.readiness)
 								})]
 							}),
 							t.readinessMessage ? /* @__PURE__ */ (0, L.jsx)("p", {
@@ -22412,7 +22467,7 @@ function Zc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 					}, t.id))
 				})
 			]
-		}), /* @__PURE__ */ (0, L.jsx)(Qc, {
+		}), /* @__PURE__ */ (0, L.jsx)(el, {
 			settings: t,
 			onSetting: i,
 			onConfigureDeepSeek: a,
@@ -22420,12 +22475,12 @@ function Zc({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 		})]
 	});
 }
-function Qc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
+function el({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "settings-section",
 		children: [
 			/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation" }),
-			/* @__PURE__ */ (0, L.jsxs)($c, {
+			/* @__PURE__ */ (0, L.jsxs)(tl, {
 				label: "Provider",
 				value: e.provider,
 				onChange: (e) => t("provider", e),
@@ -22445,7 +22500,7 @@ function Qc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 				]
 			}),
 			e.provider === "deepseek" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsxs)($c, {
+				/* @__PURE__ */ (0, L.jsxs)(tl, {
 					label: "DeepSeek model",
 					value: e.deepSeekModel,
 					onChange: (e) => t("deepSeekModel", e),
@@ -22467,23 +22522,23 @@ function Qc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 					children: e.hasDeepSeekApiKey ? "Replace API Key" : "Set API Key"
 				})
 			] }) : null,
-			/* @__PURE__ */ (0, L.jsx)(el, {
+			/* @__PURE__ */ (0, L.jsx)(nl, {
 				label: "Source language",
 				value: e.source,
 				onCommit: (e) => t("source", e)
 			}),
-			/* @__PURE__ */ (0, L.jsx)(el, {
+			/* @__PURE__ */ (0, L.jsx)(nl, {
 				label: "Target language",
 				value: e.target,
 				onCommit: (e) => t("target", e)
 			}),
-			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(el, {
+			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(nl, {
 				label: "LibreTranslate endpoint",
 				value: e.libreTranslateEndpoint,
 				onCommit: (e) => t("libreTranslateEndpoint", e)
 			}) : null,
 			e.provider === "argos" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsx)(el, {
+				/* @__PURE__ */ (0, L.jsx)(nl, {
 					label: "Argos Python path",
 					value: e.argosPythonPath,
 					placeholder: "Use the bundled .venv-translate path",
@@ -22514,7 +22569,7 @@ function Qc({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 		]
 	});
 }
-function $c({ label: e, value: t, onChange: n, children: r }) {
+function tl({ label: e, value: t, onChange: n, children: r }) {
 	return /* @__PURE__ */ (0, L.jsxs)("label", {
 		className: "setting-field",
 		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("select", {
@@ -22524,7 +22579,7 @@ function $c({ label: e, value: t, onChange: n, children: r }) {
 		})]
 	});
 }
-function el({ label: e, value: t, placeholder: n, onCommit: r }) {
+function nl({ label: e, value: t, placeholder: n, onCommit: r }) {
 	let [i, a] = (0, y.useState)(t);
 	return (0, y.useEffect)(() => a(t), [t]), /* @__PURE__ */ (0, L.jsxs)("label", {
 		className: "setting-field",
@@ -22539,12 +22594,12 @@ function el({ label: e, value: t, placeholder: n, onCommit: r }) {
 		})]
 	});
 }
-function tl(e) {
+function rl(e) {
 	return e === "needsSetup" ? "Needs setup" : e[0].toUpperCase() + e.slice(1);
 }
 //#endregion
 //#region webview/src/capabilities/ReaderSideSurface.tsx
-function nl({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
+function il({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
 	return /* @__PURE__ */ (0, L.jsxs)("aside", {
 		className: "side-panel",
 		"aria-hidden": e === "closed",
@@ -22573,7 +22628,7 @@ function nl({ surface: e, title: t, activePanel: n, panels: r, settings: i, onAc
 }
 //#endregion
 //#region webview/src/capabilities/annotations/AnnotationsPanel.tsx
-function rl(e) {
+function al(e) {
 	return /* @__PURE__ */ (0, L.jsx)("section", {
 		className: "side-tab-panel list-block",
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22686,7 +22741,7 @@ function rl(e) {
 }
 //#endregion
 //#region webview/src/capabilities/translation/TranslationPanel.tsx
-function il({ selectedText: e, output: t, wordDetails: n }) {
+function ol({ selectedText: e, output: t, wordDetails: n }) {
 	return /* @__PURE__ */ (0, L.jsxs)("section", {
 		className: "side-tab-panel",
 		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22717,7 +22772,7 @@ function il({ selectedText: e, output: t, wordDetails: n }) {
 }
 //#endregion
 //#region webview/src/capabilities/wordbook/WordbookPanel.tsx
-function al({ words: e, onDelete: t }) {
+function sl({ words: e, onDelete: t }) {
 	return /* @__PURE__ */ (0, L.jsx)("section", {
 		className: "side-tab-panel list-block",
 		children: /* @__PURE__ */ (0, L.jsxs)("section", {
@@ -22741,27 +22796,27 @@ function al({ words: e, onDelete: t }) {
 }
 //#endregion
 //#region webview/src/capabilities/registry.ts
-var ol = [
+var cl = [
 	{
 		id: "annotations",
-		render: (e) => y.createElement(rl, e.annotations)
+		render: (e) => y.createElement(al, e.annotations)
 	},
 	{
 		id: "wordbook",
-		render: (e) => y.createElement(al, e.wordbook)
+		render: (e) => y.createElement(sl, e.wordbook)
 	},
 	{
 		id: "translation",
-		render: (e) => y.createElement(il, e.translation)
+		render: (e) => y.createElement(ol, e.translation)
 	}
 ];
-function sl(e) {
+function ll(e) {
 	let t = new Map(e.map((e) => [e.id, e]));
-	return ol.map((e) => t.get(e.id)).filter((e) => !!e && e.enabled && e.showInPanel).sort((e, t) => e.order - t.order);
+	return cl.map((e) => t.get(e.id)).filter((e) => !!e && e.enabled && e.showInPanel).sort((e, t) => e.order - t.order);
 }
-function cl(e, t) {
-	let n = new Map(sl(e).map((e) => [e.id, e])), r = [];
-	for (let e of ol) {
+function ul(e, t) {
+	let n = new Map(ll(e).map((e) => [e.id, e])), r = [];
+	for (let e of cl) {
 		let i = n.get(e.id);
 		i && r.push({
 			id: i.id,
@@ -22771,28 +22826,28 @@ function cl(e, t) {
 	}
 	return r.sort((e, t) => (n.get(e.id)?.order ?? 0) - (n.get(t.id)?.order ?? 0));
 }
-function ll(e, t) {
+function dl(e, t) {
 	return e.find((e) => e.id === t)?.enabled ?? !0;
 }
-function ul(e, t) {
+function fl(e, t) {
 	return t[e.capabilityId]?.(e.event, e.payload) ?? {};
 }
 //#endregion
 //#region webview/src/main.tsx
-var dl = {
+var pl = {
 	progress: { updatedAt: (/* @__PURE__ */ new Date(0)).toISOString() },
-	paperName: Mc.paperName
+	paperName: Pc.paperName
 };
-function fl() {
-	let [e, t] = (0, y.useState)(dl), n = Vc(), r = Uc(), i = Kc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => zc(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Mc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Mc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Mc.documentId), be = (0, y.useRef)({
+function ml() {
+	let [e, t] = (0, y.useState)(pl), n = Uc(), r = Gc(), i = Jc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => $(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Pc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Pc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Pc.documentId), be = (0, y.useRef)({
 		selectedText: "",
 		selectionPosition: void 0,
 		currentPage: 1
 	}), xe = (0, y.useMemo)(() => ({
 		url: M,
-		cMapUrl: Mc.pdfCMapUrl,
+		cMapUrl: Pc.pdfCMapUrl,
 		cMapPacked: !0,
-		standardFontDataUrl: Mc.pdfStandardFontDataUrl,
+		standardFontDataUrl: Pc.pdfStandardFontDataUrl,
 		useWorkerFetch: !1,
 		disableStream: !0,
 		disableAutoFetch: !0,
@@ -22803,13 +22858,13 @@ function fl() {
 		useSystemFonts: !1
 	}), [M]), Se = (0, y.useCallback)((e) => {
 		ue.current = e, window.clearTimeout(le.current), le.current = window.setTimeout(() => {
-			Ic.postMessage({
+			Rc.postMessage({
 				type: "saveProgress",
 				payload: { page: e }
 			}), ue.current = void 0;
 		}, 350);
 	}, []), Ce = (0, y.useCallback)(() => {
-		window.clearTimeout(le.current), ue.current !== void 0 && (Ic.postMessage({
+		window.clearTimeout(le.current), ue.current !== void 0 && (Rc.postMessage({
 			type: "saveProgress",
 			payload: { page: ue.current }
 		}), ue.current = void 0);
@@ -22824,7 +22879,7 @@ function fl() {
 		let t = ce.current?.getViewer();
 		t && (t.currentScaleValue = e.toString());
 	}, []), De = (0, y.useCallback)((e, t = !1) => {
-		let n = ce.current?.getViewer(), r = ml((me.current ?? n?.currentScale ?? 1) * e);
+		let n = ce.current?.getViewer(), r = gl((me.current ?? n?.currentScale ?? 1) * e);
 		if (!t) {
 			window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, n && (n.currentScale = r), window.clearTimeout(he.current), T(r);
 			return;
@@ -22835,7 +22890,7 @@ function fl() {
 			me.current = void 0;
 			let t = ce.current?.getViewer();
 			t && e !== void 0 && (t.currentScale = e);
-		})), ge.current && (ge.current.textContent = hl(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
+		})), ge.current && (ge.current.textContent = _l(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
 			T(r);
 		}, 140);
 	}, []), Oe = (0, y.useCallback)((e) => {
@@ -22846,7 +22901,7 @@ function fl() {
 		Ce(), window.clearTimeout(de.current), window.cancelAnimationFrame(pe.current || 0), window.clearTimeout(he.current), pe.current = void 0, me.current = void 0, document.body.classList.remove("reader-mounted");
 	}), [Ce]), (0, y.useEffect)(() => {
 		let e = !1, t;
-		return Sl(Mc.pdfWorkerUrl).then((n) => {
+		return wl(Pc.pdfWorkerUrl).then((n) => {
 			if (e) {
 				URL.revokeObjectURL(n);
 				return;
@@ -22863,7 +22918,7 @@ function fl() {
 			let t = document.activeElement;
 			if (t instanceof HTMLElement && t.closest("input, textarea, [contenteditable=\"true\"]")) return;
 			let n = be.current.selectedText.trim();
-			n && (e.preventDefault(), Ic.postMessage({
+			n && (e.preventDefault(), Rc.postMessage({
 				type: "copySelection",
 				payload: { text: n }
 			}));
@@ -22876,22 +22931,22 @@ function fl() {
 	(0, y.useEffect)(() => {
 		ve.current = s;
 	}, [s]), (0, y.useEffect)(() => {
-		Ic.postMessage({ type: "ready" });
+		Rc.postMessage({ type: "ready" });
 	}, []), (0, y.useEffect)(() => {
 		let e = (e) => {
 			let a = e.data;
 			if (a.type === "navigateTo" || a.documentId === ye.current) {
-				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Fc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(dl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), ll(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
-					if (a.event === "error" && _l(a.payload)) {
+				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Lc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(pl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), dl(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
+					if (a.event === "error" && yl(a.payload)) {
 						D(a.payload.message);
 						return;
 					}
-					let e = ul(a, {
+					let e = fl(a, {
 						annotations: n.handleEvent,
 						wordbook: r.handleEvent,
 						translation: (e, t) => i.handleEvent(e, t, be.current.selectedText.trim())
 					});
-					e.status && D(e.status), e.activatePanel && ll(ve.current, e.activatePanel) && oe(e.activatePanel);
+					e.status && D(e.status), e.activatePanel && dl(ve.current, e.activatePanel) && oe(e.activatePanel);
 				}
 				a.type === "clipboardResult" && D(a.payload.error || a.payload.message || "Done.");
 			}
@@ -22910,7 +22965,7 @@ function fl() {
 		let t = window.setTimeout(() => Ze(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
 	}, [S, e.progress?.page]);
-	let Ae = (0, y.useMemo)(() => ll(s, "annotations") ? n.annotations.map(Fs).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Rs(n.annotations, {
+	let Ae = (0, y.useMemo)(() => dl(s, "annotations") ? n.annotations.map(Fs).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Rs(n.annotations, {
 		query: l,
 		tags: d,
 		color: p,
@@ -22923,11 +22978,11 @@ function fl() {
 		h,
 		_,
 		d
-	]), Me = (0, y.useMemo)(() => sl(s), [s]);
+	]), Me = (0, y.useMemo)(() => ll(s), [s]);
 	(0, y.useEffect)(() => {
 		ae !== "overview" && !Me.some((e) => e.id === ae) && oe("overview");
 	}, [ae, Me]), (0, y.useEffect)(() => {
-		ll(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
+		dl(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
 	}, [s]);
 	function Ne(e) {
 		let t = window.getSelection();
@@ -22974,7 +23029,7 @@ function fl() {
 				annotation: e,
 				onCancel: Re,
 				onSave: (t) => {
-					gl("annotations", "update", {
+					vl("annotations", "update", {
 						id: e.id,
 						patch: t
 					}), D("Annotation saved."), Re();
@@ -22983,14 +23038,14 @@ function fl() {
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
 	function Le(e) {
-		j(e), gl("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
+		j(e), vl("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
 	}
 	function Re() {
 		let e = ce.current;
 		e?.setTip(null), e?.toggleEditInProgress(!1), k(void 0);
 	}
 	function ze() {
-		A && (gl("annotations", "restore", A), j(void 0));
+		A && (vl("annotations", "restore", A), j(void 0));
 	}
 	function Be() {
 		o(""), k(void 0), be.current = {
@@ -23012,7 +23067,7 @@ function fl() {
 	}, [Ve]);
 	let He = (0, y.useCallback)((e) => {
 		let t = be.current;
-		if (!pl(t, {
+		if (!hl(t, {
 			color: e,
 			kind: "highlight"
 		})) {
@@ -23022,7 +23077,7 @@ function fl() {
 		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
 	}, []), Ue = (0, y.useCallback)((e) => {
 		let t = be.current;
-		if (!pl(t, {
+		if (!hl(t, {
 			color: e,
 			kind: "underline"
 		})) {
@@ -23036,7 +23091,7 @@ function fl() {
 			D("Select text before adding a note.");
 			return;
 		}
-		if (!pl(n, {
+		if (!hl(n, {
 			color: t,
 			kind: "highlight",
 			note: e
@@ -23051,14 +23106,14 @@ function fl() {
 			D("Select text before translating.");
 			return;
 		}
-		o(t), x(e.currentPage), i.start(t), sl(s).some((e) => e.id === "translation") && oe("translation");
+		o(t), x(e.currentPage), i.start(t), ll(s).some((e) => e.id === "translation") && oe("translation");
 	}, [s, i.start]), Ke = (0, y.useCallback)((e) => {
 		let t = be.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
 			D("Select a word before saving it.");
 			return;
 		}
-		gl("wordbook", "save", {
+		vl("wordbook", "save", {
 			word: e.word,
 			translation: Vs(e),
 			phonetic: e.phonetic,
@@ -23066,15 +23121,15 @@ function fl() {
 			sentence: n,
 			note: "",
 			page: t.currentPage
-		}), ce.current?.removeGhostHighlight(), sl(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
+		}), ce.current?.removeGhostHighlight(), ll(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
 	}, [s]), qe = (0, y.useMemo)(() => ({
 		selectedText: a,
 		translationSourceText: i.sourceText,
 		translationText: i.output,
 		wordDetails: i.wordDetails,
-		annotationsEnabled: ll(s, "annotations"),
-		translationEnabled: ll(s, "translation"),
-		wordbookEnabled: ll(s, "wordbook"),
+		annotationsEnabled: dl(s, "annotations"),
+		translationEnabled: dl(s, "translation"),
+		wordbookEnabled: dl(s, "wordbook"),
 		onHighlight: He,
 		onUnderline: Ue,
 		onSaveNote: We,
@@ -23134,7 +23189,7 @@ function fl() {
 					/* @__PURE__ */ (0, L.jsx)("span", {
 						ref: ge,
 						className: "zoom-value",
-						children: hl(w)
+						children: _l(w)
 					}),
 					/* @__PURE__ */ (0, L.jsx)("button", {
 						title: "Zoom in",
@@ -23191,9 +23246,9 @@ function fl() {
 						children: ["Could not load PDF: ", e.message]
 					}),
 					onError: (e) => {
-						bl(e) || D(`Could not load PDF: ${e.message}`);
+						Sl(e) || D(`Could not load PDF: ${e.message}`);
 					},
-					children: (e) => /* @__PURE__ */ (0, L.jsx)(Dc, {
+					children: (e) => /* @__PURE__ */ (0, L.jsx)(kc, {
 						activeId: O,
 						highlights: Ae,
 						pdfDocument: e,
@@ -23234,7 +23289,7 @@ function fl() {
 		se("closed");
 	}
 	function $e(e, t) {
-		Ic.postMessage({
+		Rc.postMessage({
 			type: "updateCapabilityPreference",
 			payload: {
 				capabilityId: e,
@@ -23247,7 +23302,7 @@ function fl() {
 		r && $e(e, { order: r.order + t });
 	}
 	function tt(e, t) {
-		gl("translation", "updateSetting", {
+		vl("translation", "updateSetting", {
 			key: e,
 			value: t
 		});
@@ -23255,7 +23310,7 @@ function fl() {
 	let nt = [{
 		id: "overview",
 		title: "Overview",
-		content: /* @__PURE__ */ (0, L.jsx)(Jc, {
+		content: /* @__PURE__ */ (0, L.jsx)(Xc, {
 			currentPage: b,
 			pageTotal: S,
 			annotationCount: n.annotations.length,
@@ -23263,7 +23318,7 @@ function fl() {
 			status: E,
 			selectedText: a
 		})
-	}, ...cl(s, {
+	}, ...ul(s, {
 		annotations: {
 			annotations: je,
 			total: n.annotations.length,
@@ -23281,36 +23336,36 @@ function fl() {
 			onSortMode: v,
 			onFocus: Xe,
 			onEdit: Ie,
-			onCopy: (e) => gl("annotations", "copyMarkdown", { id: e.id }),
+			onCopy: (e) => vl("annotations", "copyMarkdown", { id: e.id }),
 			onDelete: Le,
 			onUndo: ze,
-			onExportMarkdown: () => gl("annotations", "exportMarkdown"),
-			onExportPdf: () => gl("annotations", "exportPdf"),
-			onOrganizeNotes: () => gl("annotations", "organizeNotes")
+			onExportMarkdown: () => vl("annotations", "exportMarkdown"),
+			onExportPdf: () => vl("annotations", "exportPdf"),
+			onOrganizeNotes: () => vl("annotations", "organizeNotes")
 		},
 		wordbook: {
 			words: r.words,
-			onDelete: (e) => gl("wordbook", "delete", { id: e })
+			onDelete: (e) => vl("wordbook", "delete", { id: e })
 		},
 		translation: {
 			selectedText: a,
 			output: i.output,
 			wordDetails: i.wordDetails
 		}
-	})], rt = /* @__PURE__ */ (0, L.jsx)(Zc, {
+	})], rt = /* @__PURE__ */ (0, L.jsx)($c, {
 		capabilities: s,
 		translation: i.settings,
 		onCapabilityChange: $e,
 		onMove: et,
 		onTranslationSetting: tt,
-		onConfigureDeepSeek: () => gl("translation", "configureDeepSeek"),
-		onDiagnoseTranslation: () => gl("translation", "diagnose")
+		onConfigureDeepSeek: () => vl("translation", "configureDeepSeek"),
+		onDiagnoseTranslation: () => vl("translation", "diagnose")
 	});
 	return /* @__PURE__ */ (0, L.jsxs)("main", {
 		className: `shell${F === "closed" ? " sidebar-hidden" : ""}`,
-		children: [Ye, /* @__PURE__ */ (0, L.jsx)(nl, {
+		children: [Ye, /* @__PURE__ */ (0, L.jsx)(il, {
 			surface: F,
-			title: ie || e.paperName || Mc.paperName,
+			title: ie || e.paperName || Pc.paperName,
 			activePanel: ae,
 			panels: nt,
 			settings: rt,
@@ -23319,38 +23374,38 @@ function fl() {
 		})]
 	});
 }
-function pl(e, t) {
+function hl(e, t) {
 	let n = zs(e, t);
-	return n ? (gl("annotations", "save", n), !0) : !1;
+	return n ? (vl("annotations", "save", n), !0) : !1;
 }
-function ml(e) {
+function gl(e) {
 	return Math.min(Math.max(e, .5), 2.4);
 }
-function hl(e) {
+function _l(e) {
 	return typeof e == "number" ? `${Math.round(e * 100)}%` : e === "page-width" ? "Fit" : e === "page-actual" ? "100%" : e;
 }
-function gl(e, t, n) {
-	Ic.postMessage({
+function vl(e, t, n) {
+	Rc.postMessage({
 		type: "capabilityRequest",
 		capabilityId: e,
 		action: t,
 		payload: n
 	});
 }
-function _l(e) {
+function yl(e) {
 	return typeof e == "object" && !!e && "message" in e && typeof e.message == "string";
 }
-function vl() {
+function bl() {
 	let [e, t] = (0, y.useState)();
 	return (0, y.useEffect)(() => {
 		let e = (e) => {
-			if (yl(e.error || e.message)) {
+			if (xl(e.error || e.message)) {
 				e.preventDefault();
 				return;
 			}
 			t(e.message || String(e.error || "Unknown Webview error"));
 		}, n = (e) => {
-			if (yl(e.reason)) {
+			if (xl(e.reason)) {
 				e.preventDefault();
 				return;
 			}
@@ -23362,24 +23417,24 @@ function vl() {
 	}, []), e ? /* @__PURE__ */ (0, L.jsxs)("main", {
 		className: "fatal-error",
 		children: [/* @__PURE__ */ (0, L.jsx)("h1", { children: "Reader failed to start" }), /* @__PURE__ */ (0, L.jsx)("pre", { children: e })]
-	}) : /* @__PURE__ */ (0, L.jsx)(fl, {});
+	}) : /* @__PURE__ */ (0, L.jsx)(ml, {});
 }
-function yl(e) {
-	return bl(e) || xl(e);
+function xl(e) {
+	return Sl(e) || Cl(e);
 }
-function bl(e) {
+function Sl(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /worker was (?:terminated|destroyed)/i.test(t) || /loading aborted/i.test(t);
 }
-function xl(e) {
+function Cl(e) {
 	let t = e instanceof Error ? e.message : String(e || "");
 	return /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/i.test(t.trim());
 }
-async function Sl(e) {
+async function wl(e) {
 	let t = await fetch(e);
 	if (!t.ok) throw Error(`Worker resource request failed with HTTP ${t.status}.`);
 	let n = await t.arrayBuffer();
 	return URL.createObjectURL(new Blob([n], { type: "text/javascript" }));
 }
-(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(vl, {}));
+(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(bl, {}));
 //#endregion

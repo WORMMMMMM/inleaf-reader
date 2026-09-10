@@ -111,6 +111,54 @@ assert.equal(annotationToHighlight({
 }).position.rects.length, 4, 'existing annotations should also render with coherent rectangles');
 
 // Exercise PdfDocumentView through the event bus with a deterministic frame scheduler.
+const shadeListeners = new Map();
+const shadeFrames = new Map();
+const shadeElements = [];
+let shadeFrameId = 0;
+let collapsed = false;
+const { trackSelectionShade } = loadSource('webview/src/selectionShade.ts', {}, {
+  MutationObserver: class { observe() {} disconnect() {} },
+  document: {
+    addEventListener: (name, fn) => shadeListeners.set(name, fn),
+    removeEventListener: name => shadeListeners.delete(name),
+    createElement: () => ({ style: {}, setAttribute() {}, remove() { this.removed = true; } }),
+    body: { appendChild: node => shadeElements.push(node) }
+  },
+  window: {
+    getSelection: () => ({ isCollapsed: collapsed, rangeCount: 1, anchorNode: {}, focusNode: {},
+      getRangeAt: () => ({ getClientRects: () => [
+        { left: -10, top: 5, right: 60, bottom: 20 },
+        { left: 40, top: 5, right: 80, bottom: 20 }
+      ] }) }),
+    requestAnimationFrame: fn => { shadeFrames.set(++shadeFrameId, fn); return shadeFrameId; },
+    cancelAnimationFrame: id => shadeFrames.delete(id),
+    addEventListener: (name, fn) => shadeListeners.set(name, fn),
+    removeEventListener: name => shadeListeners.delete(name)
+  }
+});
+let previewRects = [];
+const disposeShade = trackSelectionShade(() => ({ contains: () => true,
+  querySelectorAll: () => previewRects.map(rect => ({ getBoundingClientRect: () => rect })),
+  getBoundingClientRect: () => ({ left: 0, top: 0, right: 100, bottom: 100 }) }));
+const flushShade = () => { const callbacks = [...shadeFrames.values()]; shadeFrames.clear(); callbacks.forEach(fn => fn()); };
+shadeListeners.get('selectionchange')();
+shadeListeners.get('selectionchange')();
+assert.equal(shadeFrames.size, 1, 'batch rapid selection changes');
+flushShade();
+assert.equal(shadeElements.length, 1, 'overlapping rectangles use one shade');
+assert.equal(shadeElements[0].style.clipPath, 'path("M0,5H60V20H0Z M40,5H80V20H40Z")');
+collapsed = true;
+shadeListeners.get('selectionchange')();
+flushShade();
+assert.equal(shadeElements[0].removed, true, 'collapsed selection removes the shade');
+previewRects = [{ left: 0, top: 5, right: 60, bottom: 20 }, { left: 40, top: 5, right: 80, bottom: 20 }];
+shadeListeners.get('selectionchange')();
+flushShade();
+assert.equal(shadeElements[1].style.clipPath, shadeElements[0].style.clipPath,
+  'retained selection uses exactly the same overlay geometry as native selection');
+disposeShade();
+assert.equal(shadeListeners.size, 0);
+
 let frameId = 0;
 const frames = new Map();
 const cleanup = [];
@@ -121,8 +169,9 @@ const react = {
 };
 const { PdfDocumentView } = loadSource('webview/src/components/PdfDocumentView.tsx', {
   react, 'react-pdf-highlighter-plus': { PdfHighlighter: 'highlighter' },
-  '../pdfSelection': { markPageSelectionRegions() {} }
-}, { window: {
+  '../pdfSelection': { markPageSelectionRegions() {} },
+  '../selectionShade': { trackSelectionShade() {} }
+}, { document: { addEventListener() {}, removeEventListener() {} }, window: {
   requestAnimationFrame: fn => { frames.set(++frameId, fn); return frameId; },
   cancelAnimationFrame: id => frames.delete(id)
 } });
@@ -146,6 +195,7 @@ tree.props.utilsRef({ getEventBus: () => eventBus, getViewer: () => viewer });
 const flushFrames = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn()); };
 viewer.currentScale = 0.8;
 handlers.get('scalechanging')({ scale: 0.8 });
+assert.ok(layers.every(layer => layer.style.transform === ''), 'do not double-scale PDF.js highlight geometry');
 handlers.get('pagerendered')({ pageNumber: 1 });
 handlers.get('textlayerrendered')({ pageNumber: 2 });
 flushFrames();

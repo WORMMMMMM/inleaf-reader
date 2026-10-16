@@ -85,6 +85,12 @@ function App() {
   const [zoom, setZoom] = useState<PdfScaleValue>('page-width');
   const [status, setStatus] = useState('Loading PDF...');
   const [activeId, setActiveId] = useState<string | undefined>();
+  const [locatedAnnotation, setLocatedAnnotation] = useState<{ id: string }>();
+  useEffect(() => {
+    if (!locatedAnnotation) return;
+    const timer = window.setTimeout(() => setLocatedAnnotation(undefined), 1200);
+    return () => window.clearTimeout(timer);
+  }, [locatedAnnotation]);
   const [lastDeleted, setLastDeleted] = useState<AnnotationRecord | undefined>();
   const [pdfUrl, setPdfUrl] = useState(readerConfig.pdfUrl);
   const [pdfWorkerSrc, setPdfWorkerSrc] = useState<string | undefined>();
@@ -534,6 +540,7 @@ function App() {
   }
 
   function clearAnnotationDraft() {
+    setLocatedAnnotation(undefined);
     setSelectedText('');
     setActiveId(undefined);
     selectionRef.current = { selectedText: '', selectionPosition: undefined, currentPage: 1 };
@@ -742,6 +749,7 @@ function App() {
               {pdfDocument => (
                 <PdfDocumentView
                   activeId={activeId}
+                  locatedId={locatedAnnotation?.id}
                   highlights={highlights}
                   pdfDocument={pdfDocument}
                   selectionTip={selectionTip}
@@ -764,6 +772,7 @@ function App() {
   );
 
   function focusAnnotation(annotation: AnnotationRecord) {
+    setLocatedAnnotation({ id: annotation.id });
     setActiveId(annotation.id);
     const highlight = annotationToHighlight(annotation);
     if (highlight) {

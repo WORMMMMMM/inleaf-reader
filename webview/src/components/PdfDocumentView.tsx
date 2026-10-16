@@ -4,6 +4,7 @@ import {
   MonitoredHighlightContainer,
   PdfHighlighter,
   TextHighlight,
+  scaledPositionToViewport,
   useHighlightContainerContext,
   type PdfHighlighterUtils,
   type PdfScaleValue,
@@ -47,6 +48,7 @@ type PdfViewerInstance = {
 
 export function PdfDocumentView({
   activeId,
+  locatedId,
   highlights,
   pdfDocument,
   selectionTip,
@@ -59,6 +61,7 @@ export function PdfDocumentView({
   utilsRef
 }: {
   activeId?: string;
+  locatedId?: string;
   highlights: ReaderHighlight[];
   pdfDocument: { numPages: number };
   selectionTip?: React.ReactNode;
@@ -78,6 +81,7 @@ export function PdfDocumentView({
   const pendingHighlightLayersRef = useRef(new Set<HTMLElement>());
   const renderedPagesRef = useRef(new Set<number>());
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const highlighterUtilsRef = useRef<PdfHighlighterUtils | null>(null);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
@@ -199,7 +203,78 @@ export function PdfDocumentView({
     return () => document.removeEventListener('click', handleTextHighlightClick, true);
   }, [handleTextHighlightClick, pdfDocument]);
 
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let ownedTip: Tip | null = null;
+    const cancelPending = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = undefined;
+    };
+    const dismissHover = () => {
+      cancelPending();
+      const utils = highlighterUtilsRef.current;
+      // A click may have replaced our preview with an editor. Never close it.
+      if (ownedTip && utils?.getTip() === ownedTip) utils.setTip(null);
+      ownedTip = null;
+    };
+    const handleMove = (event: PointerEvent) => {
+      cancelPending();
+      const target = event.target instanceof Element ? event.target : null;
+      const utils = highlighterUtilsRef.current;
+      if (target?.closest('.PdfHighlighter__tip-container')) return;
+      if (!target || event.buttons || event.pointerType === 'touch' ||
+        !viewerContainerRef.current?.contains(target) || !utils ||
+        utils.isEditInProgress() || utils.isSelectionInProgress()) {
+        dismissHover();
+        return;
+      }
+      const page = target.closest('.page');
+      if (!page) { dismissHover(); return; }
+      const { clientX: x, clientY: y } = event;
+      // Hit-test only after the pointer settles, not on every move/scroll.
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (utils.isEditInProgress() || utils.isSelectionInProgress()) return;
+        const nativeSelection = window.getSelection();
+        if (nativeSelection && !nativeSelection.isCollapsed) return;
+        const hit = Array.from(page.querySelectorAll<HTMLElement>(
+          '[data-reader-annotation-id] .TextHighlight__part'
+        )).find(part => {
+          const rect = part.getBoundingClientRect();
+          return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        });
+        const id = hit?.closest<HTMLElement>('[data-reader-annotation-id]')?.dataset.readerAnnotationId;
+        const highlight = highlights.find(item => item.annotation?.id === id);
+        const annotation = highlight?.annotation;
+        if (!highlight || !annotation || !(annotation.note || annotation.tags?.length)) {
+          dismissHover();
+          return;
+        }
+        if (utils.getTip() && utils.getTip() !== ownedTip) return;
+        const viewer = utils.getViewer();
+        if (!viewer) return;
+        ownedTip = {
+          position: scaledPositionToViewport(highlight.position, viewer),
+          content: <HighlightTooltip annotation={annotation} />
+        };
+        utils.setTip(ownedTip);
+      }, 200);
+    };
+    document.addEventListener('pointermove', handleMove, true);
+    document.addEventListener('pointerdown', dismissHover, true);
+    document.addEventListener('scroll', dismissHover, true);
+    document.addEventListener('pointerleave', dismissHover);
+    return () => {
+      dismissHover();
+      document.removeEventListener('pointermove', handleMove, true);
+      document.removeEventListener('pointerdown', dismissHover, true);
+      document.removeEventListener('scroll', dismissHover, true);
+      document.removeEventListener('pointerleave', dismissHover);
+    };
+  }, [highlights, pdfDocument]);
+
   const captureUtils = useCallback((utils: PdfHighlighterUtils) => {
+    highlighterUtilsRef.current = utils;
     const nextEventBus = utils.getEventBus() as PdfEventBus | null;
     if (eventBusRef.current !== nextEventBus) {
       eventBusRef.current?.off('pagechanging', handlePageChanging);
@@ -259,6 +334,7 @@ export function PdfDocumentView({
     >
       <HighlightContainer
         activeId={activeId}
+        locatedId={locatedId}
         onOpen={onOpen}
       />
     </PdfHighlighter>
@@ -282,14 +358,17 @@ function centerCurrentPageHorizontally(viewer: PdfViewerInstance) {
 
 function HighlightContainer({
   activeId,
+  locatedId,
   onOpen
 }: {
   activeId?: string;
+  locatedId?: string;
   onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
 }) {
   const { highlight, isScrolledTo, highlightBindings } = useHighlightContainerContext<ReaderHighlight>();
   const annotation = highlight.annotation;
   const activeClass = annotation?.id === activeId ? ' active-highlight' : '';
+  const locatedClass = annotation?.id === locatedId ? ' located-highlight' : '';
 
   if (!annotation) {
     if (highlight.type === 'area') {
@@ -329,7 +408,7 @@ function HighlightContainer({
   ) : null;
 
   const textHighlight = highlight.type !== 'area' ? (
-    <span className={`reader-text-highlight${activeClass}`} data-reader-annotation-id={annotation.id}>
+    <span className={`reader-text-highlight${activeClass}${locatedClass}`} data-reader-annotation-id={annotation.id}>
       <TextHighlight
         highlight={highlight}
         isScrolledTo={isScrolledTo}

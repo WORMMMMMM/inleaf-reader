@@ -162,16 +162,27 @@ assert.equal(shadeListeners.size, 0);
 let frameId = 0;
 const frames = new Map();
 const cleanup = [];
+const pointerListeners = new Map();
+const hoverTimers = new Map();
+let hoverTimerId = 0;
+class HoverTarget {
+  closest(selector) { return selector === '.page' ? this.page : null; }
+}
 const react = {
   useRef: value => ({ current: value }), useCallback: fn => fn,
   useEffect: fn => { const dispose = fn(); if (dispose) cleanup.push(dispose); },
   createElement: (type, props, ...children) => ({ type, props: { ...props, children } })
 };
 const { PdfDocumentView } = loadSource('webview/src/components/PdfDocumentView.tsx', {
-  react, 'react-pdf-highlighter-plus': { PdfHighlighter: 'highlighter' },
+  react, 'react-pdf-highlighter-plus': { PdfHighlighter: 'highlighter', scaledPositionToViewport: value => value },
   '../pdfSelection': { markPageSelectionRegions() {} },
   '../selectionShade': { trackSelectionShade() {} }
-}, { document: { addEventListener() {}, removeEventListener() {} }, window: {
+}, { Element: HoverTarget,
+  setTimeout: fn => { hoverTimers.set(++hoverTimerId, fn); return hoverTimerId; },
+  clearTimeout: id => hoverTimers.delete(id),
+  document: { addEventListener: (name, fn) => pointerListeners.set(name, fn),
+    removeEventListener: name => pointerListeners.delete(name) }, window: {
+  getSelection: () => ({ isCollapsed: true }),
   requestAnimationFrame: fn => { frames.set(++frameId, fn); return frameId; },
   cancelAnimationFrame: id => frames.delete(id)
 } });
@@ -179,6 +190,7 @@ const classNames = new Set();
 const layers = [1, 2].map(() => ({ style: {}, dataset: {} }));
 const pages = layers.map(layer => ({ querySelectorAll: () => [layer] }));
 const container = {
+  contains: () => true,
   querySelectorAll: () => layers, addEventListener() {}, removeEventListener() {},
   classList: {
     contains: key => classNames.has(key), remove: key => classNames.delete(key),
@@ -191,7 +203,33 @@ const viewer = { container, currentScale: 1, currentPageNumber: 0,
   getPageView: index => pages[index] ? { div: pages[index] } : undefined };
 const tree = PdfDocumentView({ pdfDocument: { numPages: 2 }, highlights: [], zoom: 1,
   onDocumentReady() {}, onPageChange() {}, onPinchZoom() {}, onSelection() {}, utilsRef() {}, onOpen() {} });
-tree.props.utilsRef({ getEventBus: () => eventBus, getViewer: () => viewer });
+let currentTip = null;
+let editing = false;
+tree.props.utilsRef({ getEventBus: () => eventBus, getViewer: () => viewer,
+  getTip: () => currentTip, setTip: tip => { currentTip = tip; },
+  isEditInProgress: () => editing, isSelectionInProgress: () => false });
+tree.props.highlights.push({ annotation: { id: 'hover', note: 'My note' }, position: {} });
+const hoverTarget = new HoverTarget();
+hoverTarget.page = { querySelectorAll: () => [{
+  getBoundingClientRect: () => ({ left: 0, top: 0, right: 100, bottom: 20 }),
+  closest: () => ({ dataset: { readerAnnotationId: 'hover' } })
+}] };
+const moveHover = () => pointerListeners.get('pointermove')({ target: hoverTarget,
+  buttons: 0, pointerType: 'mouse', clientX: 10, clientY: 10 });
+const flushHover = () => { const callbacks = [...hoverTimers.values()]; hoverTimers.clear(); callbacks.forEach(fn => fn()); };
+moveHover(); flushHover();
+assert.equal(currentTip.content.props.annotation.note, 'My note');
+pointerListeners.get('scroll')();
+assert.equal(currentTip, null, 'scroll dismisses the hover preview');
+moveHover(); flushHover();
+const editorTip = { content: 'editor' };
+currentTip = editorTip;
+editing = true;
+moveHover(); flushHover();
+assert.equal(currentTip, editorTip, 'hover cleanup must not close an editor that replaced it');
+assert.equal(hoverTimers.size, 0, 'editing must not schedule hover previews');
+editing = false;
+currentTip = null;
 const flushFrames = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn()); };
 viewer.currentScale = 0.8;
 handlers.get('scalechanging')({ scale: 0.8 });

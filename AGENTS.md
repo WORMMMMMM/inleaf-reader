@@ -147,12 +147,17 @@ public documentation.
 - The original selected text remains editable so OCR mistakes can be corrected.
 - Saved text highlights must not intercept native text selection. Open inline
   actions only for a click, not a drag or a non-collapsed text selection.
+- Hovering saved text highlights previews notes/tags without blocking selection;
+  hover previews must never replace or dismiss an active inline editor.
 - Native text selection darkens only the selected region above saved highlights;
   do not change text-run stacking or double-scale PDF.js highlight geometry.
 - Releasing a text selection keeps the transient preview in the selection color,
   not the annotation color. Apply annotation colors only after an explicit save.
 - Dragging and retained text selection use one translucent logo-blue overlay;
   never stack a second dark mask or ghost background on release.
+- Selection paint must stay below inline editors, toolbars, and their controls.
+- Annotation navigation uses a soft, short-lived cue instead of the library's
+  persistent red outlines. Outside pointer input cancels the cue immediately.
 - Selection uses one `Translate` action: single English words may show
   dictionary details and `Save to Wordbook`; longer text shows translation.
 - Merge neighboring PDF text fragments on the same visual line into one
@@ -250,6 +255,8 @@ public documentation.
   a throttled visual update and debounced persistence are sufficient.
 - Batch rendered page numbers during zoom into one animation-frame update;
   events from different pages must not cancel each other's highlight cleanup.
+- Keep a visible, draggable native scrollbar on the PDF scroll container with
+  a stable gutter; reuse PDF.js scroll/page tracking rather than duplicating it.
 
 ## AI Reading Order
 

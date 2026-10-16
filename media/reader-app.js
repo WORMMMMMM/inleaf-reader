@@ -596,10 +596,10 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}
 		return "\n" + ae + e;
 	}
-	var F = !1;
-	function se(e, t) {
-		if (!e || F) return "";
-		F = !0;
+	var se = !1;
+	function ce(e, t) {
+		if (!e || se) return "";
+		se = !0;
 		var n = Error.prepareStackTrace;
 		Error.prepareStackTrace = void 0;
 		try {
@@ -645,11 +645,11 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 				}
 			}
 		} finally {
-			F = !1, Error.prepareStackTrace = n;
+			se = !1, Error.prepareStackTrace = n;
 		}
 		return (e = e ? e.displayName || e.name : "") ? oe(e) : "";
 	}
-	function ce(e) {
+	function le(e) {
 		switch (e.tag) {
 			case 5: return oe(e.type);
 			case 16: return oe("Lazy");
@@ -657,13 +657,13 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			case 19: return oe("SuspenseList");
 			case 0:
 			case 2:
-			case 15: return e = se(e.type, !1), e;
-			case 11: return e = se(e.type.render, !1), e;
-			case 1: return e = se(e.type, !0), e;
+			case 15: return e = ce(e.type, !1), e;
+			case 11: return e = ce(e.type.render, !1), e;
+			case 1: return e = ce(e.type, !0), e;
 			default: return "";
 		}
 	}
-	function le(e) {
+	function ue(e) {
 		if (e == null) return null;
 		if (typeof e == "function") return e.displayName || e.name || null;
 		if (typeof e == "string") return e;
@@ -681,16 +681,16 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			case j:
 				var t = e.render;
 				return e = e.displayName, e ||= (e = t.displayName || t.name || "", e === "" ? "ForwardRef" : "ForwardRef(" + e + ")"), e;
-			case N: return t = e.displayName || null, t === null ? le(e.type) || "Memo" : t;
+			case N: return t = e.displayName || null, t === null ? ue(e.type) || "Memo" : t;
 			case te:
 				t = e._payload, e = e._init;
 				try {
-					return le(e(t));
+					return ue(e(t));
 				} catch {}
 		}
 		return null;
 	}
-	function ue(e) {
+	function de(e) {
 		var t = e.type;
 		switch (e.tag) {
 			case 24: return "Cache";
@@ -703,7 +703,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			case 4: return "Portal";
 			case 3: return "Root";
 			case 6: return "Text";
-			case 16: return le(t);
+			case 16: return ue(t);
 			case 8: return t === D ? "StrictMode" : "Mode";
 			case 22: return "Offscreen";
 			case 12: return "Profiler";
@@ -722,7 +722,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}
 		return null;
 	}
-	function de(e) {
+	function fe(e) {
 		switch (typeof e) {
 			case "boolean":
 			case "number":
@@ -732,12 +732,12 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			default: return "";
 		}
 	}
-	function fe(e) {
+	function pe(e) {
 		var t = e.type;
 		return (e = e.nodeName) && e.toLowerCase() === "input" && (t === "checkbox" || t === "radio");
 	}
-	function pe(e) {
-		var t = fe(e) ? "checked" : "value", n = Object.getOwnPropertyDescriptor(e.constructor.prototype, t), r = "" + e[t];
+	function me(e) {
+		var t = pe(e) ? "checked" : "value", n = Object.getOwnPropertyDescriptor(e.constructor.prototype, t), r = "" + e[t];
 		if (!e.hasOwnProperty(t) && n !== void 0 && typeof n.get == "function" && typeof n.set == "function") {
 			var i = n.get, a = n.set;
 			return Object.defineProperty(e, t, {
@@ -761,17 +761,17 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			};
 		}
 	}
-	function me(e) {
-		e._valueTracker ||= pe(e);
-	}
 	function he(e) {
+		e._valueTracker ||= me(e);
+	}
+	function ge(e) {
 		if (!e) return !1;
 		var t = e._valueTracker;
 		if (!t) return !0;
 		var n = t.getValue(), r = "";
-		return e && (r = fe(e) ? e.checked ? "true" : "false" : e.value), e = r, e !== n && (t.setValue(e), !0);
+		return e && (r = pe(e) ? e.checked ? "true" : "false" : e.value), e = r, e !== n && (t.setValue(e), !0);
 	}
-	function ge(e) {
+	function _e(e) {
 		if (e ||= typeof document < "u" ? document : void 0, e === void 0) return null;
 		try {
 			return e.activeElement || e.body;
@@ -779,7 +779,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			return e.body;
 		}
 	}
-	function _e(e, t) {
+	function ve(e, t) {
 		var n = t.checked;
 		return P({}, t, {
 			defaultChecked: void 0,
@@ -788,28 +788,28 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			checked: n ?? e._wrapperState.initialChecked
 		});
 	}
-	function I(e, t) {
+	function F(e, t) {
 		var n = t.defaultValue == null ? "" : t.defaultValue, r = t.checked == null ? t.defaultChecked : t.checked;
-		n = de(t.value == null ? n : t.value), e._wrapperState = {
+		n = fe(t.value == null ? n : t.value), e._wrapperState = {
 			initialChecked: r,
 			initialValue: n,
 			controlled: t.type === "checkbox" || t.type === "radio" ? t.checked != null : t.value != null
 		};
 	}
-	function ve(e, t) {
+	function ye(e, t) {
 		t = t.checked, t != null && S(e, "checked", t, !1);
 	}
-	function ye(e, t) {
-		ve(e, t);
-		var n = de(t.value), r = t.type;
+	function be(e, t) {
+		ye(e, t);
+		var n = fe(t.value), r = t.type;
 		if (n != null) r === "number" ? (n === 0 && e.value === "" || e.value != n) && (e.value = "" + n) : e.value !== "" + n && (e.value = "" + n);
 		else if (r === "submit" || r === "reset") {
 			e.removeAttribute("value");
 			return;
 		}
-		t.hasOwnProperty("value") ? xe(e, t.type, n) : t.hasOwnProperty("defaultValue") && xe(e, t.type, de(t.defaultValue)), t.checked == null && t.defaultChecked != null && (e.defaultChecked = !!t.defaultChecked);
+		t.hasOwnProperty("value") ? Se(e, t.type, n) : t.hasOwnProperty("defaultValue") && Se(e, t.type, fe(t.defaultValue)), t.checked == null && t.defaultChecked != null && (e.defaultChecked = !!t.defaultChecked);
 	}
-	function be(e, t, n) {
+	function xe(e, t, n) {
 		if (t.hasOwnProperty("value") || t.hasOwnProperty("defaultValue")) {
 			var r = t.type;
 			if (!(r !== "submit" && r !== "reset" || t.value !== void 0 && t.value !== null)) return;
@@ -817,17 +817,17 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}
 		n = e.name, n !== "" && (e.name = ""), e.defaultChecked = !!e._wrapperState.initialChecked, n !== "" && (e.name = n);
 	}
-	function xe(e, t, n) {
-		(t !== "number" || ge(e.ownerDocument) !== e) && (n == null ? e.defaultValue = "" + e._wrapperState.initialValue : e.defaultValue !== "" + n && (e.defaultValue = "" + n));
+	function Se(e, t, n) {
+		(t !== "number" || _e(e.ownerDocument) !== e) && (n == null ? e.defaultValue = "" + e._wrapperState.initialValue : e.defaultValue !== "" + n && (e.defaultValue = "" + n));
 	}
-	var Se = Array.isArray;
-	function Ce(e, t, n, r) {
+	var Ce = Array.isArray;
+	function we(e, t, n, r) {
 		if (e = e.options, t) {
 			t = {};
 			for (var i = 0; i < n.length; i++) t["$" + n[i]] = !0;
 			for (n = 0; n < e.length; n++) i = t.hasOwnProperty("$" + e[n].value), e[n].selected !== i && (e[n].selected = i), i && r && (e[n].defaultSelected = !0);
 		} else {
-			for (n = "" + de(n), t = null, i = 0; i < e.length; i++) {
+			for (n = "" + fe(n), t = null, i = 0; i < e.length; i++) {
 				if (e[i].value === n) {
 					e[i].selected = !0, r && (e[i].defaultSelected = !0);
 					return;
@@ -837,7 +837,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			t !== null && (t.selected = !0);
 		}
 	}
-	function we(e, t) {
+	function Te(e, t) {
 		if (t.dangerouslySetInnerHTML != null) throw Error(r(91));
 		return P({}, t, {
 			value: void 0,
@@ -845,12 +845,12 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			children: "" + e._wrapperState.initialValue
 		});
 	}
-	function Te(e, t) {
+	function Ee(e, t) {
 		var n = t.value;
 		if (n == null) {
 			if (n = t.children, t = t.defaultValue, n != null) {
 				if (t != null) throw Error(r(92));
-				if (Se(n)) {
+				if (Ce(n)) {
 					if (1 < n.length) throw Error(r(93));
 					n = n[0];
 				}
@@ -858,27 +858,27 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			}
 			t ??= "", n = t;
 		}
-		e._wrapperState = { initialValue: de(n) };
+		e._wrapperState = { initialValue: fe(n) };
 	}
-	function Ee(e, t) {
-		var n = de(t.value), r = de(t.defaultValue);
+	function De(e, t) {
+		var n = fe(t.value), r = fe(t.defaultValue);
 		n != null && (n = "" + n, n !== e.value && (e.value = n), t.defaultValue == null && e.defaultValue !== n && (e.defaultValue = n)), r != null && (e.defaultValue = "" + r);
 	}
-	function De(e) {
+	function Oe(e) {
 		var t = e.textContent;
 		t === e._wrapperState.initialValue && t !== "" && t !== null && (e.value = t);
 	}
-	function Oe(e) {
+	function ke(e) {
 		switch (e) {
 			case "svg": return "http://www.w3.org/2000/svg";
 			case "math": return "http://www.w3.org/1998/Math/MathML";
 			default: return "http://www.w3.org/1999/xhtml";
 		}
 	}
-	function ke(e, t) {
-		return e == null || e === "http://www.w3.org/1999/xhtml" ? Oe(t) : e === "http://www.w3.org/2000/svg" && t === "foreignObject" ? "http://www.w3.org/1999/xhtml" : e;
+	function Ae(e, t) {
+		return e == null || e === "http://www.w3.org/1999/xhtml" ? ke(t) : e === "http://www.w3.org/2000/svg" && t === "foreignObject" ? "http://www.w3.org/1999/xhtml" : e;
 	}
-	var Ae, je = function(e) {
+	var je, Me = function(e) {
 		return typeof MSApp < "u" && MSApp.execUnsafeLocalFunction ? function(t, n, r, i) {
 			MSApp.execUnsafeLocalFunction(function() {
 				return e(t, n, r, i);
@@ -887,11 +887,11 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	}(function(e, t) {
 		if (e.namespaceURI !== "http://www.w3.org/2000/svg" || "innerHTML" in e) e.innerHTML = t;
 		else {
-			for (Ae ||= document.createElement("div"), Ae.innerHTML = "<svg>" + t.valueOf().toString() + "</svg>", t = Ae.firstChild; e.firstChild;) e.removeChild(e.firstChild);
+			for (je ||= document.createElement("div"), je.innerHTML = "<svg>" + t.valueOf().toString() + "</svg>", t = je.firstChild; e.firstChild;) e.removeChild(e.firstChild);
 			for (; t.firstChild;) e.appendChild(t.firstChild);
 		}
 	});
-	function Me(e, t) {
+	function Ne(e, t) {
 		if (t) {
 			var n = e.firstChild;
 			if (n && n === e.lastChild && n.nodeType === 3) {
@@ -901,7 +901,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}
 		e.textContent = t;
 	}
-	var L = {
+	var I = {
 		animationIterationCount: !0,
 		aspectRatio: !0,
 		borderImageOutset: !0,
@@ -945,19 +945,19 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		strokeMiterlimit: !0,
 		strokeOpacity: !0,
 		strokeWidth: !0
-	}, Ne = [
+	}, L = [
 		"Webkit",
 		"ms",
 		"Moz",
 		"O"
 	];
-	Object.keys(L).forEach(function(e) {
-		Ne.forEach(function(t) {
-			t = t + e.charAt(0).toUpperCase() + e.substring(1), L[t] = L[e];
+	Object.keys(I).forEach(function(e) {
+		L.forEach(function(t) {
+			t = t + e.charAt(0).toUpperCase() + e.substring(1), I[t] = I[e];
 		});
 	});
 	function Pe(e, t, n) {
-		return t == null || typeof t == "boolean" || t === "" ? "" : n || typeof t != "number" || t === 0 || L.hasOwnProperty(e) && L[e] ? ("" + t).trim() : t + "px";
+		return t == null || typeof t == "boolean" || t === "" ? "" : n || typeof t != "number" || t === 0 || I.hasOwnProperty(e) && I[e] ? ("" + t).trim() : t + "px";
 	}
 	function Fe(e, t) {
 		for (var n in e = e.style, t) if (t.hasOwnProperty(n)) {
@@ -1834,7 +1834,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		ti(e, 0);
 	}
 	function dr(e) {
-		if (he(Ii(e))) return e;
+		if (ge(Ii(e))) return e;
 	}
 	function fr(e, t) {
 		if (e === "change") return t;
@@ -1920,7 +1920,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		return e && t ? e === t ? !0 : e && e.nodeType === 3 ? !1 : t && t.nodeType === 3 ? Or(e, t.parentNode) : "contains" in e ? e.contains(t) : e.compareDocumentPosition ? !!(e.compareDocumentPosition(t) & 16) : !1 : !1;
 	}
 	function kr() {
-		for (var e = window, t = ge(); t instanceof e.HTMLIFrameElement;) {
+		for (var e = window, t = _e(); t instanceof e.HTMLIFrameElement;) {
 			try {
 				var n = typeof t.contentWindow.location.href == "string";
 			} catch {
@@ -1928,7 +1928,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			}
 			if (n) e = t.contentWindow;
 			else break;
-			t = ge(e.document);
+			t = _e(e.document);
 		}
 		return t;
 	}
@@ -1960,7 +1960,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	var Mr = c && "documentMode" in document && 11 >= document.documentMode, Nr = null, Pr = null, Fr = null, Ir = !1;
 	function Lr(e, t, n) {
 		var r = n.window === n ? n.document : n.nodeType === 9 ? n : n.ownerDocument;
-		Ir || Nr == null || Nr !== ge(r) || (r = Nr, "selectionStart" in r && Ar(r) ? r = {
+		Ir || Nr == null || Nr !== _e(r) || (r = Nr, "selectionStart" in r && Ar(r) ? r = {
 			start: r.selectionStart,
 			end: r.selectionEnd
 		} : (r = (r.ownerDocument && r.ownerDocument.defaultView || window).getSelection(), r = {
@@ -2212,7 +2212,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						sr(o, g, n, i);
 						break a;
 					}
-					_ && _(e, s, r), e === "focusout" && (_ = s._wrapperState) && _.controlled && s.type === "number" && xe(s, "number", s.value);
+					_ && _(e, s, r), e === "focusout" && (_ = s._wrapperState) && _.controlled && s.type === "number" && Se(s, "number", s.value);
 				}
 				switch (_ = r ? Ii(r) : window, e) {
 					case "focusin":
@@ -2413,7 +2413,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	function Yi(e, t, n) {
 		var i = e.stateNode;
 		if (t = t.childContextTypes, typeof i.getChildContext != "function") return n;
-		for (var a in i = i.getChildContext(), i) if (!(a in t)) throw Error(r(108, ue(e) || "Unknown", a));
+		for (var a in i = i.getChildContext(), i) if (!(a in t)) throw Error(r(108, de(e) || "Unknown", a));
 		return P({}, n, i);
 	}
 	function Xi(e) {
@@ -2634,7 +2634,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						var r = t._init;
 						return f(e, r(t._payload), n);
 				}
-				if (Se(t) || ie(t)) return t = Zl(t, e.mode, n, null), t.return = e, t;
+				if (Ce(t) || ie(t)) return t = Zl(t, e.mode, n, null), t.return = e, t;
 				ja(e, t);
 			}
 			return null;
@@ -2648,7 +2648,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 					case T: return n.key === i ? u(e, t, n, r) : null;
 					case te: return i = n._init, p(e, t, i(n._payload), r);
 				}
-				if (Se(n) || ie(n)) return i === null ? d(e, t, n, r, null) : null;
+				if (Ce(n) || ie(n)) return i === null ? d(e, t, n, r, null) : null;
 				ja(e, n);
 			}
 			return null;
@@ -2663,7 +2663,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						var a = r._init;
 						return m(e, t, n, a(r._payload), i);
 				}
-				if (Se(r) || ie(r)) return e = e.get(n) || null, d(t, e, r, i, null);
+				if (Ce(r) || ie(r)) return e = e.get(n) || null, d(t, e, r, i, null);
 				ja(t, r);
 			}
 			return null;
@@ -2753,7 +2753,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						return s(e);
 					case te: return l = i._init, _(e, r, l(i._payload), o);
 				}
-				if (Se(i)) return h(e, r, i, o);
+				if (Ce(i)) return h(e, r, i, o);
 				if (ie(i)) return g(e, r, i, o);
 				ja(e, i);
 			}
@@ -2971,9 +2971,9 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		switch (Y(so, t), Y(oo, e), Y(ao, io), e = t.nodeType, e) {
 			case 9:
 			case 11:
-				t = (t = t.documentElement) ? t.namespaceURI : ke(null, "");
+				t = (t = t.documentElement) ? t.namespaceURI : Ae(null, "");
 				break;
-			default: e = e === 8 ? t.parentNode : t, t = e.namespaceURI || null, e = e.tagName, t = ke(t, e);
+			default: e = e === 8 ? t.parentNode : t, t = e.namespaceURI || null, e = e.tagName, t = Ae(t, e);
 		}
 		J(ao), Y(ao, t);
 	}
@@ -2982,7 +2982,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	}
 	function fo(e) {
 		co(so.current);
-		var t = co(ao.current), n = ke(t, e.type);
+		var t = co(ao.current), n = Ae(t, e.type);
 		t !== n && (Y(oo, e), Y(ao, n));
 	}
 	function po(e) {
@@ -3509,7 +3509,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		try {
 			var n = "", r = t;
 			do
-				n += ce(r), r = r.return;
+				n += le(r), r = r.return;
 			while (r);
 			var i = n;
 		} catch (e) {
@@ -3909,13 +3909,13 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			var o = null;
 			switch (n) {
 				case "input":
-					i = _e(e, i), r = _e(e, r), o = [];
+					i = ve(e, i), r = ve(e, r), o = [];
 					break;
 				case "select":
 					i = P({}, i, { value: void 0 }), r = P({}, r, { value: void 0 }), o = [];
 					break;
 				case "textarea":
-					i = we(e, i), r = we(e, r), o = [];
+					i = Te(e, i), r = Te(e, r), o = [];
 					break;
 				default: typeof i.onClick != "function" && typeof r.onClick == "function" && (e.onclick = hi);
 			}
@@ -4016,12 +4016,12 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 								q("toggle", i);
 								break;
 							case "input":
-								I(i, s), q("invalid", i);
+								F(i, s), q("invalid", i);
 								break;
 							case "select":
 								i._wrapperState = { wasMultiple: !!s.multiple }, q("invalid", i);
 								break;
-							case "textarea": Te(i, s), q("invalid", i);
+							case "textarea": Ee(i, s), q("invalid", i);
 						}
 						for (var c in Le(n, s), o = null, s) if (s.hasOwnProperty(c)) {
 							var l = s[c];
@@ -4029,10 +4029,10 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						}
 						switch (n) {
 							case "input":
-								me(i), be(i, s, !0);
+								he(i), xe(i, s, !0);
 								break;
 							case "textarea":
-								me(i), De(i);
+								he(i), Oe(i);
 								break;
 							case "select":
 							case "option": break;
@@ -4040,7 +4040,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 						}
 						i = o, t.updateQueue = i, i !== null && (t.flags |= 4);
 					} else {
-						c = o.nodeType === 9 ? o : o.ownerDocument, e === "http://www.w3.org/1999/xhtml" && (e = Oe(n)), e === "http://www.w3.org/1999/xhtml" ? n === "script" ? (e = c.createElement("div"), e.innerHTML = "<script><\/script>", e = e.removeChild(e.firstChild)) : typeof i.is == "string" ? e = c.createElement(n, { is: i.is }) : (e = c.createElement(n), n === "select" && (c = e, i.multiple ? c.multiple = !0 : i.size && (c.size = i.size))) : e = c.createElementNS(e, n), e[Oi] = t, e[ki] = i, nc(e, t, !1, !1), t.stateNode = e;
+						c = o.nodeType === 9 ? o : o.ownerDocument, e === "http://www.w3.org/1999/xhtml" && (e = ke(n)), e === "http://www.w3.org/1999/xhtml" ? n === "script" ? (e = c.createElement("div"), e.innerHTML = "<script><\/script>", e = e.removeChild(e.firstChild)) : typeof i.is == "string" ? e = c.createElement(n, { is: i.is }) : (e = c.createElement(n), n === "select" && (c = e, i.multiple ? c.multiple = !0 : i.size && (c.size = i.size))) : e = c.createElementNS(e, n), e[Oi] = t, e[ki] = i, nc(e, t, !1, !1), t.stateNode = e;
 						a: {
 							switch (c = Re(n, i), n) {
 								case "dialog":
@@ -4068,7 +4068,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 									q("toggle", e), o = i;
 									break;
 								case "input":
-									I(e, i), o = _e(e, i), q("invalid", e);
+									F(e, i), o = ve(e, i), q("invalid", e);
 									break;
 								case "option":
 									o = i;
@@ -4077,26 +4077,26 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 									e._wrapperState = { wasMultiple: !!i.multiple }, o = P({}, i, { value: void 0 }), q("invalid", e);
 									break;
 								case "textarea":
-									Te(e, i), o = we(e, i), q("invalid", e);
+									Ee(e, i), o = Te(e, i), q("invalid", e);
 									break;
 								default: o = i;
 							}
 							for (s in Le(n, o), l = o, l) if (l.hasOwnProperty(s)) {
 								var u = l[s];
-								s === "style" ? Fe(e, u) : s === "dangerouslySetInnerHTML" ? (u = u ? u.__html : void 0, u != null && je(e, u)) : s === "children" ? typeof u == "string" ? (n !== "textarea" || u !== "") && Me(e, u) : typeof u == "number" && Me(e, "" + u) : s !== "suppressContentEditableWarning" && s !== "suppressHydrationWarning" && s !== "autoFocus" && (a.hasOwnProperty(s) ? u != null && s === "onScroll" && q("scroll", e) : u != null && S(e, s, u, c));
+								s === "style" ? Fe(e, u) : s === "dangerouslySetInnerHTML" ? (u = u ? u.__html : void 0, u != null && Me(e, u)) : s === "children" ? typeof u == "string" ? (n !== "textarea" || u !== "") && Ne(e, u) : typeof u == "number" && Ne(e, "" + u) : s !== "suppressContentEditableWarning" && s !== "suppressHydrationWarning" && s !== "autoFocus" && (a.hasOwnProperty(s) ? u != null && s === "onScroll" && q("scroll", e) : u != null && S(e, s, u, c));
 							}
 							switch (n) {
 								case "input":
-									me(e), be(e, i, !1);
+									he(e), xe(e, i, !1);
 									break;
 								case "textarea":
-									me(e), De(e);
+									he(e), Oe(e);
 									break;
 								case "option":
-									i.value != null && e.setAttribute("value", "" + de(i.value));
+									i.value != null && e.setAttribute("value", "" + fe(i.value));
 									break;
 								case "select":
-									e.multiple = !!i.multiple, s = i.value, s == null ? i.defaultValue != null && Ce(e, !!i.multiple, i.defaultValue, !0) : Ce(e, !!i.multiple, s, !1);
+									e.multiple = !!i.multiple, s = i.value, s == null ? i.defaultValue != null && we(e, !!i.multiple, i.defaultValue, !0) : we(e, !!i.multiple, s, !1);
 									break;
 								default: typeof o.onClick == "function" && (e.onclick = hi);
 							}
@@ -4488,7 +4488,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 				if (kc(t, e), jc(e), i & 512 && n !== null && fc(n, n.return), e.flags & 32) {
 					var a = e.stateNode;
 					try {
-						Me(a, "");
+						Ne(a, "");
 					} catch (t) {
 						Rl(e, e.return, t);
 					}
@@ -4496,24 +4496,24 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 				if (i & 4 && (a = e.stateNode, a != null)) {
 					var o = e.memoizedProps, s = n === null ? o : n.memoizedProps, c = e.type, l = e.updateQueue;
 					if (e.updateQueue = null, l !== null) try {
-						c === "input" && o.type === "radio" && o.name != null && ve(a, o), Re(c, s);
+						c === "input" && o.type === "radio" && o.name != null && ye(a, o), Re(c, s);
 						var u = Re(c, o);
 						for (s = 0; s < l.length; s += 2) {
 							var d = l[s], f = l[s + 1];
-							d === "style" ? Fe(a, f) : d === "dangerouslySetInnerHTML" ? je(a, f) : d === "children" ? Me(a, f) : S(a, d, f, u);
+							d === "style" ? Fe(a, f) : d === "dangerouslySetInnerHTML" ? Me(a, f) : d === "children" ? Ne(a, f) : S(a, d, f, u);
 						}
 						switch (c) {
 							case "input":
-								ye(a, o);
+								be(a, o);
 								break;
 							case "textarea":
-								Ee(a, o);
+								De(a, o);
 								break;
 							case "select":
 								var p = a._wrapperState.wasMultiple;
 								a._wrapperState.wasMultiple = !!o.multiple;
 								var m = o.value;
-								m == null ? p !== !!o.multiple && (o.defaultValue == null ? Ce(a, !!o.multiple, o.multiple ? [] : "", !1) : Ce(a, !!o.multiple, o.defaultValue, !0)) : Ce(a, !!o.multiple, m, !1);
+								m == null ? p !== !!o.multiple && (o.defaultValue == null ? we(a, !!o.multiple, o.multiple ? [] : "", !1) : we(a, !!o.multiple, o.defaultValue, !0)) : we(a, !!o.multiple, m, !1);
 						}
 						a[ki] = o;
 					} catch (t) {
@@ -4633,7 +4633,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 				switch (i.tag) {
 					case 5:
 						var a = i.stateNode;
-						i.flags & 32 && (Me(a, ""), i.flags &= -33), Cc(e, xc(e), a);
+						i.flags & 32 && (Ne(a, ""), i.flags &= -33), Cc(e, xc(e), a);
 						break;
 					case 3:
 					case 4:
@@ -5790,22 +5790,22 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 	}, Ve = function(e, t, n) {
 		switch (t) {
 			case "input":
-				if (ye(e, n), t = n.name, n.type === "radio" && t != null) {
+				if (be(e, n), t = n.name, n.type === "radio" && t != null) {
 					for (n = e; n.parentNode;) n = n.parentNode;
 					for (n = n.querySelectorAll("input[name=" + JSON.stringify("" + t) + "][type=\"radio\"]"), t = 0; t < n.length; t++) {
 						var i = n[t];
 						if (i !== e && i.form === e.form) {
 							var a = Li(i);
 							if (!a) throw Error(r(90));
-							he(i), ye(i, a);
+							ge(i), be(i, a);
 						}
 					}
 				}
 				break;
 			case "textarea":
-				Ee(e, n);
+				De(e, n);
 				break;
-			case "select": t = n.value, t != null && Ce(e, !!n.multiple, t, !1);
+			case "select": t = n.value, t != null && we(e, !!n.multiple, t, !1);
 		}
 	}, qe = Sl, Je = Cl;
 	var yu = {
@@ -6055,15 +6055,15 @@ function oe(e) {
 	let t = e.clientWidth, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t += O(n.borderLeftWidth), t += O(n.borderRightWidth), t;
 }
-function F(e) {
+function se(e) {
 	let t = e.clientHeight, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t -= O(n.paddingTop), t -= O(n.paddingBottom), t;
 }
-function se(e) {
+function ce(e) {
 	let t = e.clientWidth, n = e.ownerDocument.defaultView.getComputedStyle(e);
 	return t -= O(n.paddingLeft), t -= O(n.paddingRight), t;
 }
-function ce(e, t, n) {
+function le(e, t, n) {
 	let r = t === t.ownerDocument.body ? {
 		left: 0,
 		top: 0
@@ -6073,37 +6073,37 @@ function ce(e, t, n) {
 		y: (e.clientY + t.scrollTop - r.top) / n
 	};
 }
-function le(e, t) {
-	let n = de(e, t, "px");
+function ue(e, t) {
+	let n = fe(e, t, "px");
 	return { [M("transform", N)]: n };
 }
-function ue(e, t) {
-	return de(e, t, "");
+function de(e, t) {
+	return fe(e, t, "");
 }
-function de({ x: e, y: t }, n, r) {
+function fe({ x: e, y: t }, n, r) {
 	let i = `translate(${e}${r},${t}${r})`;
 	return n && (i = `translate(${`${typeof n.x == "string" ? n.x : n.x + r}`}, ${`${typeof n.y == "string" ? n.y : n.y + r}`})` + i), i;
 }
-function fe(e, t) {
+function pe(e, t) {
 	return e.targetTouches && T(e.targetTouches, (e) => t === e.identifier) || e.changedTouches && T(e.changedTouches, (e) => t === e.identifier);
 }
-function pe(e) {
+function me(e) {
 	if (e.targetTouches && e.targetTouches[0]) return e.targetTouches[0].identifier;
 	if (e.changedTouches && e.changedTouches[0]) return e.changedTouches[0].identifier;
 }
-function me(e) {
+function he(e) {
 	if (!e) return;
 	let t = e.getElementById("react-draggable-style-el");
-	t || (t = e.createElement("style"), t.type = "text/css", t.id = "react-draggable-style-el", t.innerHTML = ".react-draggable-transparent-selection *::-moz-selection {all: inherit;}\n", t.innerHTML += ".react-draggable-transparent-selection *::selection {all: inherit;}\n", e.getElementsByTagName("head")[0].appendChild(t)), e.body && _e(e.body, "react-draggable-transparent-selection");
-}
-function he(e) {
-	window.requestAnimationFrame ? window.requestAnimationFrame(() => {
-		ge(e);
-	}) : ge(e);
+	t || (t = e.createElement("style"), t.type = "text/css", t.id = "react-draggable-style-el", t.innerHTML = ".react-draggable-transparent-selection *::-moz-selection {all: inherit;}\n", t.innerHTML += ".react-draggable-transparent-selection *::selection {all: inherit;}\n", e.getElementsByTagName("head")[0].appendChild(t)), e.body && ve(e.body, "react-draggable-transparent-selection");
 }
 function ge(e) {
+	window.requestAnimationFrame ? window.requestAnimationFrame(() => {
+		_e(e);
+	}) : _e(e);
+}
+function _e(e) {
 	if (e) try {
-		e.body && I(e.body, "react-draggable-transparent-selection");
+		e.body && F(e.body, "react-draggable-transparent-selection");
 		let t = e.selection;
 		if (t) t.empty();
 		else {
@@ -6112,17 +6112,17 @@ function ge(e) {
 		}
 	} catch {}
 }
-function _e(e, t) {
+function ve(e, t) {
 	e.classList ? e.classList.add(t) : e.className.match(RegExp(`(?:^|\\s)${t}(?!\\S)`)) || (e.className += ` ${t}`);
 }
-function I(e, t) {
+function F(e, t) {
 	e.classList ? e.classList.remove(t) : e.className = e.className.replace(RegExp(`(?:^|\\s)${t}(?!\\S)`, "g"), "");
 }
-function ve(e, t, n) {
+function ye(e, t, n) {
 	if (!e.props.bounds) return [t, n];
 	let { bounds: r } = e.props;
-	r = typeof r == "string" ? r : Te(r);
-	let i = Ee(e);
+	r = typeof r == "string" ? r : Ee(r);
+	let i = De(e);
 	if (typeof r == "string") {
 		let { ownerDocument: e } = i, t = e.defaultView;
 		if (!t) throw Error("Cannot resolve the owner window of the draggable node.");
@@ -6132,29 +6132,29 @@ function ve(e, t, n) {
 		r = {
 			left: -i.offsetLeft + O(s.paddingLeft) + O(o.marginLeft),
 			top: -i.offsetTop + O(s.paddingTop) + O(o.marginTop),
-			right: se(a) - oe(i) - i.offsetLeft + O(s.paddingRight) - O(o.marginRight),
-			bottom: F(a) - ae(i) - i.offsetTop + O(s.paddingBottom) - O(o.marginBottom)
+			right: ce(a) - oe(i) - i.offsetLeft + O(s.paddingRight) - O(o.marginRight),
+			bottom: se(a) - ae(i) - i.offsetTop + O(s.paddingBottom) - O(o.marginBottom)
 		};
 	}
 	return D(r.right) && (t = Math.min(t, r.right)), D(r.bottom) && (n = Math.min(n, r.bottom)), D(r.left) && (t = Math.max(t, r.left)), D(r.top) && (n = Math.max(n, r.top)), [t, n];
 }
-function ye(e, t, n) {
+function be(e, t, n) {
 	return [Math.round(t / e[0]) * e[0], Math.round(n / e[1]) * e[1]];
 }
-function be(e) {
+function xe(e) {
 	return e.props.axis === "both" || e.props.axis === "x";
 }
-function xe(e) {
+function Se(e) {
 	return e.props.axis === "both" || e.props.axis === "y";
 }
-function Se(e, t, n) {
-	let r = typeof t == "number" ? fe(e, t) : null;
-	if (typeof t == "number" && !r) return null;
-	let i = Ee(n), a = n.props.offsetParent || i.offsetParent || i.ownerDocument.body;
-	return ce(r || e, a, n.props.scale);
-}
 function Ce(e, t, n) {
-	let r = !D(e.lastX), i = Ee(e);
+	let r = typeof t == "number" ? pe(e, t) : null;
+	if (typeof t == "number" && !r) return null;
+	let i = De(n), a = n.props.offsetParent || i.offsetParent || i.ownerDocument.body;
+	return le(r || e, a, n.props.scale);
+}
+function we(e, t, n) {
+	let r = !D(e.lastX), i = De(e);
 	return r ? {
 		node: i,
 		deltaX: 0,
@@ -6173,7 +6173,7 @@ function Ce(e, t, n) {
 		y: n
 	};
 }
-function we(e, t) {
+function Te(e, t) {
 	let n = e.props.scale;
 	return {
 		node: t.node,
@@ -6185,7 +6185,7 @@ function we(e, t) {
 		lastY: e.state.y
 	};
 }
-function Te(e) {
+function Ee(e) {
 	return {
 		left: e.left,
 		top: e.top,
@@ -6193,12 +6193,12 @@ function Te(e) {
 		bottom: e.bottom
 	};
 }
-function Ee(e) {
+function De(e) {
 	let t = e.findDOMNode();
 	if (!t) throw Error("<DraggableCore>: Unmounted during event!");
 	return t;
 }
-var De = {
+var Oe = {
 	touch: {
 		start: "touchstart",
 		move: "touchmove",
@@ -6209,7 +6209,7 @@ var De = {
 		move: "mousemove",
 		stop: "mouseup"
 	}
-}, Oe = De.mouse, ke = class extends y.Component {
+}, ke = Oe.mouse, Ae = class extends y.Component {
 	constructor() {
 		super(...arguments), this.dragging = !1, this.lastX = NaN, this.lastY = NaN, this.touchIdentifier = null, this.mounted = !1, this.handleDragStart = (e) => {
 			if (this.props.onMouseDown(e), !this.props.allowAnyClick && (typeof e.button == "number" && e.button !== 0 || e.ctrlKey)) return !1;
@@ -6218,22 +6218,22 @@ var De = {
 			let { ownerDocument: n } = t;
 			if (this.props.disabled || !(e.target instanceof n.defaultView.Node) || this.props.handle && !re(e.target, this.props.handle, t) || this.props.cancel && re(e.target, this.props.cancel, t)) return;
 			e.type === "touchstart" && !this.props.allowMobileScroll && e.preventDefault();
-			let r = pe(e);
+			let r = me(e);
 			this.touchIdentifier = r;
-			let i = Se(e, r, this);
+			let i = Ce(e, r, this);
 			if (i == null) return;
-			let { x: a, y: o } = i, s = Ce(this, a, o);
-			this.props.onStart, this.props.onStart(e, s) !== !1 && this.mounted !== !1 && (this.props.enableUserSelectHack && me(n), this.dragging = !0, this.lastX = a, this.lastY = o, ie(n, Oe.move, this.handleDrag), ie(n, Oe.stop, this.handleDragStop));
+			let { x: a, y: o } = i, s = we(this, a, o);
+			this.props.onStart, this.props.onStart(e, s) !== !1 && this.mounted !== !1 && (this.props.enableUserSelectHack && he(n), this.dragging = !0, this.lastX = a, this.lastY = o, ie(n, ke.move, this.handleDrag), ie(n, ke.stop, this.handleDragStop));
 		}, this.handleDrag = (e) => {
-			let t = Se(e, this.touchIdentifier, this);
+			let t = Ce(e, this.touchIdentifier, this);
 			if (t == null) return;
 			let { x: n, y: r } = t;
 			if (Array.isArray(this.props.grid)) {
 				let e = n - this.lastX, t = r - this.lastY;
-				if ([e, t] = ye(this.props.grid, e, t), !e && !t) return;
+				if ([e, t] = be(this.props.grid, e, t), !e && !t) return;
 				n = this.lastX + e, r = this.lastY + t;
 			}
-			let i = Ce(this, n, r);
+			let i = we(this, n, r);
 			if (this.props.onDrag(e, i) === !1 || this.mounted === !1) {
 				try {
 					this.handleDragStop(new MouseEvent("mouseup"));
@@ -6246,30 +6246,30 @@ var De = {
 			this.lastX = n, this.lastY = r;
 		}, this.handleDragStop = (e) => {
 			if (!this.dragging) return;
-			let t = Se(e, this.touchIdentifier, this);
+			let t = Ce(e, this.touchIdentifier, this);
 			if (t == null) return;
 			let { x: n, y: r } = t;
 			if (Array.isArray(this.props.grid)) {
 				let e = n - this.lastX || 0, t = r - this.lastY || 0;
-				[e, t] = ye(this.props.grid, e, t), n = this.lastX + e, r = this.lastY + t;
+				[e, t] = be(this.props.grid, e, t), n = this.lastX + e, r = this.lastY + t;
 			}
-			let i = Ce(this, n, r);
+			let i = we(this, n, r);
 			if (this.props.onStop(e, i) === !1 || this.mounted === !1) return !1;
 			let a = this.findDOMNode();
-			a && this.props.enableUserSelectHack && he(a.ownerDocument), this.dragging = !1, this.lastX = NaN, this.lastY = NaN, a && (P(a.ownerDocument, Oe.move, this.handleDrag), P(a.ownerDocument, Oe.stop, this.handleDragStop));
-		}, this.onMouseDown = (e) => (Oe = De.mouse, this.handleDragStart(e)), this.onMouseUp = (e) => (Oe = De.mouse, this.handleDragStop(e)), this.onTouchStart = (e) => (Oe = De.touch, this.handleDragStart(e)), this.onTouchEnd = (e) => (Oe = De.touch, this.handleDragStop(e));
+			a && this.props.enableUserSelectHack && ge(a.ownerDocument), this.dragging = !1, this.lastX = NaN, this.lastY = NaN, a && (P(a.ownerDocument, ke.move, this.handleDrag), P(a.ownerDocument, ke.stop, this.handleDragStop));
+		}, this.onMouseDown = (e) => (ke = Oe.mouse, this.handleDragStart(e)), this.onMouseUp = (e) => (ke = Oe.mouse, this.handleDragStop(e)), this.onTouchStart = (e) => (ke = Oe.touch, this.handleDragStart(e)), this.onTouchEnd = (e) => (ke = Oe.touch, this.handleDragStop(e));
 	}
 	componentDidMount() {
 		this.mounted = !0;
 		let e = this.findDOMNode();
-		e && ie(e, De.touch.start, this.onTouchStart, { passive: !1 });
+		e && ie(e, Oe.touch.start, this.onTouchStart, { passive: !1 });
 	}
 	componentWillUnmount() {
 		this.mounted = !1;
 		let e = this.findDOMNode();
 		if (e) {
 			let { ownerDocument: t } = e;
-			P(t, De.mouse.move, this.handleDrag), P(t, De.touch.move, this.handleDrag), P(t, De.mouse.stop, this.handleDragStop), P(t, De.touch.stop, this.handleDragStop), P(e, De.touch.start, this.onTouchStart, { passive: !1 }), this.props.enableUserSelectHack && he(t);
+			P(t, Oe.mouse.move, this.handleDrag), P(t, Oe.touch.move, this.handleDrag), P(t, Oe.mouse.stop, this.handleDragStop), P(t, Oe.touch.stop, this.handleDragStop), P(e, Oe.touch.start, this.onTouchStart, { passive: !1 }), this.props.enableUserSelectHack && ge(t);
 		}
 	}
 	findDOMNode() {
@@ -6285,7 +6285,7 @@ var De = {
 		});
 	}
 };
-ke.displayName = "DraggableCore", ke.propTypes = {
+Ae.displayName = "DraggableCore", Ae.propTypes = {
 	allowAnyClick: S.default.bool,
 	allowMobileScroll: S.default.bool,
 	children: S.default.node.isRequired,
@@ -6306,7 +6306,7 @@ ke.displayName = "DraggableCore", ke.propTypes = {
 	className: k,
 	style: k,
 	transform: k
-}, ke.defaultProps = {
+}, Ae.defaultProps = {
 	allowAnyClick: !1,
 	allowMobileScroll: !1,
 	disabled: !1,
@@ -6317,17 +6317,17 @@ ke.displayName = "DraggableCore", ke.propTypes = {
 	onMouseDown: function() {},
 	scale: 1
 };
-var Ae = class extends y.Component {
+var je = class extends y.Component {
 	constructor(e) {
 		super(e), this.onDragStart = (e, t) => {
-			if (this.props.onStart(e, we(this, t)) === !1) return !1;
+			if (this.props.onStart(e, Te(this, t)) === !1) return !1;
 			this.setState({
 				dragging: !0,
 				dragged: !0
 			});
 		}, this.onDrag = (e, t) => {
 			if (!this.state.dragging) return !1;
-			let n = we(this, t), r = {
+			let n = Te(this, t), r = {
 				x: n.x,
 				y: n.y,
 				slackX: 0,
@@ -6336,13 +6336,13 @@ var Ae = class extends y.Component {
 			if (this.props.bounds) {
 				let { x: e, y: t } = r;
 				r.x += this.state.slackX, r.y += this.state.slackY;
-				let [i, a] = ve(this, r.x, r.y);
+				let [i, a] = ye(this, r.x, r.y);
 				r.x = i, r.y = a, r.slackX = this.state.slackX + (e - r.x), r.slackY = this.state.slackY + (t - r.y), n.x = r.x, n.y = r.y, n.deltaX = r.x - this.state.x, n.deltaY = r.y - this.state.y;
 			}
 			if (this.props.onDrag(e, n) === !1) return !1;
 			this.setState(r);
 		}, this.onDragStop = (e, t) => {
-			if (!this.state.dragging || this.props.onStop(e, we(this, t)) === !1) return !1;
+			if (!this.state.dragging || this.props.onStop(e, Te(this, t)) === !1) return !1;
 			let n = {
 				dragging: !1,
 				slackX: 0,
@@ -6384,15 +6384,15 @@ var Ae = class extends y.Component {
 	}
 	render() {
 		let { axis: e, bounds: t, children: n, defaultPosition: r, defaultClassName: i, defaultClassNameDragging: a, defaultClassNameDragged: o, position: s, positionOffset: c, scale: l, ...u } = this.props, d = {}, f = null, p = !s || this.state.dragging, m = s || r, h = {
-			x: be(this) && p ? this.state.x : m.x,
-			y: xe(this) && p ? this.state.y : m.y
+			x: xe(this) && p ? this.state.x : m.x,
+			y: Se(this) && p ? this.state.y : m.y
 		};
-		this.state.isElementSVG ? f = ue(h, c) : d = le(h, c);
+		this.state.isElementSVG ? f = de(h, c) : d = ue(h, c);
 		let g = y.Children.only(n), _ = w(g.props.className || "", i, {
 			[a]: this.state.dragging,
 			[o]: this.state.dragged
 		});
-		return /* @__PURE__ */ y.createElement(ke, {
+		return /* @__PURE__ */ y.createElement(Ae, {
 			...u,
 			onStart: this.onDragStart,
 			onDrag: this.onDrag,
@@ -6407,8 +6407,8 @@ var Ae = class extends y.Component {
 		}));
 	}
 };
-Ae.displayName = "Draggable", Ae.propTypes = {
-	...ke.propTypes,
+je.displayName = "Draggable", je.propTypes = {
+	...Ae.propTypes,
 	axis: S.default.oneOf([
 		"both",
 		"x",
@@ -6443,8 +6443,8 @@ Ae.displayName = "Draggable", Ae.propTypes = {
 	className: k,
 	style: k,
 	transform: k
-}, Ae.defaultProps = {
-	...ke.defaultProps,
+}, je.defaultProps = {
+	...Ae.defaultProps,
 	axis: "both",
 	bounds: !1,
 	defaultClassName: "react-draggable",
@@ -6458,7 +6458,7 @@ Ae.displayName = "Draggable", Ae.propTypes = {
 };
 //#endregion
 //#region node_modules/react-draggable/build/cjs/cjs.mjs
-var je = Ae, Me = /* @__PURE__ */ o(((e) => {
+var Me = je, Ne = /* @__PURE__ */ o(((e) => {
 	var t = u(), n = Symbol.for("react.element"), r = Symbol.for("react.fragment"), i = Object.prototype.hasOwnProperty, a = t.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner, o = {
 		key: !0,
 		ref: !0,
@@ -6479,13 +6479,13 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 		};
 	}
 	e.Fragment = r, e.jsx = s, e.jsxs = s;
-})), L = (/* @__PURE__ */ o(((e, t) => {
-	t.exports = Me();
-})))(), Ne = function() {
-	return Ne = Object.assign || function(e) {
+})), I = (/* @__PURE__ */ o(((e, t) => {
+	t.exports = Ne();
+})))(), L = function() {
+	return L = Object.assign || function(e) {
 		for (var t, n = 1, r = arguments.length; n < r; n++) for (var i in t = arguments[n], t) Object.prototype.hasOwnProperty.call(t, i) && (e[i] = t[i]);
 		return e;
-	}, Ne.apply(this, arguments);
+	}, L.apply(this, arguments);
 }, Pe = {
 	width: "100%",
 	height: "10px",
@@ -6504,32 +6504,32 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 	position: "absolute",
 	zIndex: 1
 }, Le = {
-	top: Ne(Ne({}, Pe), { top: "-5px" }),
-	right: Ne(Ne({}, Fe), {
+	top: L(L({}, Pe), { top: "-5px" }),
+	right: L(L({}, Fe), {
 		left: void 0,
 		right: "-5px"
 	}),
-	bottom: Ne(Ne({}, Pe), {
+	bottom: L(L({}, Pe), {
 		top: void 0,
 		bottom: "-5px"
 	}),
-	left: Ne(Ne({}, Fe), { left: "-5px" }),
-	topRight: Ne(Ne({}, Ie), {
+	left: L(L({}, Fe), { left: "-5px" }),
+	topRight: L(L({}, Ie), {
 		right: "-10px",
 		top: "-10px",
 		cursor: "ne-resize"
 	}),
-	bottomRight: Ne(Ne({}, Ie), {
+	bottomRight: L(L({}, Ie), {
 		right: "-10px",
 		bottom: "-10px",
 		cursor: "se-resize"
 	}),
-	bottomLeft: Ne(Ne({}, Ie), {
+	bottomLeft: L(L({}, Ie), {
 		left: "-10px",
 		bottom: "-10px",
 		cursor: "sw-resize"
 	}),
-	topLeft: Ne(Ne({}, Ie), {
+	topLeft: L(L({}, Ie), {
 		left: "-10px",
 		top: "-10px",
 		cursor: "nw-resize"
@@ -6540,12 +6540,12 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 	}, [t, n]), s = (0, y.useCallback)(function(e) {
 		t(e, n);
 	}, [t, n]), c = (0, y.useMemo)(function() {
-		return Ne(Ne({
+		return L(L({
 			position: "absolute",
 			userSelect: "none"
 		}, Le[n]), i ?? {});
 	}, [i, n]);
-	return (0, L.jsx)("div", {
+	return (0, I.jsx)("div", {
 		className: a || void 0,
 		style: c,
 		onMouseDown: o,
@@ -6904,7 +6904,7 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 		var e = this, t = this.props, n = t.enable, r = t.handleStyles, i = t.handleClasses, a = t.handleWrapperStyle, o = t.handleWrapperClass, s = t.handleComponent;
 		if (!n) return null;
 		var c = Object.keys(n).map(function(t) {
-			return n[t] === !1 ? null : (0, L.jsx)(Re, {
+			return n[t] === !1 ? null : (0, I.jsx)(Re, {
 				direction: t,
 				onResizeStart: e.onResizeStart,
 				replaceStyles: r && r[t],
@@ -6912,7 +6912,7 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 				children: s && s[t] ? s[t] : null
 			}, t);
 		});
-		return (0, L.jsx)("div", {
+		return (0, I.jsx)("div", {
 			className: o,
 			style: a,
 			children: c
@@ -6933,7 +6933,7 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 		});
 		this.state.flexBasis && (n.flexBasis = this.state.flexBasis);
 		var r = this.props.as || "div";
-		return (0, L.jsxs)(r, Be({
+		return (0, I.jsxs)(r, Be({
 			style: n,
 			className: this.props.className
 		}, t, {
@@ -6941,7 +6941,7 @@ var je = Ae, Me = /* @__PURE__ */ o(((e) => {
 				t && (e.resizable = t);
 			},
 			children: [
-				this.state.isResizing && (0, L.jsx)("div", { style: this.state.backgroundStyle }),
+				this.state.isResizing && (0, I.jsx)("div", { style: this.state.backgroundStyle }),
 				this.props.children,
 				this.renderResizer()
 			]
@@ -7262,7 +7262,7 @@ var at = {
 			y: a.y - j
 		});
 		var ee = this.state.resizing ? void 0 : M, N = this.state.resizing ? "both" : c;
-		return (0, y.createElement)(je, {
+		return (0, y.createElement)(Me, {
 			ref: function(t) {
 				t && (e.draggable = t);
 			},
@@ -20444,39 +20444,39 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 			...j,
 			mode: e
 		};
-	}, [j]), [ee, N] = (0, y.useState)(null), [te, ne] = (0, y.useState)(!1), re = (0, y.useRef)(null), ie = (0, y.useRef)({}), P = (0, y.useRef)({}), ae = (0, y.useRef)(e), oe = (0, y.useRef)(d), F = (0, y.useRef)(null), se = (0, y.useRef)(null), ce = (0, y.useRef)(null), le = (0, y.useRef)(!1), ue = (0, y.useRef)(!1), de = (0, y.useRef)(() => {}), fe = (0, y.useRef)(new Go()), pe = (0, y.useRef)(new qo({
-		eventBus: fe.current,
+	}, [j]), [ee, N] = (0, y.useState)(null), [te, ne] = (0, y.useState)(!1), re = (0, y.useRef)(null), ie = (0, y.useRef)({}), P = (0, y.useRef)({}), ae = (0, y.useRef)(e), oe = (0, y.useRef)(d), se = (0, y.useRef)(null), ce = (0, y.useRef)(null), le = (0, y.useRef)(null), ue = (0, y.useRef)(!1), de = (0, y.useRef)(!1), fe = (0, y.useRef)(() => {}), pe = (0, y.useRef)(new Go()), me = (0, y.useRef)(new qo({
+		eventBus: pe.current,
 		externalLinkTarget: 2
-	})), me = (0, y.useRef)(null), he = (0, y.useRef)([]), ge = (0, y.useRef)(null), _e = (0, y.useRef)(null), I = (0, y.useRef)(null);
+	})), he = (0, y.useRef)(null), ge = (0, y.useRef)([]), _e = (0, y.useRef)(null), ve = (0, y.useRef)(null), F = (0, y.useRef)(null);
 	ae.current = e, oe.current = d, (0, y.useLayoutEffect)(() => {
-		re.current && (_e.current = _e.current || new Ko({
-			eventBus: fe.current,
-			linkService: pe.current
-		}), I.current = I.current || new Jo({
+		re.current && (ve.current = ve.current || new Ko({
+			eventBus: pe.current,
+			linkService: me.current
+		}), F.current = F.current || new Jo({
 			container: re.current,
-			eventBus: fe.current,
-			findController: _e.current,
+			eventBus: pe.current,
+			findController: ve.current,
 			textLayerMode: 2,
 			removePageBorders: !0,
-			linkService: pe.current
-		}), I.current.setDocument(u), pe.current.setDocument(u), pe.current.setViewer(I.current), ne(!0));
+			linkService: me.current
+		}), F.current.setDocument(u), me.current.setDocument(u), me.current.setViewer(F.current), ne(!0));
 	}, [u]), (0, y.useLayoutEffect)(() => {
 		if (!re.current) return;
-		me.current = new ResizeObserver(Ce), me.current.observe(re.current);
+		he.current = new ResizeObserver(we), he.current.observe(re.current);
 		let e = re.current.ownerDocument;
-		return fe.current.on("textlayerrendered", Ee), fe.current.on("pagerendered", Ee), fe.current.on("pagesinit", Ce), e.addEventListener("keydown", xe), e.addEventListener("copy", Se, !0), Ee(), () => {
-			fe.current.off("pagesinit", Ce), fe.current.off("pagerendered", Ee), fe.current.off("textlayerrendered", Ee), e.removeEventListener("keydown", xe), e.removeEventListener("copy", Se, !0), me.current?.disconnect(), he.current.forEach(clearTimeout), he.current = [], ge.current &&= (clearTimeout(ge.current), null);
+		return pe.current.on("textlayerrendered", De), pe.current.on("pagerendered", De), pe.current.on("pagesinit", we), e.addEventListener("keydown", Se), e.addEventListener("copy", Ce, !0), De(), () => {
+			pe.current.off("pagesinit", we), pe.current.off("pagerendered", De), pe.current.off("textlayerrendered", De), e.removeEventListener("keydown", Se), e.removeEventListener("copy", Ce, !0), he.current?.disconnect(), ge.current.forEach(clearTimeout), ge.current = [], _e.current &&= (clearTimeout(_e.current), null);
 		};
 	}, [
 		o,
 		e,
 		r
 	]);
-	let ve = () => {
-		t && t(), ce.current = null, Te();
-	}, ye = () => {
+	let ye = () => {
+		t && t(), le.current = null, Ee();
+	}, be = () => {
 		let e = re.current, t = To(e).getSelection();
-		if (!e || !t || t.isCollapsed || !I.current) return;
+		if (!e || !t || t.isCollapsed || !F.current) return;
 		let n = t.rangeCount > 0 ? t.getRangeAt(0) : null;
 		if (!n || !e.contains(n.commonAncestorContainer)) return;
 		let a = ko(n);
@@ -20486,25 +20486,25 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		let c = {
 			boundingRect: po(s),
 			rects: s
-		}, l = co(c, I.current), u = { text: t.toString().split("\n").join(" ") };
-		se.current = {
+		}, l = co(c, F.current), u = { text: t.toString().split("\n").join(" ") };
+		ce.current = {
 			content: u,
 			type: "text",
 			position: l,
-			makeGhostHighlight: () => (F.current = {
+			makeGhostHighlight: () => (se.current = {
 				content: u,
 				type: "text",
 				position: l
-			}, i && i(F.current), je(), Te(), F.current)
-		}, r && r(se.current), o && N({
+			}, i && i(se.current), Me(), Ee(), se.current)
+		}, r && r(ce.current), o && N({
 			position: c,
 			content: o
 		});
-	}, be = (e) => {
+	}, xe = (e) => {
 		if (!(!Eo(e.target) || Z(e.target).closest(".PdfHighlighter__tip-container"))) {
-			if (h?.(e.nativeEvent) && g && !ue.current) {
+			if (h?.(e.nativeEvent) && g && !de.current) {
 				let t = Oo(Z(e.target));
-				if (t && I.current) {
+				if (t && F.current) {
 					let n = t.node.getBoundingClientRect();
 					g(co({
 						boundingRect: {
@@ -20515,13 +20515,13 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 							pageNumber: t.number
 						},
 						rects: []
-					}, I.current));
+					}, F.current));
 					return;
 				}
 			}
-			if (_?.(e.nativeEvent) && v && !ue.current) {
+			if (_?.(e.nativeEvent) && v && !de.current) {
 				let t = Oo(Z(e.target));
-				if (t && I.current) {
+				if (t && F.current) {
 					let n = t.node.getBoundingClientRect();
 					v(co({
 						boundingRect: {
@@ -20532,38 +20532,38 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 							pageNumber: t.number
 						},
 						rects: []
-					}, I.current));
+					}, F.current));
 					return;
 				}
 			}
-			N(null), je(), Ae(), ke(!1);
+			N(null), Me(), je(), Ae(!1);
 		}
-	}, xe = (e) => {
-		e.code === "Escape" && (je(), Ae(), N(null));
 	}, Se = (e) => {
+		e.code === "Escape" && (Me(), je(), N(null));
+	}, Ce = (e) => {
 		let t = re.current;
 		if (!t || !e.clipboardData) return;
 		let n = e.target, r = n instanceof HTMLElement ? n : n instanceof Node ? n.parentElement : null;
 		if (r && (r.closest("input, textarea, [contenteditable='true']") || r.closest(".PdfHighlighter__tip-container"))) return;
 		let i = To(t).getSelection(), a = i?.rangeCount ? i.getRangeAt(0) : null;
 		if (!i || i.isCollapsed || !a || !t.contains(a.commonAncestorContainer)) return;
-		let o = se.current?.content.text?.trim() || i.toString().split("\n").join(" ").trim();
+		let o = ce.current?.content.text?.trim() || i.toString().split("\n").join(" ").trim();
 		o && (e.clipboardData.setData("text/plain", o), e.preventDefault(), e.stopPropagation());
-	}, Ce = () => {
-		I.current && (I.current.currentScaleValue = n.toString());
-	}, we = (e, t, n) => {
-		I.current && e.reactRoot.render(/* @__PURE__ */ y.createElement(ao.Provider, { value: Re }, /* @__PURE__ */ y.createElement(Lo, {
-			highlightsByPage: Co([...ae.current, F.current]),
+	}, we = () => {
+		F.current && (F.current.currentScaleValue = n.toString());
+	}, Te = (e, t, n) => {
+		F.current && e.reactRoot.render(/* @__PURE__ */ y.createElement(ao.Provider, { value: Re }, /* @__PURE__ */ y.createElement(Lo, {
+			highlightsByPage: Co([...ae.current, se.current]),
 			pageNumber: t,
-			scrolledToHighlightId: ce.current,
-			viewer: I.current,
+			scrolledToHighlightId: le.current,
+			viewer: F.current,
 			highlightBindings: e,
 			shouldRenderHighlight: n,
 			children: oe.current
 		})));
-	}, Te = () => {
-		if (I.current) for (let e = 1; e <= u.numPages; e++) {
-			let { textLayer: t } = I.current.getPageView(e - 1) || {};
+	}, Ee = () => {
+		if (F.current) for (let e = 1; e <= u.numPages; e++) {
+			let { textLayer: t } = F.current.getPageView(e - 1) || {};
 			if (!t) continue;
 			let n = t.div, r = es(n), i = ts(n);
 			if (r) {
@@ -20572,7 +20572,7 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 					reactRoot: (0, x.createRoot)(r),
 					container: r,
 					textLayer: n
-				}, ie.current[e] = t), we(t, e, (e) => !ns(e));
+				}, ie.current[e] = t), Te(t, e, (e) => !ns(e));
 			}
 			if (i) {
 				let t = P.current[e];
@@ -20580,35 +20580,35 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 					reactRoot: (0, x.createRoot)(i),
 					container: i,
 					textLayer: n
-				}, P.current[e] = t), we(t, e, ns);
+				}, P.current[e] = t), Te(t, e, ns);
 			}
 		}
-	}, Ee = () => {
-		Te(), he.current.forEach(clearTimeout), he.current = [
+	}, De = () => {
+		Ee(), ge.current.forEach(clearTimeout), ge.current = [
 			50,
 			150,
 			350,
 			750,
 			1200
-		].map((e) => setTimeout(Te, e));
-	}, De = () => {
-		let e = I.current?.container;
-		e && (ge.current && clearTimeout(ge.current), ge.current = setTimeout(() => {
-			e.addEventListener("scroll", ve, { once: !0 }), ge.current = null;
+		].map((e) => setTimeout(Ee, e));
+	}, Oe = () => {
+		let e = F.current?.container;
+		e && (_e.current && clearTimeout(_e.current), _e.current = setTimeout(() => {
+			e.addEventListener("scroll", ye, { once: !0 }), _e.current = null;
 		}, 1200));
-	}, Oe = () => !!se.current || !!F.current || le.current || ue.current, ke = (e) => {
-		e === void 0 ? ue.current = !ue.current : ue.current = e, I.current && I.current.viewer?.classList.toggle("PdfHighlighter--disable-selection", ue.current);
-	}, Ae = () => {
-		a && F.current && a(F.current), F.current = null, Te();
+	}, ke = () => !!ce.current || !!se.current || ue.current || de.current, Ae = (e) => {
+		e === void 0 ? de.current = !de.current : de.current = e, F.current && F.current.viewer?.classList.toggle("PdfHighlighter--disable-selection", de.current);
 	}, je = () => {
-		se.current = null;
+		a && se.current && a(se.current), se.current = null, Ee();
+	}, Me = () => {
+		ce.current = null;
 		let e = re.current, t = To(e).getSelection();
 		!e || !t || t.removeAllRanges();
-	}, Me = (e) => {
+	}, Ne = (e) => {
 		let { boundingRect: t, usePdfCoordinates: n } = e.position, r = t.pageNumber;
-		I.current.container.removeEventListener("scroll", ve);
-		let i = I.current.getPageView(r - 1).viewport;
-		I.current.scrollPageIntoView({
+		F.current.container.removeEventListener("scroll", ye);
+		let i = F.current.getPageView(r - 1).viewport;
+		F.current.scrollPageIntoView({
 			pageNumber: r,
 			destArray: [
 				null,
@@ -20616,10 +20616,10 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 				...i.convertToPdfPoint(0, uo(t, i, n).top - Yo),
 				0
 			]
-		}), ce.current = e.id, Ee(), De();
-	}, L = (e, t, n = {}, r) => {
-		fe.current.dispatch("find", {
-			source: _e.current || I.current,
+		}), le.current = e.id, De(), Oe();
+	}, I = (e, t, n = {}, r) => {
+		pe.current.dispatch("find", {
+			source: ve.current || F.current,
 			type: r,
 			query: e,
 			phraseSearch: !0,
@@ -20629,51 +20629,51 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 			findPrevious: t,
 			matchDiacritics: n.matchDiacritics ?? !1
 		});
-	}, Ne = (0, y.useRef)({
+	}, L = (0, y.useRef)({
 		query: "",
 		options: {}
 	}), Pe = (e, t = {}) => {
-		if (Ne.current = {
+		if (L.current = {
 			query: e,
 			options: t
 		}, !e.trim()) {
 			Le();
 			return;
 		}
-		L(e, !1, t);
+		I(e, !1, t);
 	}, Fe = () => {
-		let { query: e, options: t } = Ne.current;
-		e.trim() && L(e, !1, t, "again");
+		let { query: e, options: t } = L.current;
+		e.trim() && I(e, !1, t, "again");
 	}, Ie = () => {
-		let { query: e, options: t } = Ne.current;
-		e.trim() && L(e, !0, t, "again");
+		let { query: e, options: t } = L.current;
+		e.trim() && I(e, !0, t, "again");
 	}, Le = () => {
-		Ne.current = {
+		L.current = {
 			query: "",
 			options: {}
-		}, fe.current.dispatch("findbarclose", { source: _e.current || I.current });
+		}, pe.current.dispatch("findbarclose", { source: ve.current || F.current });
 	}, Re = {
-		isEditingOrHighlighting: Oe,
-		getCurrentSelection: () => se.current,
-		getGhostHighlight: () => F.current,
-		removeGhostHighlight: Ae,
-		toggleEditInProgress: ke,
-		isEditInProgress: () => ue.current,
-		isSelectionInProgress: () => !!se.current || le.current,
-		scrollToHighlight: Me,
-		getViewer: () => I.current,
+		isEditingOrHighlighting: ke,
+		getCurrentSelection: () => ce.current,
+		getGhostHighlight: () => se.current,
+		removeGhostHighlight: je,
+		toggleEditInProgress: Ae,
+		isEditInProgress: () => de.current,
+		isSelectionInProgress: () => !!ce.current || ue.current,
+		scrollToHighlight: Ne,
+		getViewer: () => F.current,
 		getTip: () => ee,
 		setTip: N,
-		updateTipPosition: de.current,
-		getLinkService: () => pe.current,
-		getEventBus: () => fe.current,
+		updateTipPosition: fe.current,
+		getLinkService: () => me.current,
+		getEventBus: () => pe.current,
 		search: Pe,
 		findNext: Fe,
 		findPrevious: Ie,
 		clearSearch: Le,
 		goToPage: (e) => {
 			console.log("[PdfHighlighter] goToPage called with page:", e);
-			let t = I.current;
+			let t = F.current;
 			if (!t) {
 				console.log("[PdfHighlighter] goToPage: viewer not available");
 				return;
@@ -20715,7 +20715,7 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		}
 	}, ze = (0, y.useRef)(!1);
 	(0, y.useEffect)(() => {
-		I.current && !ze.current && (ze.current = !0, p(Re));
+		F.current && !ze.current && (ze.current = !0, p(Re));
 	}, [Re, p]);
 	let Be = h?.({}) ?? !1, Ve = _?.({}) ?? !1, He = "PdfHighlighter";
 	M.mode === "dark" && (He += " PdfHighlighter--dark"), Be && (He += " PdfHighlighter--freetext-mode"), Ve && (He += " PdfHighlighter--image-mode"), b && (He += " PdfHighlighter--drawing-mode"), E && (He += " PdfHighlighter--shape-mode"), c && (He += " PdfHighlighter--area-mode");
@@ -20726,8 +20726,8 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 	return /* @__PURE__ */ y.createElement(ao.Provider, { value: Re }, /* @__PURE__ */ y.createElement("div", {
 		ref: re,
 		className: He,
-		onPointerDown: be,
-		onPointerUp: ye,
+		onPointerDown: xe,
+		onPointerUp: be,
 		style: Ue
 	}, /* @__PURE__ */ y.createElement("div", { className: "pdfViewer" }), /* @__PURE__ */ y.createElement("style", null, `
           .textLayer ::selection {
@@ -20752,28 +20752,28 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
           }
           ` : ""}
         `), te && /* @__PURE__ */ y.createElement(Wo, {
-		viewer: I.current,
-		updateTipPositionRef: de
+		viewer: F.current,
+		updateTipPositionRef: fe
 	}), te && s && /* @__PURE__ */ y.createElement(Bo, {
-		viewer: I.current,
-		onChange: (e) => le.current = e,
+		viewer: F.current,
+		onChange: (e) => ue.current = e,
 		enableAreaSelection: s,
 		style: l,
-		onDragStart: () => rs(I.current, !0),
+		onDragStart: () => rs(F.current, !0),
 		onReset: () => {
-			se.current = null, rs(I.current, !1);
+			ce.current = null, rs(F.current, !1);
 		},
 		onSelection: (e, t, n, a) => {
-			se.current = {
+			ce.current = {
 				content: { image: n },
 				type: "area",
 				position: t,
-				makeGhostHighlight: () => (F.current = {
+				makeGhostHighlight: () => (se.current = {
 					position: t,
 					type: "area",
 					content: { image: n }
-				}, i && i(F.current), a(), Te(), F.current)
-			}, r && r(se.current), o && N({
+				}, i && i(se.current), a(), Ee(), se.current)
+			}, r && r(ce.current), o && N({
 				position: e,
 				content: o
 			});
@@ -20782,7 +20782,7 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		isActive: b,
 		strokeColor: w,
 		strokeWidth: T,
-		viewer: I.current,
+		viewer: F.current,
 		onComplete: (e, t, n) => {
 			console.log("PdfHighlighter: Drawing complete"), S?.(e, t, n);
 		},
@@ -20794,7 +20794,7 @@ var Yo = 10, Xo = "auto", Zo = "rgba(153,193,218,255)", Qo = {
 		shapeType: E,
 		strokeColor: k,
 		strokeWidth: A,
-		viewer: I.current,
+		viewer: F.current,
 		onComplete: (e, t) => {
 			console.log("PdfHighlighter: Shape complete", t.shapeType), D?.(e, t);
 		},
@@ -21474,36 +21474,36 @@ var Qs = y.createContext(void 0), $s = [
 	}
 ];
 function ec({ annotation: e, active: t, onFocus: n, onEdit: r, onCopy: i, onDelete: a }) {
-	return /* @__PURE__ */ (0, L.jsxs)("article", {
+	return /* @__PURE__ */ (0, I.jsxs)("article", {
 		className: `item annotation-item${t ? " active-item" : ""}`,
 		onClick: n,
 		children: [
-			/* @__PURE__ */ (0, L.jsxs)("strong", { children: ["Page ", e.page || e.highlighterPosition?.boundingRect.pageNumber || "-"] }),
-			/* @__PURE__ */ (0, L.jsx)("p", { children: sc(e.selectedText || e.note || "Page note", 220) }),
-			e.note ? /* @__PURE__ */ (0, L.jsx)("p", {
+			/* @__PURE__ */ (0, I.jsxs)("strong", { children: ["Page ", e.page || e.highlighterPosition?.boundingRect.pageNumber || "-"] }),
+			/* @__PURE__ */ (0, I.jsx)("p", { children: sc(e.selectedText || e.note || "Page note", 220) }),
+			e.note ? /* @__PURE__ */ (0, I.jsx)("p", {
 				className: "note",
 				children: sc(e.note, 180)
 			}) : null,
-			e.tags?.length ? /* @__PURE__ */ (0, L.jsx)("div", {
+			e.tags?.length ? /* @__PURE__ */ (0, I.jsx)("div", {
 				className: "annotation-tags",
-				children: e.tags.map((e) => /* @__PURE__ */ (0, L.jsxs)("span", { children: ["#", e] }, e))
+				children: e.tags.map((e) => /* @__PURE__ */ (0, I.jsxs)("span", { children: ["#", e] }, e))
 			}) : null,
-			/* @__PURE__ */ (0, L.jsxs)("div", {
+			/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "annotation-actions",
 				children: [
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: lc(n),
 						children: "Jump"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: lc(r),
 						children: "Edit"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: lc(i),
 						children: "Copy MD"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: lc(a),
 						children: "Delete"
 					})
@@ -21517,12 +21517,12 @@ function tc({ annotations: e }) {
 	let t = e.filter((e) => (e.kind || "highlight") === "highlight").length, n = e.filter((e) => e.kind === "underline").length, r = /* @__PURE__ */ new Map();
 	e.forEach((e) => (e.tags || []).forEach((e) => r.set(e, (r.get(e) || 0) + 1)));
 	let i = [...r.entries()].sort((e, t) => t[1] - e[1]).slice(0, 4);
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "annotation-summary",
 		children: [
-			/* @__PURE__ */ (0, L.jsxs)("span", { children: [t, " highlights"] }),
-			/* @__PURE__ */ (0, L.jsxs)("span", { children: [n, " underlines"] }),
-			i.map(([e, t]) => /* @__PURE__ */ (0, L.jsxs)("span", { children: [
+			/* @__PURE__ */ (0, I.jsxs)("span", { children: [t, " highlights"] }),
+			/* @__PURE__ */ (0, I.jsxs)("span", { children: [n, " underlines"] }),
+			i.map(([e, t]) => /* @__PURE__ */ (0, I.jsxs)("span", { children: [
 				"#",
 				e,
 				" ",
@@ -21532,33 +21532,33 @@ function tc({ annotations: e }) {
 	});
 }
 function nc({ word: e, onDelete: t }) {
-	return /* @__PURE__ */ (0, L.jsxs)("article", {
+	return /* @__PURE__ */ (0, I.jsxs)("article", {
 		className: "item",
 		children: [
-			/* @__PURE__ */ (0, L.jsx)("strong", { children: e.word }),
-			e.phonetic ? /* @__PURE__ */ (0, L.jsx)("span", {
+			/* @__PURE__ */ (0, I.jsx)("strong", { children: e.word }),
+			e.phonetic ? /* @__PURE__ */ (0, I.jsx)("span", {
 				className: "phonetic compact-phonetic",
 				children: e.phonetic
 			}) : null,
-			e.translation ? /* @__PURE__ */ (0, L.jsx)("p", { children: e.translation }) : null,
-			e.definitions?.length ? /* @__PURE__ */ (0, L.jsx)("ul", {
+			e.translation ? /* @__PURE__ */ (0, I.jsx)("p", { children: e.translation }) : null,
+			e.definitions?.length ? /* @__PURE__ */ (0, I.jsx)("ul", {
 				className: "word-definition-list",
-				children: e.definitions.slice(0, 4).map((e, t) => /* @__PURE__ */ (0, L.jsxs)("li", { children: [
-					e.pos ? /* @__PURE__ */ (0, L.jsx)("span", {
+				children: e.definitions.slice(0, 4).map((e, t) => /* @__PURE__ */ (0, I.jsxs)("li", { children: [
+					e.pos ? /* @__PURE__ */ (0, I.jsx)("span", {
 						className: "pos",
 						children: e.pos
 					}) : null,
-					/* @__PURE__ */ (0, L.jsx)("span", { children: e.translation || e.meaning }),
-					e.translation && e.meaning ? /* @__PURE__ */ (0, L.jsx)("small", { children: e.meaning }) : null
+					/* @__PURE__ */ (0, I.jsx)("span", { children: e.translation || e.meaning }),
+					e.translation && e.meaning ? /* @__PURE__ */ (0, I.jsx)("small", { children: e.meaning }) : null
 				] }, `${e.pos}-${t}`))
 			}) : null,
-			e.note ? /* @__PURE__ */ (0, L.jsx)("p", {
+			e.note ? /* @__PURE__ */ (0, I.jsx)("p", {
 				className: "note",
 				children: e.note
 			}) : null,
-			/* @__PURE__ */ (0, L.jsx)("div", {
+			/* @__PURE__ */ (0, I.jsx)("div", {
 				className: "annotation-actions",
-				children: /* @__PURE__ */ (0, L.jsx)("button", {
+				children: /* @__PURE__ */ (0, I.jsx)("button", {
 					className: "danger-button",
 					onClick: t,
 					children: "Delete"
@@ -21588,45 +21588,45 @@ function rc({ annotation: e, onCancel: t, onSave: n }) {
 	function g(e) {
 		(e.metaKey || e.ctrlKey) && e.key === "Enter" ? (e.preventDefault(), h()) : e.key === "Escape" && (e.preventDefault(), t());
 	}
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "selection-toolbar annotation-inline-editor",
 		onClick: (e) => e.stopPropagation(),
 		onKeyDown: g,
 		onMouseDown: (e) => e.stopPropagation(),
 		onPointerDown: (e) => e.stopPropagation(),
 		children: [
-			/* @__PURE__ */ (0, L.jsx)("div", {
+			/* @__PURE__ */ (0, I.jsx)("div", {
 				className: "annotation-inline-title",
 				children: "Edit annotation"
 			}),
-			/* @__PURE__ */ (0, L.jsxs)("div", {
+			/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "selection-toolbar-row",
 				children: [
-					$s.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+					$s.map((e) => /* @__PURE__ */ (0, I.jsx)("button", {
 						className: `swatch${l === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
 						onClick: () => u(e.value)
 					}, e.value)),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						className: d === "highlight" ? "active-command" : "",
 						onClick: () => f("highlight"),
 						children: "HL"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						className: d === "underline" ? "active-command" : "",
 						onClick: () => f("underline"),
 						children: "UL"
 					})
 				]
 			}),
-			/* @__PURE__ */ (0, L.jsxs)("label", { children: ["Original text", /* @__PURE__ */ (0, L.jsx)("textarea", {
+			/* @__PURE__ */ (0, I.jsxs)("label", { children: ["Original text", /* @__PURE__ */ (0, I.jsx)("textarea", {
 				rows: 2,
 				value: r,
 				onChange: (e) => i(e.target.value),
 				placeholder: "Selected PDF text"
 			})] }),
-			/* @__PURE__ */ (0, L.jsxs)("label", { children: ["Note", /* @__PURE__ */ (0, L.jsx)("textarea", {
+			/* @__PURE__ */ (0, I.jsxs)("label", { children: ["Note", /* @__PURE__ */ (0, I.jsx)("textarea", {
 				ref: p,
 				rows: 3,
 				value: a,
@@ -21634,17 +21634,17 @@ function rc({ annotation: e, onCancel: t, onSave: n }) {
 				onKeyDown: (e) => cc(e, h),
 				placeholder: "Write a note..."
 			})] }),
-			/* @__PURE__ */ (0, L.jsxs)("label", { children: ["Tags", /* @__PURE__ */ (0, L.jsx)("input", {
+			/* @__PURE__ */ (0, I.jsxs)("label", { children: ["Tags", /* @__PURE__ */ (0, I.jsx)("input", {
 				value: s,
 				onChange: (e) => c(e.target.value),
 				placeholder: "method, question, todo"
 			})] }),
-			/* @__PURE__ */ (0, L.jsxs)("div", {
+			/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "selection-note-actions",
-				children: [/* @__PURE__ */ (0, L.jsx)("button", {
+				children: [/* @__PURE__ */ (0, I.jsx)("button", {
 					onClick: t,
 					children: "Cancel"
-				}), /* @__PURE__ */ (0, L.jsx)("button", {
+				}), /* @__PURE__ */ (0, I.jsx)("button", {
 					onClick: h,
 					disabled: !m,
 					children: "Save"
@@ -21654,15 +21654,15 @@ function rc({ annotation: e, onCancel: t, onSave: n }) {
 	});
 }
 function ic({ onDelete: e, onEdit: t }) {
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "selection-toolbar annotation-inline-actions",
 		onClick: (e) => e.stopPropagation(),
 		onMouseDown: (e) => e.stopPropagation(),
 		onPointerDown: (e) => e.stopPropagation(),
-		children: [/* @__PURE__ */ (0, L.jsx)("button", {
+		children: [/* @__PURE__ */ (0, I.jsx)("button", {
 			onClick: t,
 			children: "Edit"
-		}), /* @__PURE__ */ (0, L.jsx)("button", {
+		}), /* @__PURE__ */ (0, I.jsx)("button", {
 			className: "danger-button",
 			onClick: e,
 			children: "Delete"
@@ -21696,43 +21696,43 @@ function ac() {
 		g("translation"), d();
 	}
 	let C = n === t.trim(), w = C && r === "Translating...", T = C ? i : void 0, E = C ? r : "";
-	return !a && !o ? null : /* @__PURE__ */ (0, L.jsxs)("div", {
+	return !a && !o ? null : /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "selection-toolbar",
 		onClick: (e) => e.stopPropagation(),
 		onMouseDown: (e) => e.stopPropagation(),
 		onPointerDown: (e) => e.stopPropagation(),
 		children: [
-			/* @__PURE__ */ (0, L.jsxs)("div", {
+			/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "selection-toolbar-row",
-				children: [a ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-					$s.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+				children: [a ? /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [
+					$s.map((e) => /* @__PURE__ */ (0, I.jsx)("button", {
 						className: `swatch${p === e.value ? " active" : ""}`,
 						style: { background: e.value },
 						title: e.label,
 						onClick: () => m(e.value)
 					}, e.value)),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: () => c(p),
 						children: "HL"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: () => l(p),
 						children: "UL"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						className: h === "note" ? "active-command" : "",
 						onClick: () => g(h === "note" ? void 0 : "note"),
 						children: "Note"
 					})
-				] }) : null, o ? /* @__PURE__ */ (0, L.jsx)("button", {
+				] }) : null, o ? /* @__PURE__ */ (0, I.jsx)("button", {
 					className: h === "translation" ? "active-command" : "",
 					onClick: S,
 					children: "Translate"
 				}) : null]
 			}),
-			h === "note" ? /* @__PURE__ */ (0, L.jsxs)("div", {
+			h === "note" ? /* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "selection-note-editor",
-				children: [/* @__PURE__ */ (0, L.jsx)("textarea", {
+				children: [/* @__PURE__ */ (0, I.jsx)("textarea", {
 					ref: b,
 					value: _,
 					onChange: (e) => v(e.target.value),
@@ -21741,46 +21741,46 @@ function ac() {
 					},
 					placeholder: "Write a note...",
 					rows: 3
-				}), /* @__PURE__ */ (0, L.jsxs)("div", {
+				}), /* @__PURE__ */ (0, I.jsxs)("div", {
 					className: "selection-note-actions",
-					children: [/* @__PURE__ */ (0, L.jsx)("button", {
+					children: [/* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: () => g(void 0),
 						children: "Cancel"
-					}), /* @__PURE__ */ (0, L.jsx)("button", {
+					}), /* @__PURE__ */ (0, I.jsx)("button", {
 						onClick: x,
 						disabled: !_.trim(),
 						children: "Save"
 					})]
 				})]
 			}) : null,
-			h === "translation" ? /* @__PURE__ */ (0, L.jsxs)("div", {
+			h === "translation" ? /* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "selection-translation-result",
 				children: [
-					w ? /* @__PURE__ */ (0, L.jsx)("div", {
+					w ? /* @__PURE__ */ (0, I.jsx)("div", {
 						className: "selection-result-status",
 						children: "Looking up..."
 					}) : null,
-					!w && T ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)(uc, { details: T }), /* @__PURE__ */ (0, L.jsxs)("div", {
+					!w && T ? /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [/* @__PURE__ */ (0, I.jsx)(uc, { details: T }), /* @__PURE__ */ (0, I.jsxs)("div", {
 						className: "selection-note-actions",
-						children: [s ? /* @__PURE__ */ (0, L.jsx)("button", {
+						children: [s ? /* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: () => f(T),
 							children: "Save to Wordbook"
-						}) : null, /* @__PURE__ */ (0, L.jsx)("button", {
+						}) : null, /* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: () => g(void 0),
 							children: "Close"
 						})]
 					})] }) : null,
-					!w && !T && E ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("p", {
+					!w && !T && E ? /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [/* @__PURE__ */ (0, I.jsx)("p", {
 						className: "selection-translation-text",
 						children: E
-					}), /* @__PURE__ */ (0, L.jsx)("div", {
+					}), /* @__PURE__ */ (0, I.jsx)("div", {
 						className: "selection-note-actions",
-						children: /* @__PURE__ */ (0, L.jsx)("button", {
+						children: /* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: () => g(void 0),
 							children: "Close"
 						})
 					})] }) : null,
-					!w && !T && !E ? /* @__PURE__ */ (0, L.jsx)("div", {
+					!w && !T && !E ? /* @__PURE__ */ (0, I.jsx)("div", {
 						className: "selection-result-status",
 						children: "No result yet."
 					}) : null
@@ -21807,21 +21807,21 @@ function lc(e) {
 function uc({ details: e }) {
 	if (!e.definitions.length) return null;
 	let t = e.definitions.filter((e, t, n) => n.findIndex((t) => t.pos === e.pos && t.meaning === e.meaning) === t);
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "word-details",
 		children: [
-			/* @__PURE__ */ (0, L.jsx)("h3", { children: e.word }),
-			e.phonetic ? /* @__PURE__ */ (0, L.jsx)("span", {
+			/* @__PURE__ */ (0, I.jsx)("h3", { children: e.word }),
+			e.phonetic ? /* @__PURE__ */ (0, I.jsx)("span", {
 				className: "phonetic",
 				children: e.phonetic
 			}) : null,
-			/* @__PURE__ */ (0, L.jsx)("ul", { children: t.map((e, t) => /* @__PURE__ */ (0, L.jsxs)("li", { children: [
-				e.pos ? /* @__PURE__ */ (0, L.jsx)("span", {
+			/* @__PURE__ */ (0, I.jsx)("ul", { children: t.map((e, t) => /* @__PURE__ */ (0, I.jsxs)("li", { children: [
+				e.pos ? /* @__PURE__ */ (0, I.jsx)("span", {
 					className: "pos",
 					children: e.pos
 				}) : null,
-				/* @__PURE__ */ (0, L.jsx)("span", { children: e.translation || e.meaning }),
-				e.translation && e.meaning ? /* @__PURE__ */ (0, L.jsx)("small", { children: e.meaning }) : null
+				/* @__PURE__ */ (0, I.jsx)("span", { children: e.translation || e.meaning }),
+				e.translation && e.meaning ? /* @__PURE__ */ (0, I.jsx)("small", { children: e.meaning }) : null
 			] }, t)) })
 		]
 	});
@@ -22027,97 +22027,143 @@ function Dc(e) {
 //#endregion
 //#region webview/src/components/PdfDocumentView.tsx
 var Oc = "transparent";
-function kc({ activeId: e, highlights: t, pdfDocument: n, selectionTip: r, zoom: i, onDocumentReady: a, onOpen: o, onPageChange: s, onPinchZoom: c, onSelection: l, utilsRef: u }) {
-	let d = (0, y.useRef)(null), f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(void 0), h = (0, y.useRef)(void 0), g = (0, y.useRef)(/* @__PURE__ */ new Set()), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(null);
+function kc({ activeId: e, locatedId: t, highlights: n, pdfDocument: r, selectionTip: i, zoom: a, onDocumentReady: o, onOpen: s, onPageChange: c, onPinchZoom: l, onSelection: u, utilsRef: d }) {
+	let f = (0, y.useRef)(null), p = (0, y.useRef)(null), m = (0, y.useRef)(null), h = (0, y.useRef)(void 0), g = (0, y.useRef)(void 0), _ = (0, y.useRef)(/* @__PURE__ */ new Set()), v = (0, y.useRef)(/* @__PURE__ */ new Set()), b = (0, y.useRef)(null), x = (0, y.useRef)(null);
 	(0, y.useEffect)(() => {
-		a(n.numPages);
-	}, [a, n.numPages]), (0, y.useEffect)(() => Dc(() => f.current), [n]);
-	let b = (0, y.useCallback)((e) => {
-		typeof e.pageNumber == "number" && s(e.pageNumber);
-	}, [s]), x = (0, y.useCallback)((e) => {
-		let t = p.current, n = e.scale;
+		o(r.numPages);
+	}, [o, r.numPages]), (0, y.useEffect)(() => Dc(() => p.current), [r]);
+	let S = (0, y.useCallback)((e) => {
+		typeof e.pageNumber == "number" && c(e.pageNumber);
+	}, [c]), C = (0, y.useCallback)((e) => {
+		let t = m.current, n = e.scale;
 		if (!t || typeof n != "number") return;
-		window.cancelAnimationFrame(m.current || 0), m.current = void 0, _.current.clear();
-		let r = Nc(f.current);
-		g.current = new Set(r), f.current?.classList.toggle("pdf-scale-in-progress", r.length > 0);
+		window.cancelAnimationFrame(h.current || 0), h.current = void 0, v.current.clear();
+		let r = Nc(p.current);
+		_.current = new Set(r), p.current?.classList.toggle("pdf-scale-in-progress", r.length > 0);
 		for (let e of r) e.style.transformOrigin = "", e.style.transform = "";
-		window.cancelAnimationFrame(h.current || 0), h.current = window.requestAnimationFrame(() => {
-			h.current = void 0;
-			let e = p.current;
+		window.cancelAnimationFrame(g.current || 0), g.current = window.requestAnimationFrame(() => {
+			g.current = void 0;
+			let e = m.current;
 			e && Ac(e);
 		});
-	}, []), S = (0, y.useCallback)((e) => {
-		let t = p.current;
-		!t || typeof e.pageNumber != "number" || f.current?.classList.contains("pdf-scale-in-progress") && (_.current.add(e.pageNumber), m.current === void 0 && (m.current = window.requestAnimationFrame(() => {
-			m.current = void 0;
-			for (let e of _.current) {
+	}, []), w = (0, y.useCallback)((e) => {
+		let t = m.current;
+		!t || typeof e.pageNumber != "number" || p.current?.classList.contains("pdf-scale-in-progress") && (v.current.add(e.pageNumber), h.current === void 0 && (h.current = window.requestAnimationFrame(() => {
+			h.current = void 0;
+			for (let e of v.current) {
 				let n = t.getPageView(e - 1)?.div;
-				for (let e of Nc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), g.current.delete(e);
+				for (let e of Nc(n || null)) e.style.transform = "", e.style.transformOrigin = "", e.dataset.renderedScale = String(t.currentScale), _.current.delete(e);
 			}
-			_.current.clear(), g.current.size === 0 && f.current?.classList.remove("pdf-scale-in-progress");
+			v.current.clear(), _.current.size === 0 && p.current?.classList.remove("pdf-scale-in-progress");
 		})));
-	}, []), C = (0, y.useCallback)((e) => {
-		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), c(e.deltaY));
-	}, [c]), w = (0, y.useCallback)((e) => {
-		v.current = e.button === 0 ? {
+	}, []), T = (0, y.useCallback)((e) => {
+		e.ctrlKey && (e.preventDefault(), e.stopPropagation(), l(e.deltaY));
+	}, [l]), E = (0, y.useCallback)((e) => {
+		b.current = e.button === 0 ? {
 			x: e.clientX,
 			y: e.clientY
 		} : null;
 		let t = e.target instanceof Element ? e.target : null, n = t?.closest(".page");
-		n && pc(n), f.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
-	}, []), T = (0, y.useCallback)((e) => {
-		let n = v.current;
-		v.current = null;
+		n && pc(n), p.current?.classList.toggle("allow-non-body-text-selection", !!t?.closest(".reader-margin-text, .reader-figure-text"));
+	}, []), D = (0, y.useCallback)((e) => {
+		let t = b.current;
+		b.current = null;
 		let r = window.getSelection();
-		if (!n || e.button !== 0 || e.detail > 1 || e.altKey || Math.hypot(e.clientX - n.x, e.clientY - n.y) > 4 || r && !r.isCollapsed) return;
+		if (!t || e.button !== 0 || e.detail > 1 || e.altKey || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 4 || r && !r.isCollapsed) return;
 		let i = e.target instanceof Element ? e.target : null;
-		if (!i || !f.current?.contains(i) || i?.closest(".PdfHighlighter__tip-container, a, button, input, textarea")) return;
+		if (!i || !p.current?.contains(i) || i?.closest(".PdfHighlighter__tip-container, a, button, input, textarea")) return;
 		let a = i?.closest(".page");
-		if (a) for (let n of a.querySelectorAll("[data-reader-annotation-id] .TextHighlight__part")) {
-			let r = n.getBoundingClientRect();
+		if (a) for (let t of a.querySelectorAll("[data-reader-annotation-id] .TextHighlight__part")) {
+			let r = t.getBoundingClientRect();
 			if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
-			let i = n.closest("[data-reader-annotation-id]")?.dataset.readerAnnotationId, a = t.find((e) => e.annotation?.id === i)?.annotation;
-			a && o(a);
+			let i = t.closest("[data-reader-annotation-id]")?.dataset.readerAnnotationId, a = n.find((e) => e.annotation?.id === i)?.annotation;
+			a && s(a);
 			return;
 		}
-	}, [t, o]);
-	(0, y.useEffect)(() => (document.addEventListener("click", T, !0), () => document.removeEventListener("click", T, !0)), [T, n]);
-	let E = (0, y.useCallback)((e) => {
+	}, [n, s]);
+	(0, y.useEffect)(() => (document.addEventListener("click", D, !0), () => document.removeEventListener("click", D, !0)), [D, r]), (0, y.useEffect)(() => {
+		let e, t = null, r = () => {
+			e !== void 0 && clearTimeout(e), e = void 0;
+		}, i = () => {
+			r();
+			let e = x.current;
+			t && e?.getTip() === t && e.setTip(null), t = null;
+		}, a = (a) => {
+			r();
+			let o = a.target instanceof Element ? a.target : null, s = x.current;
+			if (o?.closest(".PdfHighlighter__tip-container")) return;
+			if (!o || a.buttons || a.pointerType === "touch" || !p.current?.contains(o) || !s || s.isEditInProgress() || s.isSelectionInProgress()) {
+				i();
+				return;
+			}
+			let c = o.closest(".page");
+			if (!c) {
+				i();
+				return;
+			}
+			let { clientX: l, clientY: u } = a;
+			e = setTimeout(() => {
+				if (e = void 0, s.isEditInProgress() || s.isSelectionInProgress()) return;
+				let r = window.getSelection();
+				if (r && !r.isCollapsed) return;
+				let a = Array.from(c.querySelectorAll("[data-reader-annotation-id] .TextHighlight__part")).find((e) => {
+					let t = e.getBoundingClientRect();
+					return l >= t.left && l <= t.right && u >= t.top && u <= t.bottom;
+				})?.closest("[data-reader-annotation-id]")?.dataset.readerAnnotationId, o = n.find((e) => e.annotation?.id === a), d = o?.annotation;
+				if (!o || !d || !(d.note || d.tags?.length)) {
+					i();
+					return;
+				}
+				if (s.getTip() && s.getTip() !== t) return;
+				let f = s.getViewer();
+				f && (t = {
+					position: fo(o.position, f),
+					content: /* @__PURE__ */ (0, I.jsx)(Mc, { annotation: d })
+				}, s.setTip(t));
+			}, 200);
+		};
+		return document.addEventListener("pointermove", a, !0), document.addEventListener("pointerdown", i, !0), document.addEventListener("scroll", i, !0), document.addEventListener("pointerleave", i), () => {
+			i(), document.removeEventListener("pointermove", a, !0), document.removeEventListener("pointerdown", i, !0), document.removeEventListener("scroll", i, !0), document.removeEventListener("pointerleave", i);
+		};
+	}, [n, r]);
+	let O = (0, y.useCallback)((e) => {
+		x.current = e;
 		let t = e.getEventBus();
-		d.current !== t && (d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), t?.on("pagechanging", b), t?.on("scalechanging", x), t?.on("textlayerrendered", S), t?.on("pagerendered", S), d.current = t);
+		f.current !== t && (f.current?.off("pagechanging", S), f.current?.off("scalechanging", C), f.current?.off("textlayerrendered", w), f.current?.off("pagerendered", w), t?.on("pagechanging", S), t?.on("scalechanging", C), t?.on("textlayerrendered", w), t?.on("pagerendered", w), f.current = t);
 		let n = e.getViewer();
-		p.current = n;
+		m.current = n;
 		let r = n?.container || null;
-		f.current !== r && (f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0), r?.addEventListener("wheel", C, { passive: !1 }), r?.addEventListener("pointerdown", w, !0), f.current = r), u(e);
-	}, [
-		b,
-		w,
-		C,
-		u
-	]);
-	return (0, y.useEffect)(() => () => {
-		d.current?.off("pagechanging", b), d.current?.off("scalechanging", x), d.current?.off("textlayerrendered", S), d.current?.off("pagerendered", S), d.current = null, f.current?.removeEventListener("wheel", C), f.current?.removeEventListener("pointerdown", w, !0);
-		for (let e of g.current) e.style.transform = "", e.style.transformOrigin = "";
-		g.current.clear(), _.current.clear(), f.current = null, p.current = null, window.cancelAnimationFrame(m.current || 0), window.cancelAnimationFrame(h.current || 0);
+		p.current !== r && (p.current?.removeEventListener("wheel", T), p.current?.removeEventListener("pointerdown", E, !0), r?.addEventListener("wheel", T, { passive: !1 }), r?.addEventListener("pointerdown", E, !0), p.current = r), d(e);
 	}, [
 		S,
-		b,
+		E,
+		T,
+		d
+	]);
+	return (0, y.useEffect)(() => () => {
+		f.current?.off("pagechanging", S), f.current?.off("scalechanging", C), f.current?.off("textlayerrendered", w), f.current?.off("pagerendered", w), f.current = null, p.current?.removeEventListener("wheel", T), p.current?.removeEventListener("pointerdown", E, !0);
+		for (let e of _.current) e.style.transform = "", e.style.transformOrigin = "";
+		_.current.clear(), v.current.clear(), p.current = null, m.current = null, window.cancelAnimationFrame(h.current || 0), window.cancelAnimationFrame(g.current || 0);
+	}, [
 		w,
-		x,
-		C
-	]), /* @__PURE__ */ (0, L.jsx)(is, {
-		pdfDocument: n,
-		highlights: t,
-		onSelection: l,
-		selectionTip: r,
+		S,
+		E,
+		C,
+		T
+	]), /* @__PURE__ */ (0, I.jsx)(is, {
+		pdfDocument: r,
+		highlights: n,
+		onSelection: u,
+		selectionTip: i,
 		enableAreaSelection: (e) => e.altKey,
-		pdfScaleValue: i,
+		pdfScaleValue: a,
 		textSelectionColor: Oc,
-		utilsRef: E,
+		utilsRef: O,
 		style: { height: "100%" },
-		children: /* @__PURE__ */ (0, L.jsx)(jc, {
+		children: /* @__PURE__ */ (0, I.jsx)(jc, {
 			activeId: e,
-			onOpen: o
+			locatedId: t,
+			onOpen: s
 		})
 	});
 }
@@ -22127,51 +22173,51 @@ function Ac(e) {
 	let { container: n } = e, r = n.getBoundingClientRect(), i = t.getBoundingClientRect(), a = i.left - r.left + i.width / 2, o = n.scrollLeft + a - n.clientWidth / 2, s = Math.max(0, n.scrollWidth - n.clientWidth);
 	n.scrollLeft = Math.min(s, Math.max(0, o));
 }
-function jc({ activeId: e, onOpen: t }) {
-	let { highlight: n, isScrolledTo: r, highlightBindings: i } = No(), a = n.annotation, o = a?.id === e ? " active-highlight" : "";
-	if (!a) return n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
-		highlight: n,
-		isScrolledTo: r,
-		bounds: i.textLayer,
+function jc({ activeId: e, locatedId: t, onOpen: n }) {
+	let { highlight: r, isScrolledTo: i, highlightBindings: a } = No(), o = r.annotation, s = o?.id === e ? " active-highlight" : "", c = o?.id === t ? " located-highlight" : "";
+	if (!o) return r.type === "area" ? /* @__PURE__ */ (0, I.jsx)(Ts, {
+		highlight: r,
+		isScrolledTo: i,
+		bounds: a.textLayer,
 		highlightColor: Oc
-	}) : /* @__PURE__ */ (0, L.jsx)("div", {
+	}) : /* @__PURE__ */ (0, I.jsx)("div", {
 		className: "reader-selection-preview",
-		children: /* @__PURE__ */ (0, L.jsx)(_s, {
-			highlight: n,
-			isScrolledTo: r,
+		children: /* @__PURE__ */ (0, I.jsx)(_s, {
+			highlight: r,
+			isScrolledTo: i,
 			highlightColor: Oc
 		})
 	});
-	let s = a.note || a.tags?.length ? {
-		position: n.position,
-		content: /* @__PURE__ */ (0, L.jsx)(Mc, { annotation: a })
-	} : void 0, c = n.type === "area" ? /* @__PURE__ */ (0, L.jsx)(Ts, {
-		highlight: n,
-		isScrolledTo: r,
-		bounds: i.textLayer,
-		highlightColor: a.color || "#ffd654"
-	}) : null, l = n.type === "area" ? null : /* @__PURE__ */ (0, L.jsx)("span", {
-		className: `reader-text-highlight${o}`,
-		"data-reader-annotation-id": a.id,
-		children: /* @__PURE__ */ (0, L.jsx)(_s, {
-			highlight: n,
-			isScrolledTo: r,
-			highlightColor: a.color || "#ffd654",
-			highlightStyle: (a.kind || "highlight") === "underline" ? "underline" : "highlight",
-			onClick: () => t(a, n.position)
+	let l = o.note || o.tags?.length ? {
+		position: r.position,
+		content: /* @__PURE__ */ (0, I.jsx)(Mc, { annotation: o })
+	} : void 0, u = r.type === "area" ? /* @__PURE__ */ (0, I.jsx)(Ts, {
+		highlight: r,
+		isScrolledTo: i,
+		bounds: a.textLayer,
+		highlightColor: o.color || "#ffd654"
+	}) : null, d = r.type === "area" ? null : /* @__PURE__ */ (0, I.jsx)("span", {
+		className: `reader-text-highlight${s}${c}`,
+		"data-reader-annotation-id": o.id,
+		children: /* @__PURE__ */ (0, I.jsx)(_s, {
+			highlight: r,
+			isScrolledTo: i,
+			highlightColor: o.color || "#ffd654",
+			highlightStyle: (o.kind || "highlight") === "underline" ? "underline" : "highlight",
+			onClick: () => n(o, r.position)
 		})
 	});
-	return s ? /* @__PURE__ */ (0, L.jsx)(ys, {
-		highlightTip: s,
-		children: c || l
-	}) : c || l;
+	return l ? /* @__PURE__ */ (0, I.jsx)(ys, {
+		highlightTip: l,
+		children: u || d
+	}) : u || d;
 }
 function Mc({ annotation: e }) {
-	return !e.note && !e.tags?.length ? null : /* @__PURE__ */ (0, L.jsxs)("div", {
+	return !e.note && !e.tags?.length ? null : /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "highlight-tooltip",
-		children: [e.note ? /* @__PURE__ */ (0, L.jsx)("p", { children: e.note }) : null, e.tags?.length ? /* @__PURE__ */ (0, L.jsx)("div", {
+		children: [e.note ? /* @__PURE__ */ (0, I.jsx)("p", { children: e.note }) : null, e.tags?.length ? /* @__PURE__ */ (0, I.jsx)("div", {
 			className: "annotation-tags",
-			children: e.tags.map((e) => /* @__PURE__ */ (0, L.jsxs)("span", { children: ["#", e] }, e))
+			children: e.tags.map((e) => /* @__PURE__ */ (0, I.jsxs)("span", { children: ["#", e] }, e))
 		}) : null]
 	});
 }
@@ -22352,39 +22398,39 @@ function Yc(e) {
 //#endregion
 //#region webview/src/capabilities/OverviewPanel.tsx
 function Xc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, status: i, selectedText: a }) {
-	return /* @__PURE__ */ (0, L.jsxs)("section", {
+	return /* @__PURE__ */ (0, I.jsxs)("section", {
 		className: "side-tab-panel",
 		children: [
-			/* @__PURE__ */ (0, L.jsxs)("div", {
+			/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "overview-grid",
 				children: [
-					/* @__PURE__ */ (0, L.jsx)(Zc, {
+					/* @__PURE__ */ (0, I.jsx)(Zc, {
 						label: "Page",
 						value: `${e} / ${t || "-"}`
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Zc, {
+					/* @__PURE__ */ (0, I.jsx)(Zc, {
 						label: "Annotations",
 						value: n
 					}),
-					/* @__PURE__ */ (0, L.jsx)(Zc, {
+					/* @__PURE__ */ (0, I.jsx)(Zc, {
 						label: "Words",
 						value: r
 					})
 				]
 			}),
-			/* @__PURE__ */ (0, L.jsxs)("section", {
+			/* @__PURE__ */ (0, I.jsxs)("section", {
 				className: "tool-block",
-				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Status" }), /* @__PURE__ */ (0, L.jsx)("div", {
+				children: [/* @__PURE__ */ (0, I.jsx)("h2", { children: "Status" }), /* @__PURE__ */ (0, I.jsx)("div", {
 					className: "empty compact-empty",
 					children: i
 				})]
 			}),
-			/* @__PURE__ */ (0, L.jsxs)("section", {
+			/* @__PURE__ */ (0, I.jsxs)("section", {
 				className: "tool-block",
-				children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current selection" }), a.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+				children: [/* @__PURE__ */ (0, I.jsx)("h2", { children: "Current selection" }), a.trim() ? /* @__PURE__ */ (0, I.jsx)("p", {
 					className: "selection-preview",
 					children: Qc(a, 260)
-				}) : /* @__PURE__ */ (0, L.jsx)("div", {
+				}) : /* @__PURE__ */ (0, I.jsx)("div", {
 					className: "empty compact-empty",
 					children: "Select text in the PDF to act on it."
 				})]
@@ -22393,9 +22439,9 @@ function Xc({ currentPage: e, pageTotal: t, annotationCount: n, wordCount: r, st
 	});
 }
 function Zc({ label: e, value: t }) {
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "metric-card",
-		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("strong", { children: t })]
+		children: [/* @__PURE__ */ (0, I.jsx)("span", { children: e }), /* @__PURE__ */ (0, I.jsx)("strong", { children: t })]
 	});
 }
 function Qc(e, t) {
@@ -22405,58 +22451,58 @@ function Qc(e, t) {
 //#endregion
 //#region webview/src/capabilities/SettingsView.tsx
 function $c({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r, onTranslationSetting: i, onConfigureDeepSeek: a, onDiagnoseTranslation: o }) {
-	return /* @__PURE__ */ (0, L.jsxs)("div", {
+	return /* @__PURE__ */ (0, I.jsxs)("div", {
 		className: "settings-view",
-		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
+		children: [/* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "settings-section",
 			children: [
-				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Reading capabilities" }),
-				/* @__PURE__ */ (0, L.jsx)("p", {
+				/* @__PURE__ */ (0, I.jsx)("h2", { children: "Reading capabilities" }),
+				/* @__PURE__ */ (0, I.jsx)("p", {
 					className: "settings-help",
 					children: "Choose which actions are available and which views appear in the reading workspace. Disabling a capability never deletes its data."
 				}),
-				/* @__PURE__ */ (0, L.jsx)("div", {
+				/* @__PURE__ */ (0, I.jsx)("div", {
 					className: "capability-list",
-					children: e.map((t, i) => /* @__PURE__ */ (0, L.jsxs)("article", {
+					children: e.map((t, i) => /* @__PURE__ */ (0, I.jsxs)("article", {
 						className: "capability-card",
 						children: [
-							/* @__PURE__ */ (0, L.jsxs)("div", {
+							/* @__PURE__ */ (0, I.jsxs)("div", {
 								className: "capability-card-heading",
-								children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("h3", { children: t.title }), /* @__PURE__ */ (0, L.jsx)("p", { children: t.description })] }), /* @__PURE__ */ (0, L.jsx)("span", {
+								children: [/* @__PURE__ */ (0, I.jsxs)("div", { children: [/* @__PURE__ */ (0, I.jsx)("h3", { children: t.title }), /* @__PURE__ */ (0, I.jsx)("p", { children: t.description })] }), /* @__PURE__ */ (0, I.jsx)("span", {
 									className: `capability-readiness ${t.readiness}`,
 									children: rl(t.readiness)
 								})]
 							}),
-							t.readinessMessage ? /* @__PURE__ */ (0, L.jsx)("p", {
+							t.readinessMessage ? /* @__PURE__ */ (0, I.jsx)("p", {
 								className: "capability-readiness-message",
 								children: t.readinessMessage
 							}) : null,
-							/* @__PURE__ */ (0, L.jsxs)("label", {
+							/* @__PURE__ */ (0, I.jsxs)("label", {
 								className: "toggle-row",
-								children: [/* @__PURE__ */ (0, L.jsx)("input", {
+								children: [/* @__PURE__ */ (0, I.jsx)("input", {
 									type: "checkbox",
 									checked: t.enabled,
 									onChange: (e) => n(t.id, { enabled: e.target.checked })
-								}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Enable capability" })]
+								}), /* @__PURE__ */ (0, I.jsx)("span", { children: "Enable capability" })]
 							}),
-							/* @__PURE__ */ (0, L.jsxs)("label", {
+							/* @__PURE__ */ (0, I.jsxs)("label", {
 								className: "toggle-row",
-								children: [/* @__PURE__ */ (0, L.jsx)("input", {
+								children: [/* @__PURE__ */ (0, I.jsx)("input", {
 									type: "checkbox",
 									checked: t.showInPanel,
 									disabled: !t.enabled || !t.contributions.panel,
 									onChange: (e) => n(t.id, { showInPanel: e.target.checked })
-								}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Show in panel" })]
+								}), /* @__PURE__ */ (0, I.jsx)("span", { children: "Show in panel" })]
 							}),
-							/* @__PURE__ */ (0, L.jsxs)("div", {
+							/* @__PURE__ */ (0, I.jsxs)("div", {
 								className: "capability-order",
 								"aria-label": `${t.title} panel order`,
-								children: [/* @__PURE__ */ (0, L.jsx)("button", {
+								children: [/* @__PURE__ */ (0, I.jsx)("button", {
 									className: "secondary-button",
 									disabled: i === 0,
 									onClick: () => r(t.id, -1),
 									children: "Move up"
-								}), /* @__PURE__ */ (0, L.jsx)("button", {
+								}), /* @__PURE__ */ (0, I.jsx)("button", {
 									className: "secondary-button",
 									disabled: i === e.length - 1,
 									onClick: () => r(t.id, 1),
@@ -22467,7 +22513,7 @@ function $c({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 					}, t.id))
 				})
 			]
-		}), /* @__PURE__ */ (0, L.jsx)(el, {
+		}), /* @__PURE__ */ (0, I.jsx)(el, {
 			settings: t,
 			onSetting: i,
 			onConfigureDeepSeek: a,
@@ -22476,92 +22522,92 @@ function $c({ capabilities: e, translation: t, onCapabilityChange: n, onMove: r,
 	});
 }
 function el({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }) {
-	return /* @__PURE__ */ (0, L.jsxs)("section", {
+	return /* @__PURE__ */ (0, I.jsxs)("section", {
 		className: "settings-section",
 		children: [
-			/* @__PURE__ */ (0, L.jsx)("h2", { children: "Translation" }),
-			/* @__PURE__ */ (0, L.jsxs)(tl, {
+			/* @__PURE__ */ (0, I.jsx)("h2", { children: "Translation" }),
+			/* @__PURE__ */ (0, I.jsxs)(tl, {
 				label: "Provider",
 				value: e.provider,
 				onChange: (e) => t("provider", e),
 				children: [
-					/* @__PURE__ */ (0, L.jsx)("option", {
+					/* @__PURE__ */ (0, I.jsx)("option", {
 						value: "argos",
 						children: "Argos Translate (local)"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("option", {
+					/* @__PURE__ */ (0, I.jsx)("option", {
 						value: "libretranslate",
 						children: "LibreTranslate"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("option", {
+					/* @__PURE__ */ (0, I.jsx)("option", {
 						value: "deepseek",
 						children: "DeepSeek"
 					})
 				]
 			}),
-			e.provider === "deepseek" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsxs)(tl, {
+			e.provider === "deepseek" ? /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [
+				/* @__PURE__ */ (0, I.jsxs)(tl, {
 					label: "DeepSeek model",
 					value: e.deepSeekModel,
 					onChange: (e) => t("deepSeekModel", e),
-					children: [/* @__PURE__ */ (0, L.jsx)("option", {
+					children: [/* @__PURE__ */ (0, I.jsx)("option", {
 						value: "deepseek-v4-flash",
 						children: "deepseek-v4-flash"
-					}), /* @__PURE__ */ (0, L.jsx)("option", {
+					}), /* @__PURE__ */ (0, I.jsx)("option", {
 						value: "deepseek-v4-pro",
 						children: "deepseek-v4-pro"
 					})]
 				}),
-				/* @__PURE__ */ (0, L.jsx)("div", {
+				/* @__PURE__ */ (0, I.jsx)("div", {
 					className: `provider-status ${e.hasDeepSeekApiKey ? "ready" : "missing"}`,
 					children: e.hasDeepSeekApiKey ? "DeepSeek API key is configured." : "DeepSeek API key is required."
 				}),
-				/* @__PURE__ */ (0, L.jsx)("button", {
+				/* @__PURE__ */ (0, I.jsx)("button", {
 					className: "secondary-button",
 					onClick: n,
 					children: e.hasDeepSeekApiKey ? "Replace API Key" : "Set API Key"
 				})
 			] }) : null,
-			/* @__PURE__ */ (0, L.jsx)(nl, {
+			/* @__PURE__ */ (0, I.jsx)(nl, {
 				label: "Source language",
 				value: e.source,
 				onCommit: (e) => t("source", e)
 			}),
-			/* @__PURE__ */ (0, L.jsx)(nl, {
+			/* @__PURE__ */ (0, I.jsx)(nl, {
 				label: "Target language",
 				value: e.target,
 				onCommit: (e) => t("target", e)
 			}),
-			e.provider === "libretranslate" ? /* @__PURE__ */ (0, L.jsx)(nl, {
+			e.provider === "libretranslate" ? /* @__PURE__ */ (0, I.jsx)(nl, {
 				label: "LibreTranslate endpoint",
 				value: e.libreTranslateEndpoint,
 				onCommit: (e) => t("libreTranslateEndpoint", e)
 			}) : null,
-			e.provider === "argos" ? /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [
-				/* @__PURE__ */ (0, L.jsx)(nl, {
+			e.provider === "argos" ? /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [
+				/* @__PURE__ */ (0, I.jsx)(nl, {
 					label: "Argos Python path",
 					value: e.argosPythonPath,
 					placeholder: "Use the bundled .venv-translate path",
 					onCommit: (e) => t("argosPythonPath", e)
 				}),
-				/* @__PURE__ */ (0, L.jsxs)("label", {
+				/* @__PURE__ */ (0, I.jsxs)("label", {
 					className: "toggle-row",
-					children: [/* @__PURE__ */ (0, L.jsx)("input", {
+					children: [/* @__PURE__ */ (0, I.jsx)("input", {
 						type: "checkbox",
 						checked: e.fallbackToLibreTranslate,
 						onChange: (e) => t("fallbackToLibreTranslate", e.target.checked)
-					}), /* @__PURE__ */ (0, L.jsx)("span", { children: "Fall back to LibreTranslate when Argos fails" })]
+					}), /* @__PURE__ */ (0, I.jsx)("span", { children: "Fall back to LibreTranslate when Argos fails" })]
 				}),
-				/* @__PURE__ */ (0, L.jsx)("div", {
+				/* @__PURE__ */ (0, I.jsx)("div", {
 					className: `provider-status ${e.argosPythonFound ? "ready" : "missing"}`,
 					children: e.argosPythonFound ? "Argos Python was found." : "Argos is not configured for sentence translation."
 				})
 			] }) : null,
-			/* @__PURE__ */ (0, L.jsx)("div", {
+			/* @__PURE__ */ (0, I.jsx)("div", {
 				className: `provider-status ${e.dictionaryReady ? "ready" : "missing"}`,
 				children: e.dictionaryReady ? "Offline dictionary is ready." : "Offline dictionary is missing."
 			}),
-			/* @__PURE__ */ (0, L.jsx)("button", {
+			/* @__PURE__ */ (0, I.jsx)("button", {
 				className: "secondary-button",
 				onClick: r,
 				children: "Diagnose translation setup"
@@ -22570,9 +22616,9 @@ function el({ settings: e, onSetting: t, onConfigureDeepSeek: n, onDiagnose: r }
 	});
 }
 function tl({ label: e, value: t, onChange: n, children: r }) {
-	return /* @__PURE__ */ (0, L.jsxs)("label", {
+	return /* @__PURE__ */ (0, I.jsxs)("label", {
 		className: "setting-field",
-		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("select", {
+		children: [/* @__PURE__ */ (0, I.jsx)("span", { children: e }), /* @__PURE__ */ (0, I.jsx)("select", {
 			value: t,
 			onChange: (e) => n(e.target.value),
 			children: r
@@ -22581,9 +22627,9 @@ function tl({ label: e, value: t, onChange: n, children: r }) {
 }
 function nl({ label: e, value: t, placeholder: n, onCommit: r }) {
 	let [i, a] = (0, y.useState)(t);
-	return (0, y.useEffect)(() => a(t), [t]), /* @__PURE__ */ (0, L.jsxs)("label", {
+	return (0, y.useEffect)(() => a(t), [t]), /* @__PURE__ */ (0, I.jsxs)("label", {
 		className: "setting-field",
-		children: [/* @__PURE__ */ (0, L.jsx)("span", { children: e }), /* @__PURE__ */ (0, L.jsx)("input", {
+		children: [/* @__PURE__ */ (0, I.jsx)("span", { children: e }), /* @__PURE__ */ (0, I.jsx)("input", {
 			value: i,
 			placeholder: n,
 			onChange: (e) => a(e.target.value),
@@ -22600,25 +22646,25 @@ function rl(e) {
 //#endregion
 //#region webview/src/capabilities/ReaderSideSurface.tsx
 function il({ surface: e, title: t, activePanel: n, panels: r, settings: i, onActivePanel: a, onClose: o }) {
-	return /* @__PURE__ */ (0, L.jsxs)("aside", {
+	return /* @__PURE__ */ (0, I.jsxs)("aside", {
 		className: "side-panel",
 		"aria-hidden": e === "closed",
-		children: [/* @__PURE__ */ (0, L.jsxs)("header", {
+		children: [/* @__PURE__ */ (0, I.jsxs)("header", {
 			className: "side-panel-header",
-			children: [/* @__PURE__ */ (0, L.jsxs)("div", { children: [/* @__PURE__ */ (0, L.jsx)("p", {
+			children: [/* @__PURE__ */ (0, I.jsxs)("div", { children: [/* @__PURE__ */ (0, I.jsx)("p", {
 				className: "eyebrow",
 				children: "Inleaf Reader"
-			}), /* @__PURE__ */ (0, L.jsx)("h1", { children: e === "settings" ? "Settings" : t })] }), /* @__PURE__ */ (0, L.jsx)("button", {
+			}), /* @__PURE__ */ (0, I.jsx)("h1", { children: e === "settings" ? "Settings" : t })] }), /* @__PURE__ */ (0, I.jsx)("button", {
 				className: "side-panel-close secondary-button",
 				title: "Close",
 				"aria-label": "Close",
 				onClick: o,
 				children: "×"
 			})]
-		}), e === "settings" ? i : /* @__PURE__ */ (0, L.jsxs)(L.Fragment, { children: [/* @__PURE__ */ (0, L.jsx)("nav", {
+		}), e === "settings" ? i : /* @__PURE__ */ (0, I.jsxs)(I.Fragment, { children: [/* @__PURE__ */ (0, I.jsx)("nav", {
 			className: "side-tabs",
 			"aria-label": "Reader panels",
-			children: r.map((e) => /* @__PURE__ */ (0, L.jsx)("button", {
+			children: r.map((e) => /* @__PURE__ */ (0, I.jsx)("button", {
 				className: n === e.id ? "active-tab" : "",
 				onClick: () => a(e.id),
 				children: e.title
@@ -22629,108 +22675,108 @@ function il({ surface: e, title: t, activePanel: n, panels: r, settings: i, onAc
 //#endregion
 //#region webview/src/capabilities/annotations/AnnotationsPanel.tsx
 function al(e) {
-	return /* @__PURE__ */ (0, L.jsx)("section", {
+	return /* @__PURE__ */ (0, I.jsx)("section", {
 		className: "side-tab-panel list-block",
-		children: /* @__PURE__ */ (0, L.jsxs)("section", {
+		children: /* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "tool-block",
 			children: [
-				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Saved Annotations" }),
-				/* @__PURE__ */ (0, L.jsx)("input", {
+				/* @__PURE__ */ (0, I.jsx)("h2", { children: "Saved Annotations" }),
+				/* @__PURE__ */ (0, I.jsx)("input", {
 					type: "search",
 					value: e.query,
 					onChange: (t) => e.onQuery(t.target.value),
 					placeholder: "Search annotations"
 				}),
-				/* @__PURE__ */ (0, L.jsx)("input", {
+				/* @__PURE__ */ (0, I.jsx)("input", {
 					type: "search",
 					value: e.tagQuery,
 					onChange: (t) => e.onTagQuery(t.target.value),
 					placeholder: "Filter by tag"
 				}),
-				/* @__PURE__ */ (0, L.jsxs)("select", {
+				/* @__PURE__ */ (0, I.jsxs)("select", {
 					value: e.colorFilter,
 					onChange: (t) => e.onColorFilter(t.target.value),
-					children: [/* @__PURE__ */ (0, L.jsx)("option", {
+					children: [/* @__PURE__ */ (0, I.jsx)("option", {
 						value: "",
 						children: "All colors"
-					}), $s.map((e) => /* @__PURE__ */ (0, L.jsx)("option", {
+					}), $s.map((e) => /* @__PURE__ */ (0, I.jsx)("option", {
 						value: e.value,
 						children: e.label
 					}, e.value))]
 				}),
-				/* @__PURE__ */ (0, L.jsxs)("select", {
+				/* @__PURE__ */ (0, I.jsxs)("select", {
 					value: e.kindFilter,
 					onChange: (t) => e.onKindFilter(t.target.value),
 					children: [
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "",
 							children: "All styles"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "highlight",
 							children: "Highlight"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "underline",
 							children: "Underline"
 						})
 					]
 				}),
-				/* @__PURE__ */ (0, L.jsxs)("select", {
+				/* @__PURE__ */ (0, I.jsxs)("select", {
 					value: e.sortMode,
 					onChange: (t) => e.onSortMode(t.target.value),
 					children: [
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "position",
 							children: "Sort by paper order"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "created",
 							children: "Sort by newest"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("option", {
+						/* @__PURE__ */ (0, I.jsx)("option", {
 							value: "updated",
 							children: "Sort by recently edited"
 						})
 					]
 				}),
-				/* @__PURE__ */ (0, L.jsxs)("div", {
+				/* @__PURE__ */ (0, I.jsxs)("div", {
 					className: "actions",
 					children: [
-						/* @__PURE__ */ (0, L.jsx)("button", {
+						/* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: e.onOrganizeNotes,
 							children: "整理阅读笔记"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("button", {
+						/* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: e.onExportMarkdown,
 							children: "Export Markdown"
 						}),
-						/* @__PURE__ */ (0, L.jsx)("button", {
+						/* @__PURE__ */ (0, I.jsx)("button", {
 							onClick: e.onExportPdf,
 							children: "Export PDF"
 						})
 					]
 				}),
-				e.canUndo ? /* @__PURE__ */ (0, L.jsx)("button", {
+				e.canUndo ? /* @__PURE__ */ (0, I.jsx)("button", {
 					className: "undo-button",
 					onClick: e.onUndo,
 					children: "Undo delete"
 				}) : null,
-				/* @__PURE__ */ (0, L.jsx)("div", {
+				/* @__PURE__ */ (0, I.jsx)("div", {
 					className: "status-line",
 					children: oc(e.annotations.length, e.total)
 				}),
-				/* @__PURE__ */ (0, L.jsx)(tc, { annotations: e.annotations }),
-				/* @__PURE__ */ (0, L.jsx)("div", {
+				/* @__PURE__ */ (0, I.jsx)(tc, { annotations: e.annotations }),
+				/* @__PURE__ */ (0, I.jsx)("div", {
 					className: "list",
-					children: e.annotations.length ? e.annotations.map((t) => /* @__PURE__ */ (0, L.jsx)(ec, {
+					children: e.annotations.length ? e.annotations.map((t) => /* @__PURE__ */ (0, I.jsx)(ec, {
 						annotation: t,
 						active: t.id === e.activeId,
 						onFocus: () => e.onFocus(t),
 						onEdit: () => e.onEdit(t),
 						onCopy: () => e.onCopy(t),
 						onDelete: () => e.onDelete(t)
-					}, t.id)) : /* @__PURE__ */ (0, L.jsx)("div", {
+					}, t.id)) : /* @__PURE__ */ (0, I.jsx)("div", {
 						className: "empty",
 						children: "No annotations saved yet."
 					})
@@ -22742,27 +22788,27 @@ function al(e) {
 //#endregion
 //#region webview/src/capabilities/translation/TranslationPanel.tsx
 function ol({ selectedText: e, output: t, wordDetails: n }) {
-	return /* @__PURE__ */ (0, L.jsxs)("section", {
+	return /* @__PURE__ */ (0, I.jsxs)("section", {
 		className: "side-tab-panel",
-		children: [/* @__PURE__ */ (0, L.jsxs)("section", {
+		children: [/* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "tool-block",
-			children: [/* @__PURE__ */ (0, L.jsx)("h2", { children: "Current Selection" }), e.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+			children: [/* @__PURE__ */ (0, I.jsx)("h2", { children: "Current Selection" }), e.trim() ? /* @__PURE__ */ (0, I.jsx)("p", {
 				className: "selection-preview",
 				children: e
-			}) : /* @__PURE__ */ (0, L.jsx)("div", {
+			}) : /* @__PURE__ */ (0, I.jsx)("div", {
 				className: "empty compact-empty",
 				children: "Select text in the PDF, then use Translate in the selection toolbar."
 			})]
-		}), /* @__PURE__ */ (0, L.jsxs)("section", {
+		}), /* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "tool-block",
 			children: [
-				/* @__PURE__ */ (0, L.jsx)("h2", { children: "Result" }),
-				n ? /* @__PURE__ */ (0, L.jsx)(uc, { details: n }) : null,
-				!n && t.trim() ? /* @__PURE__ */ (0, L.jsx)("p", {
+				/* @__PURE__ */ (0, I.jsx)("h2", { children: "Result" }),
+				n ? /* @__PURE__ */ (0, I.jsx)(uc, { details: n }) : null,
+				!n && t.trim() ? /* @__PURE__ */ (0, I.jsx)("p", {
 					className: "translation-preview",
 					children: t
 				}) : null,
-				!n && !t.trim() ? /* @__PURE__ */ (0, L.jsx)("div", {
+				!n && !t.trim() ? /* @__PURE__ */ (0, I.jsx)("div", {
 					className: "empty compact-empty",
 					children: "No translation yet."
 				}) : null
@@ -22773,21 +22819,21 @@ function ol({ selectedText: e, output: t, wordDetails: n }) {
 //#endregion
 //#region webview/src/capabilities/wordbook/WordbookPanel.tsx
 function sl({ words: e, onDelete: t }) {
-	return /* @__PURE__ */ (0, L.jsx)("section", {
+	return /* @__PURE__ */ (0, I.jsx)("section", {
 		className: "side-tab-panel list-block",
-		children: /* @__PURE__ */ (0, L.jsxs)("section", {
+		children: /* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "tool-block",
-			children: [/* @__PURE__ */ (0, L.jsxs)("h2", { children: [
+			children: [/* @__PURE__ */ (0, I.jsxs)("h2", { children: [
 				"Saved Words (",
 				e.length,
 				")"
-			] }), e.length ? /* @__PURE__ */ (0, L.jsx)("div", {
+			] }), e.length ? /* @__PURE__ */ (0, I.jsx)("div", {
 				className: "list",
-				children: e.map((e) => /* @__PURE__ */ (0, L.jsx)(nc, {
+				children: e.map((e) => /* @__PURE__ */ (0, I.jsx)(nc, {
 					word: e,
 					onDelete: () => t(e.id)
 				}, e.id))
-			}) : /* @__PURE__ */ (0, L.jsx)("div", {
+			}) : /* @__PURE__ */ (0, I.jsx)("div", {
 				className: "empty",
 				children: "No words saved yet."
 			})]
@@ -22839,12 +22885,18 @@ var pl = {
 	paperName: Pc.paperName
 };
 function ml() {
-	let [e, t] = (0, y.useState)(pl), n = Uc(), r = Gc(), i = Jc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => $(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)(), [M, ee] = (0, y.useState)(Pc.pdfUrl), [N, te] = (0, y.useState)(), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(Pc.paperName), [ae, oe] = (0, y.useState)("overview"), [F, se] = (0, y.useState)("closed"), ce = (0, y.useRef)(null), le = (0, y.useRef)(void 0), ue = (0, y.useRef)(void 0), de = (0, y.useRef)(void 0), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(null), _e = (0, y.useRef)(!1), I = (0, y.useRef)("closed"), ve = (0, y.useRef)(s), ye = (0, y.useRef)(Pc.documentId), be = (0, y.useRef)({
+	let [e, t] = (0, y.useState)(pl), n = Uc(), r = Gc(), i = Jc(), [a, o] = (0, y.useState)(""), [s, c] = (0, y.useState)(() => $(void 0)), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(""), [_, v] = (0, y.useState)("position"), [b, x] = (0, y.useState)(1), [S, C] = (0, y.useState)(0), [w, T] = (0, y.useState)("page-width"), [E, D] = (0, y.useState)("Loading PDF..."), [O, k] = (0, y.useState)(), [A, j] = (0, y.useState)();
+	(0, y.useEffect)(() => {
+		if (!A) return;
+		let e = window.setTimeout(() => j(void 0), 1200);
+		return () => window.clearTimeout(e);
+	}, [A]);
+	let [M, ee] = (0, y.useState)(), [N, te] = (0, y.useState)(Pc.pdfUrl), [ne, re] = (0, y.useState)(), [ie, P] = (0, y.useState)(), [ae, oe] = (0, y.useState)(Pc.paperName), [se, ce] = (0, y.useState)("overview"), [le, ue] = (0, y.useState)("closed"), de = (0, y.useRef)(null), fe = (0, y.useRef)(void 0), pe = (0, y.useRef)(void 0), me = (0, y.useRef)(void 0), he = (0, y.useRef)(void 0), ge = (0, y.useRef)(void 0), _e = (0, y.useRef)(void 0), ve = (0, y.useRef)(void 0), F = (0, y.useRef)(null), ye = (0, y.useRef)(!1), be = (0, y.useRef)("closed"), xe = (0, y.useRef)(s), Se = (0, y.useRef)(Pc.documentId), Ce = (0, y.useRef)({
 		selectedText: "",
 		selectionPosition: void 0,
 		currentPage: 1
-	}), xe = (0, y.useMemo)(() => ({
-		url: M,
+	}), we = (0, y.useMemo)(() => ({
+		url: N,
 		cMapUrl: Pc.pdfCMapUrl,
 		cMapPacked: !0,
 		standardFontDataUrl: Pc.pdfStandardFontDataUrl,
@@ -22856,59 +22908,59 @@ function ml() {
 		enableHWA: !0,
 		disableFontFace: !0,
 		useSystemFonts: !1
-	}), [M]), Se = (0, y.useCallback)((e) => {
-		ue.current = e, window.clearTimeout(le.current), le.current = window.setTimeout(() => {
+	}), [N]), Te = (0, y.useCallback)((e) => {
+		pe.current = e, window.clearTimeout(fe.current), fe.current = window.setTimeout(() => {
 			Rc.postMessage({
 				type: "saveProgress",
 				payload: { page: e }
-			}), ue.current = void 0;
+			}), pe.current = void 0;
 		}, 350);
-	}, []), Ce = (0, y.useCallback)(() => {
-		window.clearTimeout(le.current), ue.current !== void 0 && (Rc.postMessage({
+	}, []), Ee = (0, y.useCallback)(() => {
+		window.clearTimeout(fe.current), pe.current !== void 0 && (Rc.postMessage({
 			type: "saveProgress",
-			payload: { page: ue.current }
-		}), ue.current = void 0);
-	}, []), we = (0, y.useCallback)((e) => {
-		Se(e), fe.current = e, de.current === void 0 && (de.current = window.setTimeout(() => {
-			de.current = void 0, fe.current !== void 0 && (x(fe.current), fe.current = void 0);
+			payload: { page: pe.current }
+		}), pe.current = void 0);
+	}, []), De = (0, y.useCallback)((e) => {
+		Te(e), he.current = e, me.current === void 0 && (me.current = window.setTimeout(() => {
+			me.current = void 0, he.current !== void 0 && (x(he.current), he.current = void 0);
 		}, 80));
-	}, [Se]), Te = (0, y.useCallback)((e) => {
-		ce.current = e;
-	}, []), Ee = (0, y.useCallback)((e) => {
-		window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, window.clearTimeout(he.current), T(e);
-		let t = ce.current?.getViewer();
+	}, [Te]), Oe = (0, y.useCallback)((e) => {
+		de.current = e;
+	}, []), ke = (0, y.useCallback)((e) => {
+		window.cancelAnimationFrame(ge.current || 0), ge.current = void 0, _e.current = void 0, window.clearTimeout(ve.current), T(e);
+		let t = de.current?.getViewer();
 		t && (t.currentScaleValue = e.toString());
-	}, []), De = (0, y.useCallback)((e, t = !1) => {
-		let n = ce.current?.getViewer(), r = gl((me.current ?? n?.currentScale ?? 1) * e);
+	}, []), Ae = (0, y.useCallback)((e, t = !1) => {
+		let n = de.current?.getViewer(), r = gl((_e.current ?? n?.currentScale ?? 1) * e);
 		if (!t) {
-			window.cancelAnimationFrame(pe.current || 0), pe.current = void 0, me.current = void 0, n && (n.currentScale = r), window.clearTimeout(he.current), T(r);
+			window.cancelAnimationFrame(ge.current || 0), ge.current = void 0, _e.current = void 0, n && (n.currentScale = r), window.clearTimeout(ve.current), T(r);
 			return;
 		}
-		me.current = r, n && pe.current === void 0 && (pe.current = window.requestAnimationFrame(() => {
-			pe.current = void 0;
-			let e = me.current;
-			me.current = void 0;
-			let t = ce.current?.getViewer();
+		_e.current = r, n && ge.current === void 0 && (ge.current = window.requestAnimationFrame(() => {
+			ge.current = void 0;
+			let e = _e.current;
+			_e.current = void 0;
+			let t = de.current?.getViewer();
 			t && e !== void 0 && (t.currentScale = e);
-		})), ge.current && (ge.current.textContent = _l(r)), window.clearTimeout(he.current), he.current = window.setTimeout(() => {
+		})), F.current && (F.current.textContent = _l(r)), window.clearTimeout(ve.current), ve.current = window.setTimeout(() => {
 			T(r);
 		}, 140);
-	}, []), Oe = (0, y.useCallback)((e) => {
+	}, []), je = (0, y.useCallback)((e) => {
 		let t = Math.min(Math.max(-e * .01, -.25), .25);
-		De(Math.exp(t), !0);
-	}, [De]);
+		Ae(Math.exp(t), !0);
+	}, [Ae]);
 	(0, y.useEffect)(() => (document.body.classList.add("reader-mounted"), () => {
-		Ce(), window.clearTimeout(de.current), window.cancelAnimationFrame(pe.current || 0), window.clearTimeout(he.current), pe.current = void 0, me.current = void 0, document.body.classList.remove("reader-mounted");
-	}), [Ce]), (0, y.useEffect)(() => {
+		Ee(), window.clearTimeout(me.current), window.cancelAnimationFrame(ge.current || 0), window.clearTimeout(ve.current), ge.current = void 0, _e.current = void 0, document.body.classList.remove("reader-mounted");
+	}), [Ee]), (0, y.useEffect)(() => {
 		let e = !1, t;
 		return wl(Pc.pdfWorkerUrl).then((n) => {
 			if (e) {
 				URL.revokeObjectURL(n);
 				return;
 			}
-			t = n, te(n);
+			t = n, re(n);
 		}).catch((t) => {
-			e || re(t instanceof Error ? t.message : String(t));
+			e || P(t instanceof Error ? t.message : String(t));
 		}), () => {
 			e = !0, t && URL.revokeObjectURL(t);
 		};
@@ -22917,7 +22969,7 @@ function ml() {
 			if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "c") return;
 			let t = document.activeElement;
 			if (t instanceof HTMLElement && t.closest("input, textarea, [contenteditable=\"true\"]")) return;
-			let n = be.current.selectedText.trim();
+			let n = Ce.current.selectedText.trim();
 			n && (e.preventDefault(), Rc.postMessage({
 				type: "copySelection",
 				payload: { text: n }
@@ -22925,18 +22977,18 @@ function ml() {
 		};
 		return window.addEventListener("keydown", e, !0), () => window.removeEventListener("keydown", e, !0);
 	}, []);
-	let ke = (0, y.useCallback)((e) => {
-		C(e), _e.current || (_e.current = !0, D("PDF loaded."));
+	let Me = (0, y.useCallback)((e) => {
+		C(e), ye.current || (ye.current = !0, D("PDF loaded."));
 	}, []);
 	(0, y.useEffect)(() => {
-		ve.current = s;
+		xe.current = s;
 	}, [s]), (0, y.useEffect)(() => {
 		Rc.postMessage({ type: "ready" });
 	}, []), (0, y.useEffect)(() => {
 		let e = (e) => {
 			let a = e.data;
-			if (a.type === "navigateTo" || a.documentId === ye.current) {
-				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ce(), i.clearResult(), window.clearTimeout(de.current), de.current = void 0, fe.current = void 0, ye.current = a.payload.documentId, Lc(a.payload.documentId), ee(a.payload.pdfUrl), P(a.payload.paperName), t(pl), x(1), C(0), D("Loading PDF..."), _e.current = !1, j(void 0), n.reset(), r.reset(), Be()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), dl(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
+			if (a.type === "navigateTo" || a.documentId === Se.current) {
+				if (a.type === "state" && (t(a.payload), a.payload.progress?.page && x(a.payload.progress.page)), a.type === "navigateTo" && (Ee(), i.clearResult(), window.clearTimeout(me.current), me.current = void 0, he.current = void 0, Se.current = a.payload.documentId, Lc(a.payload.documentId), te(a.payload.pdfUrl), oe(a.payload.paperName), t(pl), x(1), C(0), D("Loading PDF..."), ye.current = !1, ee(void 0), n.reset(), r.reset(), He()), a.type === "stateError" && D(a.payload.message), a.type === "capabilitySettings" && (c(a.payload.capabilities), dl(a.payload.capabilities, "translation") || i.clearResult()), a.type === "capabilityEvent") {
 					if (a.event === "error" && yl(a.payload)) {
 						D(a.payload.message);
 						return;
@@ -22944,9 +22996,9 @@ function ml() {
 					let e = fl(a, {
 						annotations: n.handleEvent,
 						wordbook: r.handleEvent,
-						translation: (e, t) => i.handleEvent(e, t, be.current.selectedText.trim())
+						translation: (e, t) => i.handleEvent(e, t, Ce.current.selectedText.trim())
 					});
-					e.status && D(e.status), e.activatePanel && dl(ve.current, e.activatePanel) && oe(e.activatePanel);
+					e.status && D(e.status), e.activatePanel && dl(xe.current, e.activatePanel) && ce(e.activatePanel);
 				}
 				a.type === "clipboardResult" && D(a.payload.error || a.payload.message || "Done.");
 			}
@@ -22955,17 +23007,17 @@ function ml() {
 	}, [
 		n.handleEvent,
 		n.reset,
-		Ce,
+		Ee,
 		i.clearResult,
 		i.handleEvent,
 		r.handleEvent,
 		r.reset
 	]), (0, y.useEffect)(() => {
 		if (!e.progress?.page || !S) return;
-		let t = window.setTimeout(() => Ze(e.progress.page || 1, !1), 250);
+		let t = window.setTimeout(() => $e(e.progress.page || 1, !1), 250);
 		return () => window.clearTimeout(t);
 	}, [S, e.progress?.page]);
-	let Ae = (0, y.useMemo)(() => dl(s, "annotations") ? n.annotations.map(Fs).filter(Boolean) : [], [n.annotations, s]), je = (0, y.useMemo)(() => Rs(n.annotations, {
+	let Ne = (0, y.useMemo)(() => dl(s, "annotations") ? n.annotations.map(Fs).filter(Boolean) : [], [n.annotations, s]), L = (0, y.useMemo)(() => Rs(n.annotations, {
 		query: l,
 		tags: d,
 		color: p,
@@ -22978,24 +23030,24 @@ function ml() {
 		h,
 		_,
 		d
-	]), Me = (0, y.useMemo)(() => ll(s), [s]);
+	]), Pe = (0, y.useMemo)(() => ll(s), [s]);
 	(0, y.useEffect)(() => {
-		ae !== "overview" && !Me.some((e) => e.id === ae) && oe("overview");
-	}, [ae, Me]), (0, y.useEffect)(() => {
-		dl(s, "annotations") || (Re(), ce.current?.removeGhostHighlight());
+		se !== "overview" && !Pe.some((e) => e.id === se) && ce("overview");
+	}, [se, Pe]), (0, y.useEffect)(() => {
+		dl(s, "annotations") || (Be(), de.current?.removeGhostHighlight());
 	}, [s]);
-	function Ne(e) {
+	function Fe(e) {
 		let t = window.getSelection();
 		t?.rangeCount && yc(t.getRangeAt(0)).forEach(pc);
 		let n = mc(t), r = hc(t, n), a = e.makeGhostHighlight(), s = Ps(n ? a.position : gc(a.position)), c = r || a.content.text || "";
-		a.content.text = c, a.position = s, o(c), x(s.boundingRect.pageNumber), i.clearResult(), be.current = {
+		a.content.text = c, a.position = s, o(c), x(s.boundingRect.pageNumber), i.clearResult(), Ce.current = {
 			selectedText: c,
 			selectionPosition: s,
 			currentPage: s.boundingRect.pageNumber
 		}, D("Selection captured.");
 	}
-	function Pe(e, t) {
-		let n = ce.current, r = n?.getViewer(), i = e.highlighterPosition || Ls(e.rects), a = t || (i && r ? fo(i, r) : void 0);
+	function Ie(e, t) {
+		let n = de.current, r = n?.getViewer(), i = e.highlighterPosition || Ls(e.rects), a = t || (i && r ? fo(i, r) : void 0);
 		if (!n || !a) {
 			D("This annotation cannot be opened inline because its position is unavailable.");
 			return;
@@ -23005,68 +23057,68 @@ function ml() {
 			utils: n
 		};
 	}
-	function Fe(e, t) {
-		let n = Pe(e, t);
+	function Le(e, t) {
+		let n = Ie(e, t);
 		if (!n) return;
 		let { tipPosition: r, utils: i } = n;
 		k(e.id), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
-			content: /* @__PURE__ */ (0, L.jsx)(ic, {
-				onEdit: () => Ie(e, r),
+			content: /* @__PURE__ */ (0, I.jsx)(ic, {
+				onEdit: () => Re(e, r),
 				onDelete: () => {
-					Le(e), Re();
+					ze(e), Be();
 				}
 			})
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
-	function Ie(e, t) {
-		let n = Pe(e, t);
+	function Re(e, t) {
+		let n = Ie(e, t);
 		if (!n) return;
 		let { tipPosition: r, utils: i } = n;
-		k(e.id), Xe(e), i.toggleEditInProgress(!0), i.setTip({
+		k(e.id), Qe(e), i.toggleEditInProgress(!0), i.setTip({
 			position: r,
-			content: /* @__PURE__ */ (0, L.jsx)(rc, {
+			content: /* @__PURE__ */ (0, I.jsx)(rc, {
 				annotation: e,
-				onCancel: Re,
+				onCancel: Be,
 				onSave: (t) => {
 					vl("annotations", "update", {
 						id: e.id,
 						patch: t
-					}), D("Annotation saved."), Re();
+					}), D("Annotation saved."), Be();
 				}
 			})
 		}), window.requestAnimationFrame(() => i.updateTipPosition());
 	}
-	function Le(e) {
-		j(e), vl("annotations", "delete", { id: e.id }), O === e.id && Re(), D("Annotation deleted. Use undo to restore it.");
-	}
-	function Re() {
-		let e = ce.current;
-		e?.setTip(null), e?.toggleEditInProgress(!1), k(void 0);
-	}
-	function ze() {
-		A && (vl("annotations", "restore", A), j(void 0));
+	function ze(e) {
+		ee(e), vl("annotations", "delete", { id: e.id }), O === e.id && Be(), D("Annotation deleted. Use undo to restore it.");
 	}
 	function Be() {
-		o(""), k(void 0), be.current = {
+		let e = de.current;
+		e?.setTip(null), e?.toggleEditInProgress(!1), k(void 0);
+	}
+	function Ve() {
+		M && (vl("annotations", "restore", M), ee(void 0));
+	}
+	function He() {
+		j(void 0), o(""), k(void 0), Ce.current = {
 			selectedText: "",
 			selectionPosition: void 0,
 			currentPage: 1
 		};
 	}
-	let Ve = (0, y.useCallback)(() => {
-		let e = ce.current;
-		e?.setTip(null), e?.removeGhostHighlight(), e?.toggleEditInProgress(!1), Be(), i.clearResult();
+	let Ue = (0, y.useCallback)(() => {
+		let e = de.current;
+		e?.setTip(null), e?.removeGhostHighlight(), e?.toggleEditInProgress(!1), He(), i.clearResult();
 	}, [i.clearResult]);
 	(0, y.useEffect)(() => {
 		function e(e) {
 			let t = e.target instanceof Element ? e.target : null;
-			!t || t.closest(".PdfHighlighter__tip-container, .selection-toolbar") || Ve();
+			!t || t.closest(".PdfHighlighter__tip-container, .selection-toolbar") || Ue();
 		}
 		return document.addEventListener("pointerdown", e, !0), () => document.removeEventListener("pointerdown", e, !0);
-	}, [Ve]);
-	let He = (0, y.useCallback)((e) => {
-		let t = be.current;
+	}, [Ue]);
+	let We = (0, y.useCallback)((e) => {
+		let t = Ce.current;
 		if (!hl(t, {
 			color: e,
 			kind: "highlight"
@@ -23074,9 +23126,9 @@ function ml() {
 			D("Select text before highlighting.");
 			return;
 		}
-		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
-	}, []), Ue = (0, y.useCallback)((e) => {
-		let t = be.current;
+		He(), de.current?.removeGhostHighlight(), D("Annotation saved.");
+	}, []), Ge = (0, y.useCallback)((e) => {
+		let t = Ce.current;
 		if (!hl(t, {
 			color: e,
 			kind: "underline"
@@ -23084,9 +23136,9 @@ function ml() {
 			D("Select text before highlighting.");
 			return;
 		}
-		Be(), ce.current?.removeGhostHighlight(), D("Annotation saved.");
-	}, []), We = (0, y.useCallback)((e, t) => {
-		let n = be.current;
+		He(), de.current?.removeGhostHighlight(), D("Annotation saved.");
+	}, []), Ke = (0, y.useCallback)((e, t) => {
+		let n = Ce.current;
 		if (!n.selectedText.trim()) {
 			D("Select text before adding a note.");
 			return;
@@ -23099,16 +23151,16 @@ function ml() {
 			D("Add note text before saving.");
 			return;
 		}
-		Be(), ce.current?.removeGhostHighlight(), D("Note saved.");
-	}, []), Ge = (0, y.useCallback)(() => {
-		let e = be.current, t = e.selectedText.trim();
+		He(), de.current?.removeGhostHighlight(), D("Note saved.");
+	}, []), qe = (0, y.useCallback)(() => {
+		let e = Ce.current, t = e.selectedText.trim();
 		if (!t) {
 			D("Select text before translating.");
 			return;
 		}
-		o(t), x(e.currentPage), i.start(t), ll(s).some((e) => e.id === "translation") && oe("translation");
-	}, [s, i.start]), Ke = (0, y.useCallback)((e) => {
-		let t = be.current, n = t.selectedText.trim();
+		o(t), x(e.currentPage), i.start(t), ll(s).some((e) => e.id === "translation") && ce("translation");
+	}, [s, i.start]), Je = (0, y.useCallback)((e) => {
+		let t = Ce.current, n = t.selectedText.trim();
 		if (!n || e.word !== n) {
 			D("Select a word before saving it.");
 			return;
@@ -23121,8 +23173,8 @@ function ml() {
 			sentence: n,
 			note: "",
 			page: t.currentPage
-		}), ce.current?.removeGhostHighlight(), ll(s).some((e) => e.id === "wordbook") && oe("wordbook"), D("Word saved.");
-	}, [s]), qe = (0, y.useMemo)(() => ({
+		}), de.current?.removeGhostHighlight(), ll(s).some((e) => e.id === "wordbook") && ce("wordbook"), D("Word saved.");
+	}, [s]), Ye = (0, y.useMemo)(() => ({
 		selectedText: a,
 		translationSourceText: i.sourceText,
 		translationText: i.output,
@@ -23130,165 +23182,166 @@ function ml() {
 		annotationsEnabled: dl(s, "annotations"),
 		translationEnabled: dl(s, "translation"),
 		wordbookEnabled: dl(s, "wordbook"),
-		onHighlight: He,
-		onUnderline: Ue,
-		onSaveNote: We,
-		onTranslate: Ge,
-		onSaveWord: Ke
+		onHighlight: We,
+		onUnderline: Ge,
+		onSaveNote: Ke,
+		onTranslate: qe,
+		onSaveWord: Je
 	}), [
 		s,
-		He,
-		Ue,
 		We,
-		Ke,
-		a,
 		Ge,
+		Ke,
+		Je,
+		a,
+		qe,
 		i.output,
 		i.sourceText,
 		i.wordDetails
-	]), Je = (0, y.useMemo)(() => /* @__PURE__ */ (0, L.jsx)(ac, {}), []), Ye = /* @__PURE__ */ (0, L.jsx)(Qs.Provider, {
-		value: qe,
-		children: /* @__PURE__ */ (0, L.jsxs)("section", {
+	]), Xe = (0, y.useMemo)(() => /* @__PURE__ */ (0, I.jsx)(ac, {}), []), Ze = /* @__PURE__ */ (0, I.jsx)(Qs.Provider, {
+		value: Ye,
+		children: /* @__PURE__ */ (0, I.jsxs)("section", {
 			className: "reader",
-			children: [/* @__PURE__ */ (0, L.jsxs)("div", {
+			children: [/* @__PURE__ */ (0, I.jsxs)("div", {
 				className: "reader-toolbar",
 				children: [
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						title: "Previous page",
-						onClick: () => Ze(b - 1),
+						onClick: () => $e(b - 1),
 						children: "Prev"
 					}),
-					/* @__PURE__ */ (0, L.jsxs)("label", {
+					/* @__PURE__ */ (0, I.jsxs)("label", {
 						className: "page-jump",
 						children: [
-							/* @__PURE__ */ (0, L.jsx)("span", { children: "Page" }),
-							/* @__PURE__ */ (0, L.jsx)("input", {
+							/* @__PURE__ */ (0, I.jsx)("span", { children: "Page" }),
+							/* @__PURE__ */ (0, I.jsx)("input", {
 								type: "number",
 								min: 1,
 								max: S || void 0,
 								value: b,
 								onChange: (e) => x(Number(e.target.value) || 1),
-								onBlur: () => Ze(b),
+								onBlur: () => $e(b),
 								onKeyDown: (e) => {
-									e.key === "Enter" && Ze(b);
+									e.key === "Enter" && $e(b);
 								}
 							}),
-							/* @__PURE__ */ (0, L.jsxs)("span", { children: ["/ ", S || "-"] })
+							/* @__PURE__ */ (0, I.jsxs)("span", { children: ["/ ", S || "-"] })
 						]
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						title: "Next page",
-						onClick: () => Ze(b + 1),
+						onClick: () => $e(b + 1),
 						children: "Next"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						title: "Zoom out",
-						onClick: () => De(.85),
+						onClick: () => Ae(.85),
 						children: "-"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("span", {
-						ref: ge,
+					/* @__PURE__ */ (0, I.jsx)("span", {
+						ref: F,
 						className: "zoom-value",
 						children: _l(w)
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						title: "Zoom in",
-						onClick: () => De(1.15),
+						onClick: () => Ae(1.15),
 						children: "+"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						title: "Fit page width",
-						onClick: () => Ee("page-width"),
+						onClick: () => ke("page-width"),
 						children: "Fit"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						className: "sidebar-toggle",
-						title: F === "workspace" ? "Hide panel" : "Show panel",
-						"aria-label": F === "workspace" ? "Hide panel" : "Show panel",
-						"aria-expanded": F === "workspace",
-						"aria-pressed": F === "workspace",
-						onClick: () => se((e) => e === "workspace" ? "closed" : "workspace"),
-						children: F === "workspace" ? "Hide panel" : "Show panel"
+						title: le === "workspace" ? "Hide panel" : "Show panel",
+						"aria-label": le === "workspace" ? "Hide panel" : "Show panel",
+						"aria-expanded": le === "workspace",
+						"aria-pressed": le === "workspace",
+						onClick: () => ue((e) => e === "workspace" ? "closed" : "workspace"),
+						children: le === "workspace" ? "Hide panel" : "Show panel"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("button", {
+					/* @__PURE__ */ (0, I.jsx)("button", {
 						className: "settings-toggle secondary-button",
 						title: "Open Inleaf Reader settings",
 						"aria-label": "Open Inleaf Reader settings",
-						"aria-pressed": F === "settings",
+						"aria-pressed": le === "settings",
 						onClick: () => {
-							if (F === "settings") {
-								se(I.current);
+							if (le === "settings") {
+								ue(be.current);
 								return;
 							}
-							I.current = F === "workspace" ? "workspace" : "closed", se("settings");
+							be.current = le === "workspace" ? "workspace" : "closed", ue("settings");
 						},
 						children: "⚙ Settings"
 					}),
-					/* @__PURE__ */ (0, L.jsx)("span", {
+					/* @__PURE__ */ (0, I.jsx)("span", {
 						className: "reader-status",
 						children: E
 					})
 				]
-			}), /* @__PURE__ */ (0, L.jsx)("div", {
+			}), /* @__PURE__ */ (0, I.jsx)("div", {
 				className: "pdf-host",
-				children: ne ? /* @__PURE__ */ (0, L.jsxs)("div", {
+				children: ie ? /* @__PURE__ */ (0, I.jsxs)("div", {
 					className: "loading error",
-					children: ["Could not start PDF worker: ", ne]
-				}) : N ? /* @__PURE__ */ (0, L.jsx)(As, {
-					document: xe,
-					workerSrc: N,
-					beforeLoad: (e) => /* @__PURE__ */ (0, L.jsxs)("div", {
+					children: ["Could not start PDF worker: ", ie]
+				}) : ne ? /* @__PURE__ */ (0, I.jsx)(As, {
+					document: we,
+					workerSrc: ne,
+					beforeLoad: (e) => /* @__PURE__ */ (0, I.jsxs)("div", {
 						className: "loading",
 						children: ["Loading PDF ", e.loaded ? `${Math.round(e.loaded / 1024)} KB` : ""]
 					}),
-					errorMessage: (e) => /* @__PURE__ */ (0, L.jsxs)("div", {
+					errorMessage: (e) => /* @__PURE__ */ (0, I.jsxs)("div", {
 						className: "loading error",
 						children: ["Could not load PDF: ", e.message]
 					}),
 					onError: (e) => {
 						Sl(e) || D(`Could not load PDF: ${e.message}`);
 					},
-					children: (e) => /* @__PURE__ */ (0, L.jsx)(kc, {
+					children: (e) => /* @__PURE__ */ (0, I.jsx)(kc, {
 						activeId: O,
-						highlights: Ae,
+						locatedId: A?.id,
+						highlights: Ne,
 						pdfDocument: e,
-						selectionTip: Je,
+						selectionTip: Xe,
 						zoom: w,
-						onDocumentReady: ke,
-						onOpen: Fe,
-						onPageChange: we,
-						onPinchZoom: Oe,
-						onSelection: Ne,
-						utilsRef: Te
+						onDocumentReady: Me,
+						onOpen: Le,
+						onPageChange: De,
+						onPinchZoom: je,
+						onSelection: Fe,
+						utilsRef: Oe
 					})
-				}, M) : /* @__PURE__ */ (0, L.jsx)("div", {
+				}, N) : /* @__PURE__ */ (0, I.jsx)("div", {
 					className: "loading",
 					children: "Starting PDF worker..."
 				})
 			})]
 		})
 	});
-	function Xe(e) {
-		k(e.id);
+	function Qe(e) {
+		j({ id: e.id }), k(e.id);
 		let t = Fs(e);
 		if (t) {
-			ce.current?.scrollToHighlight(t);
+			de.current?.scrollToHighlight(t);
 			return;
 		}
-		Ze(e.page || 1);
+		$e(e.page || 1);
 	}
-	function Ze(e, t = !0) {
+	function $e(e, t = !0) {
 		let n = Math.min(Math.max(e, 1), S || e || 1);
-		x(n), ce.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && Se(n);
+		x(n), de.current?.getViewer()?.scrollPageIntoView({ pageNumber: n }), t && Te(n);
 	}
-	function Qe() {
-		if (F === "settings" && I.current === "workspace") {
-			se("workspace");
+	function et() {
+		if (le === "settings" && be.current === "workspace") {
+			ue("workspace");
 			return;
 		}
-		se("closed");
+		ue("closed");
 	}
-	function $e(e, t) {
+	function tt(e, t) {
 		Rc.postMessage({
 			type: "updateCapabilityPreference",
 			payload: {
@@ -23297,20 +23350,20 @@ function ml() {
 			}
 		});
 	}
-	function et(e, t) {
+	function nt(e, t) {
 		let n = s.findIndex((t) => t.id === e), r = s[n + t];
-		r && $e(e, { order: r.order + t });
+		r && tt(e, { order: r.order + t });
 	}
-	function tt(e, t) {
+	function rt(e, t) {
 		vl("translation", "updateSetting", {
 			key: e,
 			value: t
 		});
 	}
-	let nt = [{
+	let it = [{
 		id: "overview",
 		title: "Overview",
-		content: /* @__PURE__ */ (0, L.jsx)(Xc, {
+		content: /* @__PURE__ */ (0, I.jsx)(Xc, {
 			currentPage: b,
 			pageTotal: S,
 			annotationCount: n.annotations.length,
@@ -23320,7 +23373,7 @@ function ml() {
 		})
 	}, ...ul(s, {
 		annotations: {
-			annotations: je,
+			annotations: L,
 			total: n.annotations.length,
 			activeId: O,
 			query: l,
@@ -23328,17 +23381,17 @@ function ml() {
 			colorFilter: p,
 			kindFilter: h,
 			sortMode: _,
-			canUndo: !!A,
+			canUndo: !!M,
 			onQuery: u,
 			onTagQuery: f,
 			onColorFilter: m,
 			onKindFilter: g,
 			onSortMode: v,
-			onFocus: Xe,
-			onEdit: Ie,
+			onFocus: Qe,
+			onEdit: Re,
 			onCopy: (e) => vl("annotations", "copyMarkdown", { id: e.id }),
-			onDelete: Le,
-			onUndo: ze,
+			onDelete: ze,
+			onUndo: Ve,
 			onExportMarkdown: () => vl("annotations", "exportMarkdown"),
 			onExportPdf: () => vl("annotations", "exportPdf"),
 			onOrganizeNotes: () => vl("annotations", "organizeNotes")
@@ -23352,25 +23405,25 @@ function ml() {
 			output: i.output,
 			wordDetails: i.wordDetails
 		}
-	})], rt = /* @__PURE__ */ (0, L.jsx)($c, {
+	})], at = /* @__PURE__ */ (0, I.jsx)($c, {
 		capabilities: s,
 		translation: i.settings,
-		onCapabilityChange: $e,
-		onMove: et,
-		onTranslationSetting: tt,
+		onCapabilityChange: tt,
+		onMove: nt,
+		onTranslationSetting: rt,
 		onConfigureDeepSeek: () => vl("translation", "configureDeepSeek"),
 		onDiagnoseTranslation: () => vl("translation", "diagnose")
 	});
-	return /* @__PURE__ */ (0, L.jsxs)("main", {
-		className: `shell${F === "closed" ? " sidebar-hidden" : ""}`,
-		children: [Ye, /* @__PURE__ */ (0, L.jsx)(il, {
-			surface: F,
-			title: ie || e.paperName || Pc.paperName,
-			activePanel: ae,
-			panels: nt,
-			settings: rt,
-			onActivePanel: oe,
-			onClose: Qe
+	return /* @__PURE__ */ (0, I.jsxs)("main", {
+		className: `shell${le === "closed" ? " sidebar-hidden" : ""}`,
+		children: [Ze, /* @__PURE__ */ (0, I.jsx)(il, {
+			surface: le,
+			title: ae || e.paperName || Pc.paperName,
+			activePanel: se,
+			panels: it,
+			settings: at,
+			onActivePanel: ce,
+			onClose: et
 		})]
 	});
 }
@@ -23414,10 +23467,10 @@ function bl() {
 		return window.addEventListener("error", e), window.addEventListener("unhandledrejection", n), () => {
 			window.removeEventListener("error", e), window.removeEventListener("unhandledrejection", n);
 		};
-	}, []), e ? /* @__PURE__ */ (0, L.jsxs)("main", {
+	}, []), e ? /* @__PURE__ */ (0, I.jsxs)("main", {
 		className: "fatal-error",
-		children: [/* @__PURE__ */ (0, L.jsx)("h1", { children: "Reader failed to start" }), /* @__PURE__ */ (0, L.jsx)("pre", { children: e })]
-	}) : /* @__PURE__ */ (0, L.jsx)(ml, {});
+		children: [/* @__PURE__ */ (0, I.jsx)("h1", { children: "Reader failed to start" }), /* @__PURE__ */ (0, I.jsx)("pre", { children: e })]
+	}) : /* @__PURE__ */ (0, I.jsx)(ml, {});
 }
 function xl(e) {
 	return Sl(e) || Cl(e);
@@ -23436,5 +23489,5 @@ async function wl(e) {
 	let n = await t.arrayBuffer();
 	return URL.createObjectURL(new Blob([n], { type: "text/javascript" }));
 }
-(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, L.jsx)(bl, {}));
+(0, x.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, I.jsx)(bl, {}));
 //#endregion

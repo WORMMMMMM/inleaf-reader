@@ -38,4 +38,19 @@ assert.doesNotMatch(
 assert.match(styles, /\.pdf-host \.pdfViewer \{\s*width: 100%;\s*min-width: 100%;/);
 assert.match(styles, /\.pdf-host \.pdfViewer \.page \{\s*margin-inline: auto;/);
 
+// The actual PDF scroll container owns the rail, so dragging uses PDF.js's
+// existing scroll/page events instead of a second navigation state machine.
+const scrollContainerStyles = styles.match(/\.pdf-host \.PdfHighlighter \{([^}]+)\}/)[1];
+// VS Code supplies body padding. Without resetting it, a viewport-wide shell
+// clips the PDF scrollbar when the side panel is closed.
+assert.match(styles, /body \{[^}]*padding: 0;/);
+assert.match(styles, /\.shell \{[^}]*width: 100%;/);
+assert.doesNotMatch(styles, /\.shell \{[^}]*width: 100vw;/);
+assert.match(styles, /\.reader \{[^}]*grid-template-columns: minmax\(0, 1fr\);/);
+assert.match(scrollContainerStyles, /overflow-y: scroll;/);
+assert.match(scrollContainerStyles, /scrollbar-gutter: stable;/);
+assert.match(scrollContainerStyles, /scrollbar-width: auto;/);
+assert.match(styles, /\.pdf-host \.PdfHighlighter::\-webkit-scrollbar \{\s*width: 14px;/);
+assert.match(styles, /min-height: 36px;/);
+
 console.log('Webview resize, rapid-zoom, and centering resilience contract passed.');

@@ -18,6 +18,16 @@ assert.match(pdfViewSource, /selection && !selection\.isCollapsed/);
 assert.match(pdfViewSource, /event\.detail > 1/);
 assert.match(pdfViewSource, /data-reader-annotation-id/);
 const styles = await readFile(new URL('../webview/src/styles.css', import.meta.url), 'utf8');
+const selectionLayer = Number(styles.match(/--reader-selection-layer:\s*(\d+)/)?.[1]);
+const inlineUiLayer = Number(styles.match(/--reader-inline-ui-layer:\s*(\d+)/)?.[1]);
+assert.ok(inlineUiLayer > selectionLayer, 'inline editors must paint above selection shading');
+assert.match(styles, /\.pdf-host \.PdfHighlighter__tip-container\s*\{\s*z-index: var\(--reader-inline-ui-layer\)/);
+assert.match(styles, /\.reader-selection-shade\s*\{[^}]*z-index: var\(--reader-selection-layer\)/);
+assert.match(styles, /\.pdf-host \.TextHighlight--scrolledTo \.TextHighlight__part\s*\{\s*box-shadow: none;/);
+assert.match(mainSource, /window\.setTimeout\(\(\) => setLocatedAnnotation\(undefined\), 1200\)/);
+assert.match(mainSource, /return \(\) => window\.clearTimeout\(timer\)/);
+assert.match(mainSource, /function clearAnnotationDraft\(\) \{\s*setLocatedAnnotation\(undefined\)/);
+assert.match(mainSource, /function focusAnnotation\(annotation: AnnotationRecord\) \{\s*setLocatedAnnotation\(\{ id: annotation\.id \}\)/);
 assert.doesNotMatch(styles, /\.pdf-host \.textLayer > span,/);
 assert.match(styles, /\.reader-selection-shade\s*\{[^}]*pointer-events: none;/);
 assert.match(styles, /\.pdf-host \.reader-selection-preview \*\s*\{\s*pointer-events: none !important;/);
@@ -27,6 +37,11 @@ assert.doesNotMatch(ghostRendering, /#ffd654/);
 assert.match(ghostRendering, /className="reader-selection-preview"/);
 assert.match(ghostRendering, /highlightColor=\{TEXT_SELECTION_COLOR\}/);
 assert.match(source, /onOpen=\{openAnnotationActions\}/);
+assert.match(pdfViewSource, /document\.addEventListener\('pointermove', handleMove, true\)/);
+assert.match(pdfViewSource, /utils\.isEditInProgress\(\) \|\| utils\.isSelectionInProgress\(\)/);
+assert.match(pdfViewSource, /ownedTip && utils\?\.getTip\(\) === ownedTip/);
+assert.match(pdfViewSource, /utils\.getTip\(\) && utils\.getTip\(\) !== ownedTip/);
+assert.match(pdfViewSource, /document\.removeEventListener\('pointermove', handleMove, true\)/);
 assert.match(source, /onEdit=\{\(\) => editAnnotation\(annotation, tipPosition\)\}/);
 assert.match(
   source,

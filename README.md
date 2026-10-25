@@ -66,7 +66,7 @@ then choose **Extensions: Install from VSIX...** in VS Code.
 You can also install it from a terminal:
 
 ```bash
-code --install-extension inleaf-reader-0.1.3.vsix
+code --install-extension inleaf-reader-0.1.4.vsix
 ```
 
 After installation, run **Developer: Reload Window** once if the reader command

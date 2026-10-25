@@ -49,7 +49,7 @@ Inleaf Reader 把 VS Code 变成阅读论文和书籍的专注空间。批注、
 也可以在终端安装，将文件名替换为你下载的版本：
 
 ```bash
-code --install-extension inleaf-reader-0.1.3.vsix
+code --install-extension inleaf-reader-0.1.4.vsix
 ```
 
 如果安装后没有立即出现阅读器命令，执行一次 **Developer: Reload Window**（开发人员：重新加载窗口）。

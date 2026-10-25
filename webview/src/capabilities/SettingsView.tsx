@@ -43,7 +43,7 @@ export function SettingsView({
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={capability.showInPanel}
+                  checked={capability.enabled && capability.showInPanel}
                   disabled={!capability.enabled || !capability.contributions.panel}
                   onChange={event => onCapabilityChange(capability.id, { showInPanel: event.target.checked })}
                 />

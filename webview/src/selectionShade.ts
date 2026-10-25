@@ -17,7 +17,7 @@ export function trackSelectionShade(getContainer: () => HTMLElement | null) {
     // Range rectangles can overlap for nested PDF text spans. Build a single
     // SVG path so overlaps darken once, not once per rectangle.
     const rectangles = hasNativeSelection
-      ? Array.from(selection.getRangeAt(0).getClientRects())
+      ? withoutEndOfContent(container, Array.from(selection.getRangeAt(0).getClientRects()))
       : Array.from(container.querySelectorAll('.reader-selection-preview .TextHighlight__part'),
         part => part.getBoundingClientRect());
     const path = rectangles.flatMap(rect => {
@@ -62,4 +62,19 @@ export function trackSelectionShade(getContainer: () => HTMLElement | null) {
     if (frame !== undefined) window.cancelAnimationFrame(frame);
     clear();
   };
+}
+
+/**
+ * While dragging, pdf.js moves a layer-sized empty `.endOfContent` box next to
+ * the selection focus. A fast drag across many spans (English words, numbers)
+ * can overtake it before pdf.js moves it again; the range then contains that
+ * box and would flash a whole-page shade for one frame.
+ */
+function withoutEndOfContent(container: HTMLElement, rects: DOMRect[]) {
+  const ends = Array.from(container.querySelectorAll('.textLayer .endOfContent'),
+    end => end.getBoundingClientRect());
+  if (!ends.length) return rects;
+  const same = (a: DOMRect, b: DOMRect) => Math.abs(a.left - b.left) < 1 &&
+    Math.abs(a.top - b.top) < 1 && Math.abs(a.right - b.right) < 1 && Math.abs(a.bottom - b.bottom) < 1;
+  return rects.filter(rect => !ends.some(end => same(rect, end)));
 }

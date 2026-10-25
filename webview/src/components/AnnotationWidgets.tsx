@@ -311,7 +311,7 @@ export function SelectionToolbar() {
 
   return (
     <div
-      className="selection-toolbar"
+      className={`selection-toolbar${activeEditor ? ' expanded' : ''}`}
       onClick={event => event.stopPropagation()}
       onMouseDown={event => event.stopPropagation()}
       onPointerDown={event => event.stopPropagation()}

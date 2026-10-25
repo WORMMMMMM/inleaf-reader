@@ -116,6 +116,10 @@ const shadeFrames = new Map();
 const shadeElements = [];
 let shadeFrameId = 0;
 let collapsed = false;
+let nativeRects = [
+  { left: -10, top: 5, right: 60, bottom: 20 },
+  { left: 40, top: 5, right: 80, bottom: 20 }
+];
 const { trackSelectionShade } = loadSource('webview/src/selectionShade.ts', {}, {
   MutationObserver: class { observe() {} disconnect() {} },
   document: {
@@ -126,10 +130,7 @@ const { trackSelectionShade } = loadSource('webview/src/selectionShade.ts', {}, 
   },
   window: {
     getSelection: () => ({ isCollapsed: collapsed, rangeCount: 1, anchorNode: {}, focusNode: {},
-      getRangeAt: () => ({ getClientRects: () => [
-        { left: -10, top: 5, right: 60, bottom: 20 },
-        { left: 40, top: 5, right: 80, bottom: 20 }
-      ] }) }),
+      getRangeAt: () => ({ getClientRects: () => nativeRects }) }),
     requestAnimationFrame: fn => { shadeFrames.set(++shadeFrameId, fn); return shadeFrameId; },
     cancelAnimationFrame: id => shadeFrames.delete(id),
     addEventListener: (name, fn) => shadeListeners.set(name, fn),
@@ -137,8 +138,10 @@ const { trackSelectionShade } = loadSource('webview/src/selectionShade.ts', {}, 
   }
 });
 let previewRects = [];
+const endOfContentRect = { left: 0, top: 0, right: 100, bottom: 100 };
 const disposeShade = trackSelectionShade(() => ({ contains: () => true,
-  querySelectorAll: () => previewRects.map(rect => ({ getBoundingClientRect: () => rect })),
+  querySelectorAll: selector => (selector.includes('endOfContent') ? [endOfContentRect] : previewRects)
+    .map(rect => ({ getBoundingClientRect: () => rect })),
   getBoundingClientRect: () => ({ left: 0, top: 0, right: 100, bottom: 100 }) }));
 const flushShade = () => { const callbacks = [...shadeFrames.values()]; shadeFrames.clear(); callbacks.forEach(fn => fn()); };
 shadeListeners.get('selectionchange')();
@@ -147,6 +150,14 @@ assert.equal(shadeFrames.size, 1, 'batch rapid selection changes');
 flushShade();
 assert.equal(shadeElements.length, 1, 'overlapping rectangles use one shade');
 assert.equal(shadeElements[0].style.clipPath, 'path("M0,5H60V20H0Z M40,5H80V20H40Z")');
+// A fast drag can overtake pdf.js's layer-sized .endOfContent box; it must not paint.
+nativeRects = [...nativeRects, { ...endOfContentRect }];
+shadeListeners.get('selectionchange')();
+flushShade();
+assert.equal(shadeElements[1].style.clipPath, shadeElements[0].style.clipPath,
+  'pdf.js endOfContent never flashes a whole-page shade');
+shadeElements.splice(0, 1);
+nativeRects = nativeRects.slice(0, 2);
 collapsed = true;
 shadeListeners.get('selectionchange')();
 flushShade();

@@ -763,11 +763,17 @@ label {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
-  width: min(320px, calc(100vw - 48px));
+  /* Fit only the enabled commands; widen once a note or translation opens. */
+  width: max-content;
+  max-width: min(320px, calc(100vw - 48px));
   border-radius: 8px;
   padding: 6px 8px;
   background: var(--vscode-editor-background);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+}
+
+.selection-toolbar.expanded {
+  width: min(320px, calc(100vw - 48px));
 }
 
 .selection-toolbar-row {

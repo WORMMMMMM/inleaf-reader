@@ -3,6 +3,7 @@ import type { TranslationResult, TranslationSettings } from '../../translationTy
 import { isRecord } from '../contracts';
 
 export type TranslationSettingKey =
+  | 'autoTranslateOnSelection'
   | 'provider'
   | 'deepSeekModel'
   | 'libreTranslateEndpoint'
@@ -25,6 +26,7 @@ export type TranslationCapabilityEvent =
   | { event: 'result'; payload: { sourceText: string; requestId: string } & TranslationResult };
 
 const SETTING_KEYS: TranslationSettingKey[] = [
+  'autoTranslateOnSelection',
   'provider',
   'deepSeekModel',
   'libreTranslateEndpoint',

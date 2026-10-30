@@ -81,6 +81,11 @@ function TranslationSettingsForm({
   return (
     <section className="settings-section">
       <h2>Translation</h2>
+      <label className="toggle-row">
+        <input type="checkbox" checked={settings.autoTranslateOnSelection} onChange={event => onSetting('autoTranslateOnSelection', event.target.checked)} />
+        <span>Automatically translate selected text</span>
+      </label>
+      <p className="settings-help">Show a lookup or translation beside your selection after a short pause. Uses your configured provider; remote translation may incur API charges.</p>
       <SettingSelect label="Provider" value={settings.provider} onChange={value => onSetting('provider', value)}>
         <option value="argos">Argos Translate (local)</option>
         <option value="libretranslate">LibreTranslate</option>

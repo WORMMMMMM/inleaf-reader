@@ -100,6 +100,12 @@ PDF 移动或改名后，扩展会借助内容指纹查找并复制缺失的阅�
 
 ## 翻译方式
 
+在 **Settings → Translation** 中开启 **Automatically translate selected text**
+（`inleafReader.autoTranslateOnSelection`），即可在划选结束约 350 毫秒后自动弹出
+释义或译文，无需点击 **Translate**。开关默认关闭，沿用当前翻译服务；远程翻译
+可能产生 API 费用。手动翻译和 **Save to Wordbook** 仍可使用，打开 **Note** 会取消
+尚未开始的自动查询。
+
 | 方式 | 适用场景 | 网络与配置 |
 | --- | --- | --- |
 | 内置 ECDICT | 查询单个英语单词 | 离线，无需配置 |

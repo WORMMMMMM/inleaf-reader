@@ -650,6 +650,7 @@ function App() {
     wordDetails: translationCapability.wordDetails,
     annotationsEnabled: capabilityEnabled(capabilityDescriptors, 'annotations'),
     translationEnabled: capabilityEnabled(capabilityDescriptors, 'translation'),
+    autoTranslateOnSelection: translationCapability.settings.autoTranslateOnSelection,
     wordbookEnabled: capabilityEnabled(capabilityDescriptors, 'wordbook'),
     onHighlight: quickHighlight,
     onUnderline: quickUnderline,
@@ -666,7 +667,8 @@ function App() {
     translateSelection,
     translationCapability.output,
     translationCapability.sourceText,
-    translationCapability.wordDetails
+    translationCapability.wordDetails,
+    translationCapability.settings.autoTranslateOnSelection
   ]);
 
   const selectionTip = useMemo(() => <SelectionToolbar />, []);

@@ -39,6 +39,7 @@ export class TranslationService implements vscode.Disposable {
     const provider = configuredProvider(config);
     return {
       provider,
+      autoTranslateOnSelection: config.get<boolean>('autoTranslateOnSelection') === true,
       deepSeekModel: requireDeepSeekModel(config.get('deepSeekModel')),
       libreTranslateEndpoint: config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate',
       argosPythonPath: config.get<string>('argosPythonPath') || '',

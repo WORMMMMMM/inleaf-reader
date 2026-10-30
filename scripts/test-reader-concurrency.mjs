@@ -262,6 +262,79 @@ assert.ok(layers.every(layer => layer.dataset.renderedScale === '0.5'));
 cleanup.forEach(dispose => dispose());
 assert.equal(frames.size, 0);
 
+// Completed selections debounce once; replacement, dismissal, disabling and
+// manual actions cancel the pending lookup without changing the provider path.
+const autoSlots = [];
+const autoEffects = [];
+const autoTimers = new Map();
+let autoCursor = 0, autoTimerId = 0, autoNow = 0;
+const autoReact = {
+  useRef(value) {
+    const index = autoCursor++;
+    return autoSlots[index] ??= { current: value };
+  },
+  useCallback(fn) { autoCursor++; return fn; },
+  useEffect(fn, deps) {
+    const index = autoCursor++;
+    const previous = autoSlots[index];
+    if (!previous || deps.some((value, i) => value !== previous.deps[i])) {
+      autoEffects.push(() => {
+        previous?.cleanup?.();
+        autoSlots[index] = { deps, cleanup: fn() };
+      });
+    }
+  }
+};
+// Match React's stable useCallback so ordinary renders do not reschedule effects.
+autoReact.useCallback = (fn, deps) => {
+  const index = autoCursor++;
+  const previous = autoSlots[index];
+  if (!previous || deps.some((value, i) => value !== previous.deps[i])) {
+    autoSlots[index] = { deps, fn };
+  }
+  return autoSlots[index].fn;
+};
+const { useAutomaticTranslation } = loadSource('webview/src/capabilities/translation/useAutomaticTranslation.ts', {
+  react: autoReact
+}, {
+  setTimeout(fn, delay) { const id = ++autoTimerId; autoTimers.set(id, { fn, at: autoNow + delay }); return id; },
+  clearTimeout(id) { autoTimers.delete(id); }
+});
+const automaticLookups = [];
+function renderAuto(text, enabled = true, callback = () => automaticLookups.push(text)) {
+  autoCursor = 0;
+  const cancel = useAutomaticTranslation(text, enabled, callback);
+  autoEffects.splice(0).forEach(effect => effect());
+  return cancel;
+}
+function advanceAuto(ms) {
+  autoNow += ms;
+  for (const [id, timer] of autoTimers) {
+    if (timer.at <= autoNow) { autoTimers.delete(id); timer.fn(); }
+  }
+}
+renderAuto('disabled', false); advanceAuto(500);
+renderAuto('   '); advanceAuto(500);
+assert.equal(automaticLookups.length, 0);
+renderAuto('old selection'); advanceAuto(200);
+renderAuto('new selection'); advanceAuto(349);
+assert.equal(automaticLookups.length, 0);
+advanceAuto(1);
+assert.deepEqual(automaticLookups, ['new selection']);
+renderAuto('new selection'); advanceAuto(500);
+renderAuto('  new selection  '); advanceAuto(500);
+assert.equal(automaticLookups.length, 1, 'a result rerender must not repeat the request');
+renderAuto('dismissed'); renderAuto(''); advanceAuto(500);
+renderAuto('disabled while waiting'); renderAuto('disabled while waiting', false); advanceAuto(500);
+renderAuto('manual translation or note')(); advanceAuto(500);
+assert.equal(automaticLookups.length, 1, 'manual actions, dismissal and disabling cancel the timer');
+renderAuto('latest callback'); advanceAuto(200);
+renderAuto('latest callback', true, () => automaticLookups.push('latest handler')); advanceAuto(150);
+assert.deepEqual(automaticLookups, ['new selection', 'latest handler']);
+renderAuto('unmounted');
+autoSlots.forEach(slot => slot?.cleanup?.()); advanceAuto(500);
+assert.equal(automaticLookups.length, 2, 'unmount cancels scheduled work');
+
 // The real translation hook rejects stale results even when the source text is identical.
 const state = [];
 const messages = [];
@@ -302,6 +375,9 @@ const { TranslationHostCapability } = loadSource('src/capabilities/translation/h
 const events = [];
 const context = { documentId: 'doc-1', storage: {}, postEvent: async (...args) => { events.push(args); return true; } };
 const host = new TranslationHostCapability({}, {});
+assert.equal(host.affectsConfiguration({ affectsConfiguration: key => key === 'inleafReader.autoTranslateOnSelection' }), true);
+await host.handle('updateSetting', { key: 'autoTranslateOnSelection', value: true }, context);
+await assert.rejects(host.handle('updateSetting', { key: 'autoTranslateOnSelection', value: 'true' }, context), /must be a boolean/);
 const first = host.handle('translate', { text: 'same', requestId: '1' }, context);
 const second = host.handle('translate', { text: 'same', requestId: '2' }, context);
 assert.equal(requests[0].signal.aborted, true);

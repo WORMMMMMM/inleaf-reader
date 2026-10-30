@@ -138,6 +138,13 @@ location are never overwritten.
 
 ## Translation choices
 
+To look up or translate a selection without clicking **Translate**, enable
+**Automatically translate selected text** under **Settings → Translation**
+(`inleafReader.autoTranslateOnSelection`). It is off by default. After releasing
+a selection, the inline result opens after a 350 ms pause using your configured
+provider. Remote translation may incur API charges. Manual translation and
+**Save to Wordbook** remain available; opening **Note** cancels a scheduled lookup.
+
 | Mode | Best for | Network or setup |
 | --- | --- | --- |
 | Bundled ECDICT | Looking up one English word | Offline, no setup |

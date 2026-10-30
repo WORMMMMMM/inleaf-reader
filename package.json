@@ -111,6 +111,11 @@
     "configuration": {
       "title": "Inleaf Reader",
       "properties": {
+        "inleafReader.autoTranslateOnSelection": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically look up or translate selected PDF text after a short delay. Uses the configured provider; remote providers may incur API charges."
+        },
         "inleafReader.capabilities": {
           "type": "object",
           "default": {},

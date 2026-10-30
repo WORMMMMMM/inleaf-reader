@@ -4,6 +4,7 @@ import type { WordDetails } from '../../types';
 import { vscode } from '../../vscodeApi';
 
 const defaultSettings: TranslationSettings = {
+  autoTranslateOnSelection: false,
   provider: 'argos',
   deepSeekModel: 'deepseek-v4-flash',
   libreTranslateEndpoint: 'http://localhost:5000/translate',

@@ -13,6 +13,7 @@ export interface TranslationResult {
 }
 
 export interface TranslationSettings {
+  autoTranslateOnSelection: boolean;
   provider: TranslationProvider;
   deepSeekModel: DeepSeekModel;
   libreTranslateEndpoint: string;

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeTags } from '../annotationModel';
+import { useAutomaticTranslation } from '../capabilities/translation/useAutomaticTranslation';
 import type { AnnotationKind, AnnotationRecord, WordDetails, WordRecord } from '../types';
 
 export interface SelectionToolbarContextValue {
@@ -9,6 +10,7 @@ export interface SelectionToolbarContextValue {
   wordDetails?: WordDetails;
   annotationsEnabled: boolean;
   translationEnabled: boolean;
+  autoTranslateOnSelection: boolean;
   wordbookEnabled: boolean;
   onHighlight(color: string): void;
   onUnderline(color: string): void;
@@ -252,6 +254,7 @@ export function SelectionToolbar() {
     wordDetails,
     annotationsEnabled,
     translationEnabled,
+    autoTranslateOnSelection,
     wordbookEnabled,
     onHighlight,
     onUnderline,
@@ -268,6 +271,15 @@ export function SelectionToolbar() {
     setActiveEditor(undefined);
     setNoteText('');
   }, [selectedText]);
+
+  const cancelAutomaticTranslation = useAutomaticTranslation(
+    selectedText,
+    translationEnabled && autoTranslateOnSelection,
+    () => {
+      setActiveEditor('translation');
+      onTranslate();
+    }
+  );
 
   useEffect(() => {
     if (activeEditor === 'note') {
@@ -296,6 +308,7 @@ export function SelectionToolbar() {
   }
 
   function translate() {
+    cancelAutomaticTranslation();
     setActiveEditor('translation');
     onTranslate();
   }
@@ -330,7 +343,10 @@ export function SelectionToolbar() {
             ))}
             <button onClick={() => onHighlight(selColor)}>HL</button>
             <button onClick={() => onUnderline(selColor)}>UL</button>
-            <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => setActiveEditor(activeEditor === 'note' ? undefined : 'note')}>Note</button>
+            <button className={activeEditor === 'note' ? 'active-command' : ''} onClick={() => {
+              cancelAutomaticTranslation();
+              setActiveEditor(activeEditor === 'note' ? undefined : 'note');
+            }}>Note</button>
           </>
         ) : null}
         {translationEnabled ? <button className={activeEditor === 'translation' ? 'active-command' : ''} onClick={translate}>Translate</button> : null}

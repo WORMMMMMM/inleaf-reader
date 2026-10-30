@@ -127,9 +127,9 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
       }
     } else if (key === 'deepSeekModel') {
       normalized = requireDeepSeekModel(value);
-    } else if (key === 'fallbackToLibreTranslate') {
+    } else if (key === 'fallbackToLibreTranslate' || key === 'autoTranslateOnSelection') {
       if (typeof value !== 'boolean') {
-        throw new Error('Translation fallback must be a boolean.');
+        throw new Error(`Translation setting ${key} must be a boolean.`);
       }
     } else if (typeof value !== 'string') {
       throw new Error(`Translation setting ${key} must be text.`);
@@ -139,6 +139,7 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
 }
 
 const TRANSLATION_CONFIGURATION: Record<TranslationSettingKey, string> = {
+  autoTranslateOnSelection: 'autoTranslateOnSelection',
   provider: 'translationProvider',
   deepSeekModel: 'deepSeekModel',
   libreTranslateEndpoint: 'libreTranslateEndpoint',

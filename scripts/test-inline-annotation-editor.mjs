@@ -45,11 +45,11 @@ assert.match(pdfViewSource, /document\.removeEventListener\('pointermove', handl
 assert.match(source, /onEdit=\{\(\) => editAnnotation\(annotation, tipPosition\)\}/);
 assert.match(
   source,
-  /<button onClick=\{onEdit\}>Edit<\/button>\s*<button className="danger-button" onClick=\{onDelete\}>Delete<\/button>/
+  /onClick=\{onEdit\}[\s\S]*?t\('edit'\)[\s\S]*?onClick=\{onDelete\}[\s\S]*?t\('delete'\)/
 );
 assert.match(source, /utils\.setTip\(/);
 assert.match(source, /function handleOutsidePointerDown\(event: PointerEvent\)/);
-assert.match(source, /target\.closest\('\.PdfHighlighter__tip-container, \.selection-toolbar'\)/);
+assert.match(source, /target\.closest\('\.PdfHighlighter__tip-container, \.selection-toolbar/);
 assert.match(source, /document\.addEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
 assert.match(source, /document\.removeEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
 assert.match(
@@ -60,7 +60,7 @@ assert.match(source, /postCapabilityRequest\('annotations', 'update'/);
 assert.doesNotMatch(pdfViewSource, /\bonStyleChange=/);
 assert.doesNotMatch(pdfViewSource, /\bonDelete=/);
 assert.doesNotMatch(pdfViewSource, /\bcopyText=/);
-assert.match(source, /Original text/);
+assert.match(source, /t\('originalTextLabel'\)/);
 assert.match(
   annotationWidgetsSource,
   /event\.key !== 'Enter' \|\| event\.shiftKey \|\| event\.nativeEvent\.isComposing/
@@ -68,11 +68,11 @@ assert.match(
 assert.equal((annotationWidgetsSource.match(/saveNoteOnEnter\(event, /g) || []).length, 2);
 assert.match(
   source,
-  /<button onClick=\{onCancel\}>Cancel<\/button>\s*<button onClick=\{save\} disabled=\{!canSave\}>Save<\/button>/
+  /onClick=\{onCancel\}>\{t\('cancel'\)\}<\/button>\s*<button className="primary-button" onClick=\{save\} disabled=\{!canSave\}>\{t\('save'\)\}<\/button>/
 );
 assert.match(
   source,
-  /<button onClick=\{\(\) => setActiveEditor\(undefined\)\}>Cancel<\/button>\s*<button onClick=\{saveNote\} disabled=\{!noteText\.trim\(\)\}>Save<\/button>/
+  /onClick=\{\(\) => setActiveEditor\(undefined\)\}>\{t\('cancel'\)\}<\/button>\s*<button className="primary-button" onClick=\{saveNote\} disabled=\{!noteText\.trim\(\)\}>\{t\('save'\)\}<\/button>/
 );
 assert.doesNotMatch(source, /Changes autosave while this panel is open/);
 assert.match(generatedBundle, /Starting PDF worker/);

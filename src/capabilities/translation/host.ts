@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import { INLEAF_IDS } from '../../identity';
 import type { WordRecord } from '../../readerDataTypes';
 import {
+  isLocalOpenAiEndpoint,
   requireDeepSeekModel,
-  requireTranslationProvider
+  requireTranslationProvider,
+  resolveOpenAiChatUrl
 } from '../../translationContract';
 import { TranslationService } from '../../translationService';
 import type { TranslationSettings } from '../../translationTypes';
@@ -79,6 +81,9 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
       case 'configureDeepSeek':
         await vscode.commands.executeCommand(INLEAF_IDS.commands.setDeepSeekApiKey);
         return;
+      case 'configureOpenAi':
+        await vscode.commands.executeCommand(INLEAF_IDS.commands.setOpenAiApiKey);
+        return;
       case 'diagnose':
         await vscode.commands.executeCommand(INLEAF_IDS.commands.diagnoseTranslation);
         await this.postInitialState(context);
@@ -93,6 +98,9 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
     const settings = this.settings ??= await this.service.getSettings();
     if (settings.provider === 'deepseek' && !settings.hasDeepSeekApiKey) {
       return { readiness: 'needsSetup', readinessMessage: 'DeepSeek API key is not configured.' };
+    }
+    if (settings.provider === 'openai' && !settings.hasOpenAiApiKey && !isLocalOpenAiEndpoint(settings.openAiBaseUrl)) {
+      return { readiness: 'needsSetup', readinessMessage: 'OpenAI-compatible API key is not configured.' };
     }
     if (settings.provider === 'argos' && !settings.argosPythonFound) {
       return {
@@ -127,6 +135,12 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
       }
     } else if (key === 'deepSeekModel') {
       normalized = requireDeepSeekModel(value);
+    } else if (key === 'openAiBaseUrl') {
+      if (typeof value !== 'string') {
+        throw new Error('OpenAI-compatible Base URL must be text.');
+      }
+      resolveOpenAiChatUrl(value);
+      normalized = value.trim();
     } else if (key === 'fallbackToLibreTranslate') {
       if (typeof value !== 'boolean') {
         throw new Error('Translation fallback must be a boolean.');
@@ -141,6 +155,8 @@ export class TranslationHostCapability implements HostCapability, vscode.Disposa
 const TRANSLATION_CONFIGURATION: Record<TranslationSettingKey, string> = {
   provider: 'translationProvider',
   deepSeekModel: 'deepSeekModel',
+  openAiBaseUrl: 'openAiBaseUrl',
+  openAiModel: 'openAiModel',
   libreTranslateEndpoint: 'libreTranslateEndpoint',
   argosPythonPath: 'argosPythonPath',
   fallbackToLibreTranslate: 'translationFallbackToLibreTranslate',

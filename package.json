@@ -42,6 +42,8 @@
     "onCommand:inleafReader.openReader",
     "onCommand:inleafReader.setDeepSeekApiKey",
     "onCommand:inleafReader.clearDeepSeekApiKey",
+    "onCommand:inleafReader.setOpenAiApiKey",
+    "onCommand:inleafReader.clearOpenAiApiKey",
     "onCommand:inleafReader.diagnoseTranslation"
   ],
   "main": "./out/extension.js",
@@ -62,6 +64,14 @@
       {
         "command": "inleafReader.clearDeepSeekApiKey",
         "title": "Inleaf Reader: Clear DeepSeek API Key"
+      },
+      {
+        "command": "inleafReader.setOpenAiApiKey",
+        "title": "Inleaf Reader: Set OpenAI-Compatible API Key"
+      },
+      {
+        "command": "inleafReader.clearOpenAiApiKey",
+        "title": "Inleaf Reader: Clear OpenAI-Compatible API Key"
       },
       {
         "command": "inleafReader.diagnoseTranslation",
@@ -141,18 +151,36 @@
           "enum": [
             "argos",
             "libretranslate",
-            "deepseek"
+            "deepseek",
+            "openai"
           ],
-          "description": "Translation provider. Argos and LibreTranslate can run locally; DeepSeek uses the configured API key from VS Code SecretStorage."
+          "description": "Translation provider. Argos and LibreTranslate can run locally; DeepSeek and OpenAI-Compatible use API keys stored in VS Code SecretStorage."
         },
         "inleafReader.deepSeekModel": {
           "type": "string",
           "default": "deepseek-v4-flash",
           "enum": [
             "deepseek-v4-flash",
-            "deepseek-v4-pro"
+            "deepseek-v4-pro",
+            "deepseek-chat",
+            "deepseek-reasoner"
           ],
           "description": "DeepSeek model used when the translation provider is DeepSeek."
+        },
+        "inleafReader.openAiBaseUrl": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "description": "Base URL for any OpenAI-compatible chat completions endpoint (e.g. OpenAI, DeepSeek, Ollama, OpenRouter)."
+        },
+        "inleafReader.openAiModel": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "description": "Model identifier sent to the OpenAI-compatible translation endpoint."
+        },
+        "inleafReader.syncAiContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Write lightweight active reading focus (file name, page, current selection) to .inleaf-reader/active-context.json so external AI assistants can read it."
         },
         "inleafReader.argosPythonPath": {
           "type": "string",
@@ -182,7 +210,7 @@
     "copy:pdfjs-assets": "node scripts/copy_pdfjs_assets.mjs",
     "build:extension": "tsc -p ./ && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --sourcemap && esbuild src/ecdictWorker.ts --bundle --platform=node --format=cjs --outfile=out/ecdictWorker.js --sourcemap",
     "compile": "npm run copy:pdfjs-assets && npm run build:webview && npm run build:extension",
-    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-reading-notes.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-translation-contract.mjs && node scripts/test-capability-framework.mjs && node scripts/test-reader-concurrency.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs",
+    "test:unit": "node scripts/test-annotation-exports.mjs && node scripts/test-reading-notes.mjs && node scripts/test-pdf-identity.mjs && node scripts/test-reader-storage.mjs && node scripts/test-ecdict-worker.mjs && node scripts/test-translation-contract.mjs && node scripts/test-capability-framework.mjs && node scripts/test-reader-concurrency.mjs && node scripts/test-webview-worker.mjs && node scripts/test-webview-resilience.mjs && node scripts/test-inline-annotation-editor.mjs && node scripts/test-command-icon.mjs && node scripts/test-ux-enhancements.mjs",
     "typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.webview.json --noEmit",
     "check": "npm run compile && npm run test:unit && npm run typecheck && node --check media/reader-app.js",
     "test": "npm run check",

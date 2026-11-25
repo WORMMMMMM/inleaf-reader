@@ -2,11 +2,51 @@ import type { ScaledPosition } from 'react-pdf-highlighter-plus';
 
 const PAGE_VERTICAL_MARGIN_SELECTION_RATIO = 0.08;
 const PAGE_HORIZONTAL_MARGIN_SELECTION_RATIO = 0.04;
-const FIGURE_CAPTION_PATTERN = /^(?:figure|fig\.)\s*\d+/i;
+const FIGURE_CAPTION_PATTERN = /^(?:figure|fig\.|图)\s*\d+/i;
+const CJK_CHAR_RE = /[\u2e80-\u9fff\uf900-\ufaff\u3000-\u303f\uff00-\uffef]/;
+const SENTENCE_END_RE = /[.!?。！？\n]/;
 
 interface NormalizedPageRegion {
   top: number;
   bottom: number;
+}
+
+export interface SelectionContextExtract {
+  contextBefore: string;
+  contextAfter: string;
+  sentence: string;
+}
+
+/**
+ * Joins PDF text-layer fragments without inserting spurious spaces inside CJK
+ * text, while preserving spaces between Latin words and healing hyphenated line
+ * breaks (e.g. "trans-" + "former" -> "transformer").
+ */
+export function joinPdfTextPieces(pieces: string[]): string {
+  let result = '';
+  for (const raw of pieces) {
+    const piece = raw.replace(/\s+/g, ' ').trim();
+    if (!piece) continue;
+    if (!result) {
+      result = piece;
+      continue;
+    }
+    const prevLast = result.charAt(result.length - 1);
+    const nextFirst = piece.charAt(0);
+    if (/[a-zA-Z]-$/.test(result) && /^[a-zA-Z]/.test(piece)) {
+      result = result.slice(0, -1) + piece;
+    } else if (
+      CJK_CHAR_RE.test(prevLast)
+      || CJK_CHAR_RE.test(nextFirst)
+      || /^[,.;:!?)\]}>%'"”’、。，；：！？》）】]/.test(nextFirst)
+      || /[(\[{<'"“‘《（【]$/.test(prevLast)
+    ) {
+      result += piece;
+    } else {
+      result += ` ${piece}`;
+    }
+  }
+  return result.trim();
 }
 
 /** Lazily classifies page-margin and figure text before a selection is read. */
@@ -84,7 +124,137 @@ export function extractSelectedPdfText(selection: Selection | null, includeNonBo
       node = walker.nextNode();
     }
   }
-  return pieces.join(' ').replace(/\s+/g, ' ').trim();
+  return joinPdfTextPieces(pieces);
+}
+
+/**
+ * Extracts surrounding context and the enclosing sentence around the active
+ * selection so annotations carry contextBefore/contextAfter and saved words
+ * capture their real source sentence.
+ */
+export function extractSelectionContext(
+  selection: Selection | null,
+  includeNonBodyText: boolean,
+  selectedText: string,
+  maxContextChars = 140
+): SelectionContextExtract {
+  if (!selection || selection.isCollapsed || !selection.rangeCount) {
+    return { contextBefore: '', contextAfter: '', sentence: selectedText };
+  }
+  const range = selection.getRangeAt(0);
+  const pages = selectedPageElements(range);
+  if (!pages.length) {
+    return { contextBefore: '', contextAfter: '', sentence: selectedText };
+  }
+  const selectionDocument = range.commonAncestorContainer.ownerDocument || window.document;
+  const beforePieces: string[] = [];
+  const afterPieces: string[] = [];
+  let phase: 'before' | 'inside' | 'after' = 'before';
+
+  for (const pageElement of pages) {
+    const textLayer = pageElement.querySelector('.textLayer');
+    if (!textLayer) continue;
+    const walker = selectionDocument.createTreeWalker(textLayer, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
+        const element = nodeElement(node);
+        if (!includeNonBodyText && element?.closest('.reader-margin-text, .reader-figure-text')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node = walker.nextNode();
+    while (node) {
+      const value = node.textContent || '';
+      const intersects = rangeIntersectsNode(range, node);
+      if (intersects) {
+        if (range.startContainer === node && range.startOffset > 0) {
+          beforePieces.push(value.slice(0, range.startOffset));
+        }
+        phase = 'inside';
+        if (range.endContainer === node && range.endOffset < value.length) {
+          afterPieces.push(value.slice(range.endOffset));
+          phase = 'after';
+        }
+      } else if (phase === 'before') {
+        beforePieces.push(value);
+      } else {
+        phase = 'after';
+        afterPieces.push(value);
+      }
+      node = walker.nextNode();
+    }
+  }
+
+  return buildSelectionContextFromParts(
+    joinPdfTextPieces(beforePieces),
+    selectedText,
+    joinPdfTextPieces(afterPieces),
+    maxContextChars
+  );
+}
+
+export function buildSelectionContextFromParts(
+  fullBefore: string,
+  selectedText: string,
+  fullAfter: string,
+  maxContextChars = 140
+): SelectionContextExtract {
+  const before = trimStartContext(fullBefore, maxContextChars);
+  const after = trimEndContext(fullAfter, maxContextChars);
+  const sentenceBefore = extractSentencePrefix(fullBefore, 180);
+  const sentenceAfter = extractSentenceSuffix(fullAfter, 180);
+  const sentence = joinPdfTextPieces([sentenceBefore, selectedText, sentenceAfter]);
+  return {
+    contextBefore: before,
+    contextAfter: after,
+    sentence: sentence || selectedText
+  };
+}
+
+function trimStartContext(text: string, maxChars: number) {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  const slice = trimmed.slice(trimmed.length - maxChars);
+  const firstSpace = slice.indexOf(' ');
+  if (firstSpace > 0 && firstSpace < 24 && !CJK_CHAR_RE.test(slice[0])) {
+    return slice.slice(firstSpace + 1).trim();
+  }
+  return slice.trim();
+}
+
+function trimEndContext(text: string, maxChars: number) {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  const slice = trimmed.slice(0, maxChars);
+  const lastSpace = slice.lastIndexOf(' ');
+  if (lastSpace > maxChars - 24 && lastSpace > 0 && !CJK_CHAR_RE.test(slice[slice.length - 1])) {
+    return slice.slice(0, lastSpace).trim();
+  }
+  return slice.trim();
+}
+
+function extractSentencePrefix(fullBefore: string, maxChars: number) {
+  const tail = fullBefore.slice(Math.max(0, fullBefore.length - maxChars));
+  let boundary = -1;
+  for (let index = tail.length - 1; index >= 0; index -= 1) {
+    if (SENTENCE_END_RE.test(tail[index])) {
+      boundary = index;
+      break;
+    }
+  }
+  return (boundary >= 0 ? tail.slice(boundary + 1) : tail).trim();
+}
+
+function extractSentenceSuffix(fullAfter: string, maxChars: number) {
+  const head = fullAfter.slice(0, maxChars);
+  for (let index = 0; index < head.length; index += 1) {
+    if (SENTENCE_END_RE.test(head[index])) {
+      return head.slice(0, index + 1).trim();
+    }
+  }
+  return head.trim();
 }
 
 export function filterNonBodyRects(position: ScaledPosition): ScaledPosition {
@@ -178,8 +348,7 @@ function groupTextSpansIntoLines(textSpans: NodeListOf<HTMLElement>, pageRect: D
     }
   }
   return lines.map(line => ({
-    text: line.items.sort((left, right) => left.left - right.left)
-      .map(item => item.text).join(' ').replace(/\s+/g, ' ').trim(),
+    text: joinPdfTextPieces(line.items.sort((left, right) => left.left - right.left).map(item => item.text)),
     top: line.top,
     bottom: line.bottom,
     height: line.height

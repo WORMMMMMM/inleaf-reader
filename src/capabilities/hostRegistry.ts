@@ -65,7 +65,9 @@ export class HostCapabilityRegistry implements vscode.Disposable {
   }
 
   async secretChanged(key: string, context: HostRegistryContext) {
-    if (key !== INLEAF_IDS.secrets.deepSeekApiKey) return false;
+    if (key !== INLEAF_IDS.secrets.deepSeekApiKey && key !== INLEAF_IDS.secrets.openAiApiKey) {
+      return false;
+    }
     await this.translation.refreshSettings(context);
     return true;
   }

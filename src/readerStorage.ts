@@ -1,7 +1,9 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyAnnotationsToPdf, formatAnnotationsMarkdown } from './annotationExports';
+import { formatWordbookAnkiCsv, formatWordbookMarkdown } from './wordbookExports';
 import { AnnotationRecord } from './annotationTypes';
+import type { ActiveReadingContextPayload } from './readerMessages';
 import type { ProgressRecord, WordRecord } from './readerDataTypes';
 import { INLEAF_IDS } from './identity';
 import {
@@ -194,6 +196,22 @@ export class ReaderStorage {
     });
   }
 
+  async updateWord(id: string, patch: { note?: string; sentence?: string }) {
+    return this.enqueueMutation(async () => {
+      this.wordsCache = undefined;
+      const words = await this.loadWords();
+      const updated = words.map(item => item.id === id
+        ? { ...item, ...patch, updatedAt: new Date().toISOString() }
+        : item);
+      if (updated.every((item, index) => item === words[index])) {
+        return words;
+      }
+      await this.writeJson(this.fileUri('wordbook'), encodeWords(updated));
+      this.wordsCache = Promise.resolve(updated);
+      return updated;
+    });
+  }
+
   async deleteWord(id: string) {
     return this.enqueueMutation(async () => {
       this.wordsCache = undefined;
@@ -202,6 +220,40 @@ export class ReaderStorage {
       await this.writeJson(this.fileUri('wordbook'), encodeWords(updated));
       this.wordsCache = Promise.resolve(updated);
       return updated;
+    });
+  }
+
+  async exportWordbookMarkdown() {
+    const words = await this.readWords();
+    const markdown = formatWordbookMarkdown(this.baseName, words);
+    const uri = this.fileUri('wordbook.md');
+    await this.writeText(uri, markdown);
+    return uri;
+  }
+
+  async exportWordbookCsv() {
+    const words = await this.readWords();
+    const csv = formatWordbookAnkiCsv(words);
+    const uri = this.fileUri('wordbook.csv');
+    await this.writeText(uri, csv);
+    return uri;
+  }
+
+  async writeActiveContext(context: ActiveReadingContextPayload) {
+    return this.enqueueMutation(async () => {
+      const uri = vscode.Uri.joinPath(this.storageDir, 'active-context.json');
+      const payload = {
+        schemaVersion: 1,
+        fileName: this.baseName,
+        page: context.page,
+        pageTotal: context.pageTotal,
+        selectedText: context.selectedText?.trim() || '',
+        contextBefore: context.contextBefore?.trim() || '',
+        contextAfter: context.contextAfter?.trim() || '',
+        updatedAt: new Date().toISOString()
+      };
+      await this.writeJson(uri, payload, false);
+      return uri;
     });
   }
 
@@ -260,10 +312,14 @@ export class ReaderStorage {
     return next;
   }
 
-  private fileUri(kind: 'annotations' | 'annotations.md' | 'annotated.pdf' | 'wordbook' | 'progress') {
-    const extension = kind === 'annotations.md' ? 'md' : kind === 'annotated.pdf' ? 'pdf' : 'json';
-    const stem = kind === 'annotations.md' ? 'annotations' : kind === 'annotated.pdf' ? 'annotated' : kind;
-    return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${stem}.${extension}`);
+  private fileUri(
+    kind: 'annotations' | 'annotations.md' | 'annotated.pdf' | 'wordbook' | 'wordbook.md' | 'wordbook.csv' | 'progress'
+  ) {
+    if (kind === 'annotations.md') return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.annotations.md`);
+    if (kind === 'annotated.pdf') return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.annotated.pdf`);
+    if (kind === 'wordbook.md') return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.wordbook.md`);
+    if (kind === 'wordbook.csv') return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.wordbook.csv`);
+    return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${kind}.json`);
   }
 
   private async readSidecar<T>(

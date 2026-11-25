@@ -4,8 +4,12 @@ import * as vscode from 'vscode';
 import { ArgosTranslationDaemon } from './argosTranslationDaemon';
 import { EcdictClient } from './ecdictClient';
 import {
+  DEFAULT_OPENAI_BASE_URL,
+  DEFAULT_OPENAI_MODEL,
+  isLocalOpenAiEndpoint,
   requireDeepSeekModel,
   requireTranslationProvider,
+  resolveOpenAiChatUrl,
   TranslationProvider
 } from './translationContract';
 import { INLEAF_IDS } from './identity';
@@ -40,12 +44,15 @@ export class TranslationService implements vscode.Disposable {
     return {
       provider,
       deepSeekModel: requireDeepSeekModel(config.get('deepSeekModel')),
+      openAiBaseUrl: config.get<string>('openAiBaseUrl')?.trim() || DEFAULT_OPENAI_BASE_URL,
+      openAiModel: config.get<string>('openAiModel')?.trim() || DEFAULT_OPENAI_MODEL,
       libreTranslateEndpoint: config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate',
       argosPythonPath: config.get<string>('argosPythonPath') || '',
       fallbackToLibreTranslate: config.get<boolean>('translationFallbackToLibreTranslate') ?? false,
       source: config.get<string>('translationSource') || 'auto',
       target: config.get<string>('translationTarget') || 'zh',
       hasDeepSeekApiKey: !!(await this.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)),
+      hasOpenAiApiKey: !!(await this.secrets.get(INLEAF_IDS.secrets.openAiApiKey)),
       dictionaryReady: fs.existsSync(this.extensionPath('scripts', 'ecdict', 'manifest.json')),
       argosPythonFound: fs.existsSync(this.argosPythonPath(config))
     };
@@ -77,6 +84,10 @@ export class TranslationService implements vscode.Disposable {
 
     if (provider === 'deepseek') {
       return this.captureProviderError(() => this.translateWithDeepSeek(trimmed, signal));
+    }
+
+    if (provider === 'openai') {
+      return this.captureProviderError(() => this.translateWithOpenAiCompatible(trimmed, signal));
     }
 
     if (provider === 'argos') {
@@ -171,52 +182,107 @@ export class TranslationService implements vscode.Disposable {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const model = requireDeepSeekModel(config.get('deepSeekModel'));
     const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
+    const extraBody = model.startsWith('deepseek-v4-') ? { thinking: { type: 'disabled' } } : {};
+    return this.requestChatCompletion({
+      providerLabel: 'DeepSeek',
+      endpoint: 'https://api.deepseek.com/chat/completions',
+      apiKey,
+      model,
+      target,
+      text,
+      extraBody,
+      unauthorizedHint: 'DeepSeek rejected the API key. Run “Inleaf Reader: Set DeepSeek API Key” with a valid key.',
+      signal
+    });
+  }
+
+  private async translateWithOpenAiCompatible(text: string, signal?: AbortSignal) {
+    const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
+    const baseUrl = config.get<string>('openAiBaseUrl')?.trim() || DEFAULT_OPENAI_BASE_URL;
+    const endpoint = resolveOpenAiChatUrl(baseUrl);
+    const model = config.get<string>('openAiModel')?.trim() || DEFAULT_OPENAI_MODEL;
+    const apiKey = await this.secrets.get(INLEAF_IDS.secrets.openAiApiKey);
+    if (!apiKey && !isLocalOpenAiEndpoint(baseUrl)) {
+      throw new Error('OpenAI-compatible API key is not configured. Run “Inleaf Reader: Set OpenAI-Compatible API Key”.');
+    }
+    const target = describeTargetLanguage(config.get<string>('translationTarget') || 'zh');
+    return this.requestChatCompletion({
+      providerLabel: 'OpenAI-compatible endpoint',
+      endpoint,
+      apiKey: apiKey || undefined,
+      model,
+      target,
+      text,
+      unauthorizedHint: 'The endpoint rejected the API key. Run “Inleaf Reader: Set OpenAI-Compatible API Key” with a valid key.',
+      signal
+    });
+  }
+
+  private async requestChatCompletion(options: {
+    providerLabel: string;
+    endpoint: string;
+    apiKey?: string;
+    model: string;
+    target: string;
+    text: string;
+    extraBody?: Record<string, unknown>;
+    unauthorizedHint: string;
+    signal?: AbortSignal;
+  }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (options.apiKey) {
+      headers.Authorization = `Bearer ${options.apiKey}`;
+    }
 
     try {
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
+      const response = await fetch(options.endpoint, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          model,
+          model: options.model,
           messages: [
             {
               role: 'system',
-              content: `You are a professional academic translator. Translate the user's text into ${target}. Preserve formulas, citations, terminology, paragraph structure, and proper nouns accurately. Return only the translation, without commentary or quotation marks.`
+              content: `You are a professional academic translator. Translate the user's text into ${options.target}. Preserve formulas, citations, terminology, paragraph structure, and proper nouns accurately. Return only the translation, without commentary or quotation marks.`
             },
-            { role: 'user', content: text }
+            { role: 'user', content: options.text }
           ],
-          thinking: { type: 'disabled' },
+          ...(options.extraBody ?? {}),
           max_tokens: 4096,
           stream: false
         }),
-        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
+        signal: options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal
       });
       const responseText = await response.text();
       let data: { choices?: { message?: { content?: string | null } }[]; error?: { message?: string } } = {};
       try {
         data = responseText ? JSON.parse(responseText) : {};
       } catch {
-        throw new Error(response.ok ? 'DeepSeek returned an invalid response.' : `DeepSeek returned HTTP ${response.status}.`);
+        throw new Error(
+          response.ok
+            ? `${options.providerLabel} returned an invalid response.`
+            : `${options.providerLabel} returned HTTP ${response.status}.`
+        );
       }
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('DeepSeek rejected the API key. Run “Inleaf Reader: Set DeepSeek API Key” with a valid key.');
+          throw new Error(options.unauthorizedHint);
         }
-        throw new Error(data.error?.message?.trim() || `DeepSeek returned HTTP ${response.status}.`);
+        throw new Error(data.error?.message?.trim() || `${options.providerLabel} returned HTTP ${response.status}.`);
       }
       const translatedText = data.choices?.[0]?.message?.content?.trim();
       if (!translatedText) {
-        throw new Error('DeepSeek response did not include translated text.');
+        throw new Error(`${options.providerLabel} response did not include translated text.`);
       }
       return translatedText;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('DeepSeek translation timed out.');
+        throw new Error(`${options.providerLabel} translation timed out.`);
       }
       if (error instanceof TypeError) {
-        throw new Error('Could not reach the DeepSeek API. Check your network connection.');
+        throw new Error(`Could not reach ${options.providerLabel}. Check your endpoint and network connection.`);
       }
       throw error;
     } finally {

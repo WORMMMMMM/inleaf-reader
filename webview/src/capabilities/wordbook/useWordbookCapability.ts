@@ -5,14 +5,23 @@ export function useWordbookCapability() {
   const [words, setWords] = useState<WordRecord[]>([]);
 
   const handleEvent = useCallback((event: string, payload: unknown) => {
-    if (event !== 'state' || !isRecord(payload) || !Array.isArray(payload.words)) {
+    if (!isRecord(payload)) {
       return {};
     }
-    setWords(payload.words as WordRecord[]);
+    if (event === 'state' && Array.isArray(payload.words)) {
+      setWords(payload.words as WordRecord[]);
+      return {};
+    }
+    if (event === 'result' && typeof payload.message === 'string') {
+      return { status: payload.message };
+    }
     return {};
   }, []);
 
-  const reset = useCallback(() => setWords([]), []);
+  const reset = useCallback(() => {
+    setWords([]);
+  }, []);
+
   return { words, handleEvent, reset };
 }
 

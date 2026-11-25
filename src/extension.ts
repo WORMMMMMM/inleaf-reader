@@ -5,12 +5,18 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { INLEAF_IDS } from './identity';
 import { PaperReaderPanel } from './paperReaderPanel';
-import { isTranslationProvider } from './translationContract';
+import {
+  DEFAULT_OPENAI_BASE_URL,
+  DEFAULT_OPENAI_MODEL,
+  isLocalOpenAiEndpoint,
+  isTranslationProvider
+} from './translationContract';
 
 const execFileAsync = promisify(execFile);
 
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.window.createOutputChannel('Inleaf Reader');
+
   const openReader = vscode.commands.registerCommand(INLEAF_IDS.commands.openReader, async (resource?: vscode.Uri) => {
     const activeUri = resource || activePdfUri();
     let pdfUri: vscode.Uri | undefined = isPdfUri(activeUri) ? activeUri : undefined;
@@ -92,6 +98,30 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage('DeepSeek API key removed from VS Code SecretStorage.');
   });
 
+  const setOpenAiApiKey = vscode.commands.registerCommand(INLEAF_IDS.commands.setOpenAiApiKey, async () => {
+    const apiKey = await vscode.window.showInputBox({
+      title: 'Set OpenAI-Compatible API Key',
+      prompt: 'Stored in VS Code SecretStorage. Leave empty and cancel for keyless local endpoints such as Ollama.',
+      password: true,
+      ignoreFocusOut: true,
+      validateInput: value => value.trim() ? undefined : 'Enter an API key.'
+    });
+    if (apiKey === undefined) {
+      return;
+    }
+
+    await context.secrets.store(INLEAF_IDS.secrets.openAiApiKey, apiKey.trim());
+    await vscode.workspace
+      .getConfiguration(INLEAF_IDS.configuration)
+      .update('translationProvider', 'openai', vscode.ConfigurationTarget.Global);
+    vscode.window.showInformationMessage('OpenAI-compatible API key stored securely.');
+  });
+
+  const clearOpenAiApiKey = vscode.commands.registerCommand(INLEAF_IDS.commands.clearOpenAiApiKey, async () => {
+    await context.secrets.delete(INLEAF_IDS.secrets.openAiApiKey);
+    vscode.window.showInformationMessage('OpenAI-compatible API key removed from VS Code SecretStorage.');
+  });
+
   const diagnoseTranslation = vscode.commands.registerCommand(INLEAF_IDS.commands.diagnoseTranslation, async () => {
     const config = vscode.workspace.getConfiguration(INLEAF_IDS.configuration);
     const configuredPython = config.get<string>('argosPythonPath')?.trim();
@@ -99,13 +129,17 @@ export function activate(context: vscode.ExtensionContext) {
     const dictionaryPath = path.join(context.extensionUri.fsPath, 'scripts', 'ecdict', 'manifest.json');
     const providerValue = config.get('translationProvider');
     const provider = providerValue === undefined ? 'argos' : providerValue;
+    const openAiBaseUrl = config.get<string>('openAiBaseUrl')?.trim() || DEFAULT_OPENAI_BASE_URL;
+    const openAiModel = config.get<string>('openAiModel')?.trim() || DEFAULT_OPENAI_MODEL;
+    const hasOpenAiKey = !!(await context.secrets.get(INLEAF_IDS.secrets.openAiApiKey));
     const lines = [
       'Inleaf Reader translation diagnostics',
       `Provider: ${isTranslationProvider(provider) ? provider : `invalid (${String(provider)})`}`,
       `Offline dictionary: ${fs.existsSync(dictionaryPath) ? 'ready' : `missing (${dictionaryPath})`}`,
       `Argos Python: ${fs.existsSync(pythonPath) ? pythonPath : `not found (${pythonPath})`}`,
       `LibreTranslate fallback: ${config.get<boolean>('translationFallbackToLibreTranslate') ? 'enabled' : 'disabled'}`,
-      `DeepSeek API key: ${(await context.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)) ? 'configured' : 'not configured'}`
+      `DeepSeek API key: ${(await context.secrets.get(INLEAF_IDS.secrets.deepSeekApiKey)) ? 'configured' : 'not configured'}`,
+      `OpenAI-compatible endpoint: ${openAiBaseUrl} (model: ${openAiModel}, key: ${hasOpenAiKey ? 'configured' : isLocalOpenAiEndpoint(openAiBaseUrl) ? 'optional (local)' : 'not configured'})`
     ];
 
     if (fs.existsSync(pythonPath)) {
@@ -123,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
     diagnostics.clear();
     diagnostics.appendLine(lines.join('\n'));
     diagnostics.show(true);
-    const missingLocal = !fs.existsSync(pythonPath);
+    const missingLocal = provider === 'argos' && !fs.existsSync(pythonPath);
     const action = await vscode.window.showInformationMessage(
       missingLocal
         ? 'Offline dictionary is available. Argos sentence translation still needs setup.'
@@ -135,7 +169,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  context.subscriptions.push(openReader, setDeepSeekApiKey, clearDeepSeekApiKey, diagnoseTranslation, diagnostics);
+  context.subscriptions.push(
+    openReader,
+    setDeepSeekApiKey,
+    clearDeepSeekApiKey,
+    setOpenAiApiKey,
+    clearOpenAiApiKey,
+    diagnoseTranslation,
+    diagnostics
+  );
 }
 
 export function deactivate() {

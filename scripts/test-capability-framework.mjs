@@ -47,7 +47,8 @@ const [mainSource, overviewSource, panelSource, messagesSource, registrySource, 
 ]);
 
 assert.match(mainSource, /'closed' \| 'workspace' \| 'settings'|ReaderSurface/);
-assert.match(mainSource, /⚙ Settings/);
+assert.match(mainSource, /settings-toggle/);
+assert.match(mainSource, /<IconSettings/);
 assert.match(mainSource, /type: 'capabilityRequest'/);
 assert.match(mainSource, /type: 'updateCapabilityPreference'/);
 assert.doesNotMatch(overviewSource, /Provider|Languages|translationProvider/);

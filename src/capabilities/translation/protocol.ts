@@ -5,6 +5,8 @@ import { isRecord } from '../contracts';
 export type TranslationSettingKey =
   | 'provider'
   | 'deepSeekModel'
+  | 'openAiBaseUrl'
+  | 'openAiModel'
   | 'libreTranslateEndpoint'
   | 'argosPythonPath'
   | 'fallbackToLibreTranslate'
@@ -18,6 +20,7 @@ export type TranslationCapabilityRequest =
   | { action: 'cancel'; payload: { requestId: string } }
   | { action: 'updateSetting'; payload: { key: TranslationSettingKey; value: TranslationSettingValue } }
   | { action: 'configureDeepSeek'; payload?: undefined }
+  | { action: 'configureOpenAi'; payload?: undefined }
   | { action: 'diagnose'; payload?: undefined };
 
 export type TranslationCapabilityEvent =
@@ -27,6 +30,8 @@ export type TranslationCapabilityEvent =
 const SETTING_KEYS: TranslationSettingKey[] = [
   'provider',
   'deepSeekModel',
+  'openAiBaseUrl',
+  'openAiModel',
   'libreTranslateEndpoint',
   'argosPythonPath',
   'fallbackToLibreTranslate',
@@ -35,7 +40,7 @@ const SETTING_KEYS: TranslationSettingKey[] = [
 ];
 
 export function decodeTranslationRequest(action: string, payload: unknown): TranslationCapabilityRequest {
-  if (action === 'configureDeepSeek' || action === 'diagnose') {
+  if (action === 'configureDeepSeek' || action === 'configureOpenAi' || action === 'diagnose') {
     return { action };
   }
   if (!isRecord(payload)) {

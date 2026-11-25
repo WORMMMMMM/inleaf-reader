@@ -1,3 +1,5 @@
+import type { ReaderLocale } from '../../src/i18n';
+
 export interface ReaderConfig {
   documentId: string;
   pdfUrl: string;
@@ -5,6 +7,8 @@ export interface ReaderConfig {
   pdfWorkerUrl: string;
   pdfCMapUrl: string;
   pdfStandardFontDataUrl: string;
+  locale?: ReaderLocale;
+  syncAiContext?: boolean;
 }
 
 export interface VsCodeApi {

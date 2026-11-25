@@ -7,6 +7,8 @@ export const INLEAF_IDS = {
     openReader: 'inleafReader.openReader',
     setDeepSeekApiKey: 'inleafReader.setDeepSeekApiKey',
     clearDeepSeekApiKey: 'inleafReader.clearDeepSeekApiKey',
+    setOpenAiApiKey: 'inleafReader.setOpenAiApiKey',
+    clearOpenAiApiKey: 'inleafReader.clearOpenAiApiKey',
     diagnoseTranslation: 'inleafReader.diagnoseTranslation'
   },
   globalState: {
@@ -14,7 +16,8 @@ export const INLEAF_IDS = {
     pdfLocationIndex: 'inleafReader.pdfLocationIndex.v1'
   },
   secrets: {
-    deepSeekApiKey: 'inleafReader.deepSeekApiKey'
+    deepSeekApiKey: 'inleafReader.deepSeekApiKey',
+    openAiApiKey: 'inleafReader.openAiApiKey'
   },
   sidecarDirectory: '.inleaf-reader',
   pdfFingerprintNamespace: 'inleaf-reader-pdf-sample-v1\0'

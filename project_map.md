@@ -32,11 +32,15 @@ VS Code command
 ## Extension Host
 
 - `src/extension.ts`: Activates Inleaf Reader, registers commands, resolves the
-  target PDF, manages DeepSeek credentials, and exposes translation diagnostics.
+  target PDF, manages DeepSeek and OpenAI-compatible credentials, and exposes
+  translation diagnostics.
+- `src/i18n.ts`: Shared English and Simplified Chinese localization dictionary
+  and locale resolver used by both extension host and Webview.
 - `src/identity.ts`: Single runtime source for command, setting, secret, global
   state, Webview, fingerprint, and sidecar identifiers mirrored by the manifest.
-- `src/paperReaderPanel.ts`: Coordinates the Webview lifecycle, active-document
-  sessions, core progress/clipboard messages, and capability dispatch.
+- `src/paperReaderPanel.ts`: Coordinates multi-panel Webview lifecycles,
+  active-document sessions, core progress/clipboard/AI-context messages, and
+  capability dispatch.
 - `src/readerMessages.ts`: Small core message union plus the shared capability
   request envelope.
 - `src/capabilities/contracts.ts`: Capability manifests, preferences,
@@ -64,6 +68,8 @@ VS Code command
 - `src/readerDataTypes.ts`: Provider-neutral wordbook and progress records used
   across storage, translation, and message boundaries.
 - `src/annotationExports.ts`: Pure Markdown formatting and annotated-PDF export.
+- `src/wordbookExports.ts`: Pure Markdown and Anki-compatible CSV export for
+  saved wordbook entries.
 - `src/readingNotes.ts`: Page-range filtering and portable AI reading-note packets.
 - `src/capabilities/annotations/organizeNotes.ts`: File/range/filter selection and
   export wizard for Markdown, JSON, and AI-to-Notion instructions.
@@ -99,9 +105,21 @@ VS Code command
   reading status without duplicating configuration from Settings; it is
   not a capability and remains available even when all capabilities are hidden.
 - `webview/src/components/PdfDocumentView.tsx`: Adapter for
-  `react-pdf-highlighter-plus`, PDF.js events, zoom, and highlight rendering.
+  `react-pdf-highlighter-plus`, PDF.js events, zoom, search-hit overlay, and
+  highlight rendering.
 - `webview/src/components/AnnotationWidgets.tsx`: Annotation list/editor,
-  selection toolbar, dictionary result, and wordbook presentation components.
+  selection toolbar (with 1-click highlight & Copy for AI), dictionary result,
+  and wordbook presentation components.
+- `webview/src/components/Icons.tsx`: Lightweight stroke SVG icon set for
+  toolbar, cards, and inline actions.
+- `webview/src/components/OutlinePanel.tsx`: Filterable, collapsible PDF table
+  of contents panel.
+- `webview/src/components/SearchBar.tsx`: Floating full-text PDF search bar.
+- `webview/src/i18nContext.ts`: React i18n context driven by VS Code's language.
+- `webview/src/pdfOutline.ts`: Extracts hierarchical PDF outline trees and maps
+  destinations to 1-based PDF pages.
+- `webview/src/pdfSearch.ts`: Cached async full-text search across CJK and
+  Latin PDF pages plus non-invasive textLayer match geometry calculation.
 - `webview/src/annotationModel.ts`: Pure annotation conversion, visual-line
   geometry coalescing, filtering, sorting, payload, tag, and word-summary
   functions.

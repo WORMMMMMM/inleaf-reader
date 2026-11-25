@@ -13,6 +13,7 @@ import {
   type ViewportPosition
 } from 'react-pdf-highlighter-plus';
 import type { ReaderHighlight } from '../annotationModel';
+import { computePageSearchRects } from '../pdfSearch';
 import { markPageSelectionRegions } from '../pdfSelection';
 import { trackSelectionShade } from '../selectionShade';
 import type { AnnotationRecord } from '../types';
@@ -53,7 +54,11 @@ export function PdfDocumentView({
   pdfDocument,
   selectionTip,
   zoom,
+  areaSelectMode,
+  searchQuery,
+  activeSearchMatch,
   onDocumentReady,
+  onPdfDocumentReady,
   onOpen,
   onPageChange,
   onPinchZoom,
@@ -66,7 +71,11 @@ export function PdfDocumentView({
   pdfDocument: { numPages: number };
   selectionTip?: React.ReactNode;
   zoom: PdfScaleValue;
+  areaSelectMode?: boolean;
+  searchQuery?: string;
+  activeSearchMatch?: { pageNumber: number; occurrenceOnPage: number };
   onDocumentReady(numPages: number): void;
+  onPdfDocumentReady?(pdfDocument: unknown): void;
   onOpen(annotation: AnnotationRecord, position?: ViewportPosition): void;
   onPageChange(page: number): void;
   onPinchZoom(deltaY: number): void;
@@ -82,12 +91,54 @@ export function PdfDocumentView({
   const renderedPagesRef = useRef(new Set<number>());
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const highlighterUtilsRef = useRef<PdfHighlighterUtils | null>(null);
+  const searchStateRef = useRef({ query: searchQuery || '', activeMatch: activeSearchMatch });
+  searchStateRef.current = { query: searchQuery || '', activeMatch: activeSearchMatch };
+
+  const paintSearchHighlightsForPage = useCallback((pageElement: HTMLElement | null | undefined, pageNumber: number) => {
+    if (!pageElement || typeof document === 'undefined' || !document.createElement) return;
+    pageElement.querySelectorAll('.reader-search-layer').forEach(node => node.remove());
+    const { query, activeMatch } = searchStateRef.current;
+    if (!query.trim()) return;
+    const activeOcc = activeMatch?.pageNumber === pageNumber ? activeMatch.occurrenceOnPage : undefined;
+    const rects = computePageSearchRects(pageElement, query, activeOcc);
+    if (!rects.length) return;
+    const layer = document.createElement('div');
+    layer.className = 'reader-search-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    for (const rect of rects) {
+      const mark = document.createElement('div');
+      mark.className = rect.active ? 'reader-search-hit active' : 'reader-search-hit';
+      mark.style.left = `${rect.left}px`;
+      mark.style.top = `${rect.top}px`;
+      mark.style.width = `${rect.width}px`;
+      mark.style.height = `${rect.height}px`;
+      layer.appendChild(mark);
+    }
+    pageElement.appendChild(layer);
+  }, []);
+
+  const repaintAllSearchHighlights = useCallback(() => {
+    const container = viewerContainerRef.current;
+    if (!container || typeof container.querySelectorAll !== 'function') return;
+    const pageElements = container.querySelectorAll<HTMLElement>('.page[data-page-number]');
+    for (const pageElement of pageElements) {
+      const pageNumber = Number(pageElement.dataset?.pageNumber);
+      if (Number.isFinite(pageNumber) && pageNumber > 0) {
+        paintSearchHighlightsForPage(pageElement, pageNumber);
+      }
+    }
+  }, [paintSearchHighlightsForPage]);
 
   useEffect(() => {
     onDocumentReady(pdfDocument.numPages);
-  }, [onDocumentReady, pdfDocument.numPages]);
+    onPdfDocumentReady?.(pdfDocument);
+  }, [onDocumentReady, onPdfDocumentReady, pdfDocument]);
 
   useEffect(() => trackSelectionShade(() => viewerContainerRef.current), [pdfDocument]);
+
+  useEffect(() => {
+    repaintAllSearchHighlights();
+  }, [activeSearchMatch, repaintAllSearchHighlights, searchQuery]);
 
   const handlePageChanging = useCallback((event: PdfPageChangingEvent) => {
     if (typeof event.pageNumber === 'number') {
@@ -129,6 +180,10 @@ export function PdfDocumentView({
     if (!viewer || typeof event.pageNumber !== 'number') {
       return;
     }
+    if (searchStateRef.current.query.trim()) {
+      const renderedPage = viewer.getPageView(event.pageNumber - 1)?.div;
+      paintSearchHighlightsForPage(renderedPage, event.pageNumber);
+    }
     if (!viewerContainerRef.current?.classList.contains('pdf-scale-in-progress')) {
       return;
     }
@@ -150,7 +205,7 @@ export function PdfDocumentView({
         viewerContainerRef.current?.classList.remove('pdf-scale-in-progress');
       }
     });
-  }, []);
+  }, [paintSearchHighlightsForPage]);
 
   const handleWheel = useCallback((event: WheelEvent) => {
     if (!event.ctrlKey) {
@@ -187,7 +242,7 @@ export function PdfDocumentView({
     const page = target?.closest('.page');
     if (!page) return;
     // Paint stays pointer-transparent; hit-test only a click, never a scroll or drag.
-    for (const part of page.querySelectorAll<HTMLElement>('[data-reader-annotation-id] .TextHighlight__part')) {
+    for (const part of page.querySelectorAll<HTMLElement>('[data-reader-annotation-id] .TextHighlight__part, [data-reader-annotation-id] .AreaHighlight__part')) {
       const rect = part.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right ||
         event.clientY < rect.top || event.clientY > rect.bottom) continue;
@@ -298,7 +353,7 @@ export function PdfDocumentView({
       viewerContainerRef.current = nextViewerContainer;
     }
     utilsRef(utils);
-  }, [handlePageChanging, handlePointerDown, handleWheel, utilsRef]);
+  }, [handleLayerRendered, handlePageChanging, handlePointerDown, handleScaleChanging, handleWheel, utilsRef]);
 
   useEffect(() => () => {
     eventBusRef.current?.off('pagechanging', handlePageChanging);
@@ -320,13 +375,18 @@ export function PdfDocumentView({
     window.cancelAnimationFrame(horizontalCenterFrameRef.current || 0);
   }, [handleLayerRendered, handlePageChanging, handlePointerDown, handleScaleChanging, handleWheel]);
 
+  const enableAreaSelection = useCallback(
+    (event: MouseEvent) => Boolean(areaSelectMode) || event.altKey,
+    [areaSelectMode]
+  );
+
   return (
     <PdfHighlighter
       pdfDocument={pdfDocument as never}
       highlights={highlights}
       onSelection={onSelection}
       selectionTip={selectionTip}
-      enableAreaSelection={event => event.altKey}
+      enableAreaSelection={enableAreaSelection}
       pdfScaleValue={zoom}
       textSelectionColor={TEXT_SELECTION_COLOR}
       utilsRef={captureUtils}
@@ -399,16 +459,21 @@ function HighlightContainer({
     : undefined;
 
   const areaHighlight = highlight.type === 'area' ? (
-    <AreaHighlight
-      highlight={highlight}
-      isScrolledTo={isScrolledTo}
-      bounds={highlightBindings.textLayer}
-      highlightColor={annotation.color || '#ffd654'}
-    />
+    <span className={`reader-area-highlight${activeClass}${locatedClass}`} data-reader-annotation-id={annotation.id}>
+      <AreaHighlight
+        highlight={highlight}
+        isScrolledTo={isScrolledTo}
+        bounds={highlightBindings.textLayer}
+        highlightColor={annotation.color || '#ffd654'}
+      />
+    </span>
   ) : null;
 
+  const kindClass = (annotation.kind || 'highlight') === 'underline'
+    ? ' reader-kind-underline'
+    : ' reader-kind-highlight';
   const textHighlight = highlight.type !== 'area' ? (
-    <span className={`reader-text-highlight${activeClass}${locatedClass}`} data-reader-annotation-id={annotation.id}>
+    <span className={`reader-text-highlight${kindClass}${activeClass}${locatedClass}`} data-reader-annotation-id={annotation.id}>
       <TextHighlight
         highlight={highlight}
         isScrolledTo={isScrolledTo}
@@ -437,7 +502,7 @@ function HighlightTooltip({ annotation }: { annotation: AnnotationRecord }) {
       {annotation.note ? <p>{annotation.note}</p> : null}
       {annotation.tags?.length ? (
         <div className="annotation-tags">
-          {annotation.tags.map(tag => <span key={tag}>#{tag}</span>)}
+          {annotation.tags.map(tag => <span key={tag} className="tag-chip static">#{tag}</span>)}
         </div>
       ) : null}
     </div>

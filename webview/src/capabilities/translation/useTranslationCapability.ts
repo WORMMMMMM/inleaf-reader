@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { DEFAULT_OPENAI_BASE_URL, DEFAULT_OPENAI_MODEL } from '../../../../src/translationContract';
 import type { TranslationSettings } from '../../../../src/translationTypes';
 import type { WordDetails } from '../../types';
 import { vscode } from '../../vscodeApi';
@@ -6,12 +7,15 @@ import { vscode } from '../../vscodeApi';
 const defaultSettings: TranslationSettings = {
   provider: 'argos',
   deepSeekModel: 'deepseek-v4-flash',
+  openAiBaseUrl: DEFAULT_OPENAI_BASE_URL,
+  openAiModel: DEFAULT_OPENAI_MODEL,
   libreTranslateEndpoint: 'http://localhost:5000/translate',
   argosPythonPath: '',
   fallbackToLibreTranslate: false,
   source: 'auto',
   target: 'zh',
   hasDeepSeekApiKey: false,
+  hasOpenAiApiKey: false,
   dictionaryReady: false,
   argosPythonFound: false
 };

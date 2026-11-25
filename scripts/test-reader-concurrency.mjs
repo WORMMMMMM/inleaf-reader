@@ -186,6 +186,7 @@ const react = {
 };
 const { PdfDocumentView } = loadSource('webview/src/components/PdfDocumentView.tsx', {
   react, 'react-pdf-highlighter-plus': { PdfHighlighter: 'highlighter', scaledPositionToViewport: value => value },
+  '../pdfSearch': { computePageSearchRects: () => [] },
   '../pdfSelection': { markPageSelectionRegions() {} },
   '../selectionShade': { trackSelectionShade() {} }
 }, { Element: HoverTarget,
@@ -269,7 +270,9 @@ let sequence = 0;
 const hookReact = { useRef: react.useRef, useCallback: react.useCallback,
   useState: value => { const index = state.length; state.push(value); return [value, next => { state[index] = next; }]; } };
 const { useTranslationCapability } = loadSource('webview/src/capabilities/translation/useTranslationCapability.ts', {
-  react: hookReact, '../../vscodeApi': { vscode: { postMessage: message => messages.push(message) } }
+  react: hookReact,
+  '../../../../src/translationContract': require('../out/translationContract.js'),
+  '../../vscodeApi': { vscode: { postMessage: message => messages.push(message) } }
 }, { crypto: { randomUUID: () => `request-${++sequence}` } });
 const hook = useTranslationCapability();
 hook.start('same sentence');
@@ -345,7 +348,7 @@ assert.equal(settingsReads, readsBefore + 1, 'layout changes must not re-read tr
 assert.equal(annotationReads, 1);
 assert.equal(wordReads, 1);
 const { PaperReaderPanel } = loadSource('src/paperReaderPanel.ts', {
-  vscode, './identity': identity, './readerStorage': {}, './capabilities/hostRegistry': {},
+  vscode, './identity': identity, './i18n': require('../out/i18n.js'), './readerStorage': {}, './capabilities/hostRegistry': {},
   './capabilities/preferences': {}
 });
 let preferenceUpdates = 0;

@@ -3,6 +3,7 @@ import type { AnnotationKind, AnnotationRecord, AnnotationRect, WordDetails } fr
 
 export type ReaderHighlight = Highlight & { annotation?: AnnotationRecord };
 export type AnnotationSortMode = 'position' | 'created' | 'updated';
+export const AREA_SELECTION_PLACEHOLDER = '[Area highlight]';
 
 export interface AnnotationFilters {
   query: string;
@@ -16,12 +17,17 @@ export interface SelectionDraft {
   selectedText: string;
   selectionPosition?: ScaledPosition;
   currentPage: number;
+  contextBefore?: string;
+  contextAfter?: string;
+  sentence?: string;
+  isArea?: boolean;
 }
 
 export interface NewAnnotationOptions {
   color: string;
   kind: AnnotationKind;
   note?: string;
+  tags?: string[];
 }
 
 const SAME_LINE_CENTER_TOLERANCE = 0.55;
@@ -81,15 +87,22 @@ export function coalesceTextHighlightPosition(position: ScaledPosition): ScaledP
   };
 }
 
+export function isAreaAnnotation(annotation: AnnotationRecord): boolean {
+  return !annotation.selectedText
+    || annotation.selectedText === AREA_SELECTION_PLACEHOLDER
+    || Boolean(annotation.highlighterPosition && annotation.highlighterPosition.rects.length === 0);
+}
+
 export function annotationToHighlight(annotation: AnnotationRecord): ReaderHighlight | undefined {
   const storedPosition = annotation.highlighterPosition || rectsToHighlighterPosition(annotation.rects);
   if (!storedPosition) {
     return undefined;
   }
   const position = coalesceTextHighlightPosition(storedPosition);
+  const area = isAreaAnnotation(annotation);
   return {
     id: annotation.id,
-    type: annotation.selectedText ? 'text' : 'area',
+    type: area ? 'area' : 'text',
     content: { text: annotation.selectedText || annotation.note },
     position,
     annotation
@@ -161,17 +174,21 @@ export function filterAnnotations(
 
 export function buildAnnotationPayload(selection: SelectionDraft, options: NewAnnotationOptions) {
   const note = options.note?.trim() || '';
-  if (!selection.selectedText.trim() || (options.note !== undefined && !note)) {
+  const selectedText = selection.selectedText.trim()
+    || (selection.isArea && selection.selectionPosition ? AREA_SELECTION_PLACEHOLDER : '');
+  if (!selectedText || (options.note !== undefined && !note)) {
     return undefined;
   }
   const selectionPosition = selection.selectionPosition
-    ? coalesceTextHighlightPosition(selection.selectionPosition)
+    ? (selection.isArea ? selection.selectionPosition : coalesceTextHighlightPosition(selection.selectionPosition))
     : undefined;
   return {
     page: selectionPosition?.boundingRect.pageNumber || selection.currentPage,
-    selectedText: selection.selectedText,
+    selectedText,
     note,
-    tags: [] as string[],
+    tags: normalizeTags(options.tags || []),
+    ...(selection.contextBefore?.trim() ? { contextBefore: selection.contextBefore.trim() } : {}),
+    ...(selection.contextAfter?.trim() ? { contextAfter: selection.contextAfter.trim() } : {}),
     color: options.color,
     kind: options.kind,
     highlighterPosition: selectionPosition,
@@ -181,8 +198,45 @@ export function buildAnnotationPayload(selection: SelectionDraft, options: NewAn
   };
 }
 
+export function formatAiSelectionCitation(options: {
+  paperName: string;
+  page: number;
+  selectedText: string;
+  contextBefore?: string;
+  contextAfter?: string;
+}) {
+  const quote = options.selectedText.trim();
+  const lines = [
+    `Source: ${options.paperName} (PDF p.${options.page})`,
+    '',
+    ...quote.split('\n').map(line => `> ${line}`)
+  ];
+  const before = options.contextBefore?.trim() || '';
+  const after = options.contextAfter?.trim() || '';
+  if (before || after) {
+    const context = [before ? `...${before}` : '', `[${quote}]`, after ? `${after}...` : '']
+      .filter(Boolean)
+      .join(' ');
+    lines.push('', `Context: ${context}`);
+  }
+  return lines.join('\n');
+}
+
+export function collectFrequentTags(annotations: AnnotationRecord[], limit = 6): string[] {
+  const counts = new Map<string, number>();
+  for (const item of annotations) {
+    for (const tag of item.tags || []) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, limit)
+    .map(([tag]) => tag);
+}
+
 export function normalizeTags(value: string | string[]) {
-  const raw = Array.isArray(value) ? value : value.split(/[,\s#]+/);
+  const raw = Array.isArray(value) ? value : value.split(/[,，\s#]+/);
   return [...new Set(raw.map(tag => tag.trim().replace(/^#/, '').toLowerCase()).filter(Boolean))];
 }
 

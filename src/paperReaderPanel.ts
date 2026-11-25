@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { INLEAF_IDS } from './identity';
+import { resolveLocale } from './i18n';
 import type { ReaderMessage } from './readerMessages';
 import { ReaderStorage } from './readerStorage';
 import { HostCapabilityRegistry } from './capabilities/hostRegistry';
@@ -8,7 +9,7 @@ import { CapabilityPreferenceService } from './capabilities/preferences';
 import type { CapabilityId } from './capabilities/contracts';
 
 export class PaperReaderPanel {
-  private static currentPanel: PaperReaderPanel | undefined;
+  private static readonly panels = new Map<string, PaperReaderPanel>();
 
   private readonly panel: vscode.WebviewPanel;
   private storage: ReaderStorage;
@@ -19,6 +20,16 @@ export class PaperReaderPanel {
   private readonly capabilities: HostCapabilityRegistry;
   private readonly capabilityPreferences = new CapabilityPreferenceService();
   private settingsRefresh: Promise<void> = Promise.resolve();
+  private registryKey: string;
+
+  static revealIfOpen(pdfUri: vscode.Uri, column?: vscode.ViewColumn): boolean {
+    const existing = PaperReaderPanel.panels.get(panelKey(pdfUri));
+    if (!existing) {
+      return false;
+    }
+    existing.panel.reveal(column ?? existing.panel.viewColumn);
+    return true;
+  }
 
   static createOrShow(
     extensionUri: vscode.Uri,
@@ -26,15 +37,8 @@ export class PaperReaderPanel {
     globalState: vscode.Memento,
     pdfUri: vscode.Uri
   ) {
-    const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
-
-    if (PaperReaderPanel.currentPanel) {
-      const current = PaperReaderPanel.currentPanel;
-      const sourceDocumentId = current.documentId;
-      current.panel.reveal(column);
-      void current.navigateTo(pdfUri).catch(error => {
-        current.reportError(error, sourceDocumentId);
-      });
+    const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.Active;
+    if (PaperReaderPanel.revealIfOpen(pdfUri, column)) {
       return;
     }
 
@@ -49,13 +53,7 @@ export class PaperReaderPanel {
       }
     );
 
-    PaperReaderPanel.currentPanel = new PaperReaderPanel(
-      panel,
-      extensionUri,
-      secrets,
-      globalState,
-      pdfUri
-    );
+    new PaperReaderPanel(panel, extensionUri, secrets, globalState, pdfUri);
   }
 
   private constructor(
@@ -66,6 +64,8 @@ export class PaperReaderPanel {
     private pdfUri: vscode.Uri
   ) {
     this.panel = panel;
+    this.registryKey = panelKey(pdfUri);
+    PaperReaderPanel.panels.set(this.registryKey, this);
     this.capabilities = new HostCapabilityRegistry(extensionUri, secrets);
     this.storage = new ReaderStorage(pdfUri, globalState);
     this.storageSessions.set(this.documentId, this.storage);
@@ -79,7 +79,13 @@ export class PaperReaderPanel {
     vscode.workspace.onDidChangeConfiguration(
       event => {
         if (event.affectsConfiguration(INLEAF_IDS.configuration)) {
-          this.refreshSettings(context => this.capabilities.configurationChanged(event, context));
+          this.refreshSettings(async context => {
+            const capChanged = await this.capabilities.configurationChanged(event, context);
+            if (event.affectsConfiguration(`${INLEAF_IDS.configuration}.syncAiContext`)) {
+              await this.postReaderPreferences();
+            }
+            return capChanged;
+          });
         }
       },
       null,
@@ -108,7 +114,8 @@ export class PaperReaderPanel {
       pdfUri: this.pdfUri,
       storage: this.storage,
       title: this.panel.title,
-      options: this.panel.webview.options
+      options: this.panel.webview.options,
+      registryKey: this.registryKey
     };
     const documentId = getNonce();
     this.documentId = documentId;
@@ -143,6 +150,12 @@ export class PaperReaderPanel {
     if (storage !== this.storage) {
       return;
     }
+    if (PaperReaderPanel.panels.get(previous.registryKey) === this) {
+      PaperReaderPanel.panels.delete(previous.registryKey);
+    }
+    this.registryKey = panelKey(pdfUri);
+    PaperReaderPanel.panels.set(this.registryKey, this);
+
     const pdfWebviewUri = this.panel.webview.asWebviewUri(pdfUri);
     await this.panel.webview.postMessage({
       type: 'navigateTo',
@@ -190,11 +203,23 @@ export class PaperReaderPanel {
         await this.panel.webview.postMessage({
           type: 'clipboardResult',
           documentId,
-          payload: { message: 'Selected text copied.' }
+          payload: { message: message.payload.message || 'Selected text copied.' }
         });
         break;
       case 'saveProgress':
         await storage.saveProgress(message.payload);
+        break;
+      case 'syncReadingContext':
+        if (isSyncAiContextEnabled()) {
+          await storage.writeActiveContext(message.payload);
+        }
+        break;
+      case 'updateReaderPreference':
+        if (message.payload.key === 'syncAiContext' && typeof message.payload.value === 'boolean') {
+          await vscode.workspace
+            .getConfiguration(INLEAF_IDS.configuration)
+            .update('syncAiContext', message.payload.value, vscode.ConfigurationTarget.Global);
+        }
         break;
       case 'updateCapabilityPreference':
         await this.capabilityPreferences.update(message.payload.capabilityId, message.payload.patch);
@@ -237,7 +262,20 @@ export class PaperReaderPanel {
       );
     }
     await this.capabilities.postInitialState(this.capabilityContext());
-    if (storage === this.storage) await this.postCapabilitySettings();
+    if (storage === this.storage) {
+      await this.postCapabilitySettings();
+      await this.postReaderPreferences();
+    }
+  }
+
+  private async postReaderPreferences() {
+    await this.panel.webview.postMessage({
+      type: 'readerPreferences',
+      documentId: this.documentId,
+      payload: {
+        syncAiContext: isSyncAiContextEnabled()
+      }
+    });
   }
 
   private async prepareStorage(storage: ReaderStorage) {
@@ -324,17 +362,20 @@ export class PaperReaderPanel {
       vscode.Uri.joinPath(this.extensionUri, 'media', 'pdfjs-dist', 'pdf.worker.min.mjs')
     );
     const nonce = getNonce();
+    const locale = resolveLocale(vscode.env?.language);
     const readerConfig = serializeForInlineScript({
       documentId: this.documentId,
       pdfUrl: pdfWebviewUri.toString(),
       paperName: path.basename(this.pdfUri.fsPath),
       pdfWorkerUrl: pdfWorkerUri.toString(),
       pdfCMapUrl: ensureTrailingSlash(cMapUri.toString()),
-      pdfStandardFontDataUrl: ensureTrailingSlash(standardFontDataUri.toString())
+      pdfStandardFontDataUrl: ensureTrailingSlash(standardFontDataUri.toString()),
+      locale,
+      syncAiContext: isSyncAiContextEnabled()
     });
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${locale === 'zh' ? 'zh-CN' : 'en'}">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; img-src ${webview.cspSource} data:; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource} blob:; worker-src blob: data:;">
@@ -344,8 +385,8 @@ export class PaperReaderPanel {
 </head>
 <body>
   <main id="startupStatus" class="startup-state">
-    <h1>Starting reader...</h1>
-    <p>Loading the Webview script.</p>
+    <h1>${locale === 'zh' ? '正在启动阅读器...' : 'Starting reader...'}</h1>
+    <p>${locale === 'zh' ? '正在加载界面资源。' : 'Loading the Webview script.'}</p>
   </main>
   <div id="root"></div>
   <script nonce="${nonce}">
@@ -381,12 +422,22 @@ export class PaperReaderPanel {
 
   private dispose() {
     this.capabilities.dispose();
-    PaperReaderPanel.currentPanel = undefined;
+    if (PaperReaderPanel.panels.get(this.registryKey) === this) {
+      PaperReaderPanel.panels.delete(this.registryKey);
+    }
     while (this.disposables.length) {
       const disposable = this.disposables.pop();
       disposable?.dispose();
     }
   }
+}
+
+function panelKey(uri: vscode.Uri) {
+  return path.resolve(uri.fsPath);
+}
+
+function isSyncAiContextEnabled() {
+  return vscode.workspace.getConfiguration(INLEAF_IDS.configuration).get<boolean>('syncAiContext') ?? true;
 }
 
 function getNonce() {

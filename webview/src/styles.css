@@ -1,13 +1,43 @@
 :root {
   color-scheme: light dark;
   --panel-bg: var(--vscode-sideBar-background);
-  --border: var(--vscode-panel-border);
+  --surface-bg: var(--vscode-editor-background);
+  --surface-subtle: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+  --toolbar-hover: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.14));
+  --toolbar-active: var(--vscode-toolbar-activeBackground, rgba(7, 94, 234, 0.12));
+  --border: var(--vscode-panel-border, rgba(128, 128, 128, 0.22));
+  --border-subtle: rgba(128, 128, 128, 0.16);
   --muted: var(--vscode-descriptionForeground);
-  --accent: var(--vscode-button-background);
-  --accent-text: var(--vscode-button-foreground);
-  --page-bg: #f1f0eb;
+  --accent: var(--vscode-button-background, #075eea);
+  --accent-hover: var(--vscode-button-hoverBackground, #054ec7);
+  --accent-text: var(--vscode-button-foreground, #ffffff);
+  --danger: var(--vscode-errorForeground, #c62828);
+  --page-bg: #eeece6;
+  --page-shadow: 0 2px 14px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.08);
+  --floating-shadow: 0 8px 28px rgba(0, 0, 0, 0.16), 0 1px 4px rgba(0, 0, 0, 0.08);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --side-panel-width: 340px;
   --reader-selection-layer: 25;
   --reader-inline-ui-layer: 26;
+}
+
+body.vscode-dark,
+body.vscode-high-contrast {
+  --page-bg: var(--vscode-editorGroup-emptyBackground, #1b1d21);
+  --page-shadow: 0 4px 24px rgba(0, 0, 0, 0.48), 0 0 1px rgba(255, 255, 255, 0.06);
+  --floating-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --border-subtle: rgba(255, 255, 255, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not(.vscode-light):not(.vscode-high-contrast-light) {
+    --page-bg: var(--vscode-editorGroup-emptyBackground, #1b1d21);
+    --page-shadow: 0 4px 24px rgba(0, 0, 0, 0.48), 0 0 1px rgba(255, 255, 255, 0.06);
+    --floating-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.3);
+    --border-subtle: rgba(255, 255, 255, 0.09);
+  }
 }
 
 * {
@@ -20,8 +50,15 @@ body {
   /* VS Code injects body padding; it must not offset the full-width reader. */
   padding: 0;
   color: var(--vscode-foreground);
-  background: var(--vscode-editor-background);
+  background: var(--surface-bg);
   font-family: var(--vscode-font-family);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.panel-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 button,
@@ -31,13 +68,96 @@ textarea {
   font: inherit;
 }
 
+/* Calm ghost/neutral default button; reserve solid accent for .primary-button CTAs. */
 button {
-  border: 0;
-  border-radius: 3px;
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 5px 10px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--toolbar-hover);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 1.5px solid var(--vscode-focusBorder, #075eea);
+  outline-offset: 1px;
+}
+
+button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.icon {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.primary-button {
+  border-color: transparent;
   color: var(--accent-text);
   background: var(--accent);
-  cursor: pointer;
+  font-weight: 500;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.secondary-button,
+.undo-button {
+  border: 1px solid var(--border-subtle);
+  color: var(--vscode-foreground);
+  background: var(--surface-subtle);
+}
+
+.secondary-button:hover:not(:disabled),
+.undo-button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--toolbar-hover);
+}
+
+.danger-button {
+  color: #ffffff;
+  background: var(--danger);
+}
+
+.danger-button:hover:not(:disabled) {
+  filter: brightness(0.92);
+  background: var(--danger);
+}
+
+.danger-ghost-button {
+  color: var(--danger);
+}
+
+.danger-ghost-button:hover:not(:disabled) {
+  background: rgba(198, 40, 40, 0.12);
+}
+
+.icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  color: var(--vscode-foreground);
+}
+
+.danger-icon-button:hover:not(:disabled) {
+  color: var(--danger);
+  background: rgba(198, 40, 40, 0.12);
 }
 
 input,
@@ -45,10 +165,16 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--vscode-input-border, var(--border));
-  border-radius: 2px;
-  padding: 8px;
+  border-radius: var(--radius-md);
+  padding: 6px 9px;
   color: var(--vscode-input-foreground);
   background: var(--vscode-input-background);
+  font-size: 12px;
+  transition: border-color 0.14s ease;
+}
+
+.compact-input {
+  padding: 5px 8px;
 }
 
 textarea {
@@ -56,8 +182,9 @@ textarea {
 }
 
 .shell {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) var(--side-panel-width, 340px);
   width: 100%;
   height: 100vh;
   overflow: hidden;
@@ -78,77 +205,165 @@ textarea {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--border-subtle);
   background: var(--page-bg);
 }
 
+.shell.sidebar-hidden .reader {
+  border-right: 0;
+}
+
+/* Calm, icon-first top toolbar */
 .reader-toolbar {
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--vscode-editor-background);
+  gap: 6px;
+  height: 40px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-bg);
 }
 
-.reader-toolbar button {
-  min-width: 34px;
-  padding: 5px 8px;
-}
-
-.reader-toolbar .sidebar-toggle {
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   flex: 0 0 auto;
-  min-width: 88px;
+}
+
+.toolbar-right {
+  gap: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-subtle);
+  flex: 0 0 auto;
+}
+
+.toolbar-label-button {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-.reader-toolbar .settings-toggle {
-  flex: 0 0 auto;
-  min-width: 86px;
-  white-space: nowrap;
+.reader-toolbar .active-tool {
+  color: var(--vscode-textLink-foreground, #075eea);
+  background: var(--toolbar-active);
 }
 
 .page-jump {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  margin: 0;
   color: var(--muted);
   font-size: 12px;
 }
 
 .page-jump input {
-  width: 64px;
-  padding: 5px 6px;
+  width: 48px;
+  height: 26px;
+  padding: 2px 4px;
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--vscode-foreground);
   text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-jump input:hover,
+.page-jump input:focus {
+  border-color: var(--border);
+  background: var(--vscode-input-background);
+}
+
+.page-jump input::-webkit-outer-spin-button,
+.page-jump input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.page-total {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .zoom-value {
-  min-width: 46px;
+  min-width: 42px;
   text-align: center;
   color: var(--muted);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .reader-status {
   flex: 1 1 auto;
   min-width: 0;
+  padding: 0 6px;
   text-align: right;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* PDF Canvas & Reading Paper Modes */
 .pdf-host {
   position: relative;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+
+.pdf-host.area-select-mode .textLayer,
+.pdf-host.area-select-mode .textLayer :is(span, br) {
+  cursor: crosshair;
+  user-select: none;
+}
+
+.pdf-host.paper-sepia .PdfHighlighter {
+  background: #e8e1d1;
+}
+
+.pdf-host.paper-sepia .canvasWrapper canvas {
+  filter: sepia(0.24) brightness(0.97) contrast(0.97);
+}
+
+.pdf-host.paper-dark .PdfHighlighter {
+  background: #141619;
+}
+
+.pdf-host.paper-dark .canvasWrapper canvas {
+  filter: invert(0.88) hue-rotate(180deg) contrast(0.94);
+}
+
+.pdf-host.paper-dark .PdfHighlighter__highlight-layer,
+.pdf-host.paper-dark .PdfHighlighter__highlight-layer * {
+  mix-blend-mode: normal !important;
+}
+
+.pdf-host.paper-dark .reader-kind-highlight .TextHighlight__part,
+.pdf-host.paper-dark .reader-area-highlight .AreaHighlight__part {
+  mix-blend-mode: screen !important;
+  opacity: 0.36;
+}
+
+.pdf-host.paper-dark .reader-kind-underline .TextHighlight__part {
+  opacity: 0.95;
 }
 
 .pdf-host .PdfHighlighter {
@@ -172,7 +387,7 @@ textarea {
 .pdf-host .PdfHighlighter::-webkit-scrollbar-track,
 .pdf-host .PdfHighlighter::-webkit-scrollbar-track-piece,
 .pdf-host .PdfHighlighter::-webkit-scrollbar-corner {
-  background: var(--vscode-editor-background, #f5f5f5);
+  background: var(--page-bg);
 }
 
 .pdf-host .PdfHighlighter::-webkit-scrollbar-thumb {
@@ -194,10 +409,14 @@ textarea {
 .pdf-host .pdfViewer {
   width: 100%;
   min-width: 100%;
+  padding: 16px 0 32px;
 }
 
 .pdf-host .pdfViewer .page {
   margin-inline: auto;
+  margin-bottom: 14px;
+  border: 0 !important;
+  box-shadow: var(--page-shadow);
 }
 
 .pdf-host .pdf-scale-in-progress :is(
@@ -228,12 +447,78 @@ textarea {
   user-select: text;
 }
 
+/* Floating PDF full-text search bar & non-invasive match overlay */
+.pdf-search-bar {
+  position: absolute;
+  top: 10px;
+  right: 22px;
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(350px, calc(100% - 32px));
+  padding: 5px 6px 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-bg);
+  box-shadow: var(--floating-shadow);
+}
+
+.pdf-search-bar .search-icon {
+  color: var(--muted);
+}
+
+.pdf-search-bar input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  padding: 3px 4px;
+  background: transparent;
+  font-size: 12px;
+}
+
+.pdf-search-bar input:focus-visible {
+  outline: none;
+}
+
+.search-counter {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.search-counter.empty-match {
+  color: var(--danger);
+}
+
+.reader-search-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.reader-search-hit {
+  position: absolute;
+  border-radius: 2px;
+  background: rgba(255, 200, 50, 0.34);
+  pointer-events: none;
+}
+
+.reader-search-hit.active {
+  background: rgba(245, 130, 12, 0.48);
+  outline: 1.5px solid rgba(230, 95, 0, 0.85);
+}
+
 .reader-selection-shade {
   position: fixed;
   z-index: var(--reader-selection-layer);
   pointer-events: none;
   /* Logo inner-book blue (#075EEA), translucent so PDF glyphs stay readable. */
-  background: rgba(7, 94, 234, 0.32);
+  background: rgba(7, 94, 234, 0.28);
 }
 
 /* Selection paint belongs above PDF marks but below every inline control. */
@@ -267,22 +552,26 @@ textarea {
   min-height: 280px;
   place-items: center;
   color: var(--muted);
+  font-size: 13px;
 }
 
 .loading.error {
-  color: var(--vscode-errorForeground, #b00020);
+  color: var(--danger);
 }
 
 .pdf-host .TextHighlight--scrolledTo .TextHighlight__part {
   box-shadow: none;
 }
 
-.pdf-host .located-highlight .TextHighlight__part {
+.pdf-host .located-highlight .TextHighlight__part,
+.pdf-host .located-highlight .AreaHighlight__part {
   box-shadow: inset 0 0 0 9999px rgba(7, 94, 234, 0.16);
 }
 
 .pdf-host .reader-text-highlight,
 .pdf-host .reader-text-highlight *,
+.pdf-host .reader-area-highlight,
+.pdf-host .reader-area-highlight *,
 .pdf-host .reader-selection-preview * {
   pointer-events: none !important;
 }
@@ -293,22 +582,43 @@ textarea {
   transition: none;
 }
 
+/* Side Panel & Draggable Resizer */
 .side-panel {
   position: relative;
   z-index: 30;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   height: 100vh;
-  overflow: auto;
-  padding: 18px;
+  overflow: hidden;
+  padding: 0;
   background: var(--panel-bg);
+}
+
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 35;
+  transition: background-color 0.14s ease;
+}
+
+.panel-resizer:hover,
+body.panel-resizing .panel-resizer {
+  background: rgba(7, 94, 234, 0.35);
 }
 
 .side-panel-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  padding: 14px 16px 0;
+  margin-bottom: 12px;
+  flex: 0 0 auto;
 }
 
 .side-panel-header > div {
@@ -317,45 +627,88 @@ textarea {
 
 .side-panel-close {
   flex: 0 0 auto;
-  min-width: 30px;
-  padding: 3px 8px;
-  font-size: 20px;
-  line-height: 1.2;
 }
 
 .side-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  margin: 0 16px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  flex: 0 0 auto;
 }
 
 .side-tabs button {
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
   overflow: hidden;
-  color: var(--vscode-button-secondaryForeground);
-  background: var(--vscode-button-secondaryBackground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.side-tabs button:hover:not(.active-tab) {
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
 .side-tabs .active-tab {
-  color: var(--accent-text);
-  background: var(--accent);
+  color: var(--vscode-foreground);
+  background: var(--surface-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.side-panel-body,
+.settings-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 0 16px 18px;
 }
 
 .side-tab-panel {
   display: grid;
-  gap: 14px;
+  align-content: start;
+  gap: 12px;
+}
+
+.panel-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-section-head h2 {
+  margin: 0;
+}
+
+.compact-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.compact-action-button {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .eyebrow {
-  margin: 0 0 5px;
+  margin: 0 0 3px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -367,59 +720,230 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: 21px;
-  line-height: 1.2;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 h2 {
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   color: var(--muted);
   font-size: 12px;
 }
 
 .tool-block {
-  margin-bottom: 18px;
+  margin-bottom: 4px;
 }
 
 .tool-block > * + * {
   margin-top: 8px;
 }
 
-.actions,
-.annotation-actions {
+/* Annotations Filter Drawer & Export Dropdown */
+.panel-search-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-search-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.filter-toggle-button {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.filter-toggle-button.active {
+  color: var(--vscode-textLink-foreground, #075eea);
+  border-color: var(--vscode-focusBorder, #075eea);
+  background: var(--toolbar-active);
+}
+
+.filter-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #075eea;
+}
+
+.filter-drawer {
+  display: grid;
   gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-bg);
 }
 
-.secondary-button,
-.undo-button {
-  color: var(--vscode-button-secondaryForeground);
-  background: var(--vscode-button-secondaryBackground);
+.color-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.danger-button {
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-errorForeground, #b42318);
+.color-filter-all {
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.color-filter-all.active {
+  color: var(--vscode-foreground);
+  border-color: var(--vscode-focusBorder, #075eea);
+  background: var(--toolbar-active);
+}
+
+.filter-two-col,
+.setting-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.export-dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 176px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-bg);
+  box-shadow: var(--floating-shadow);
+  display: grid;
+  gap: 2px;
+}
+
+.dropdown-menu button {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: left;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .edit-status,
 .status-line {
   color: var(--muted);
+  font-size: 11px;
+}
+
+.undo-button {
+  justify-content: center;
+  width: 100%;
+  padding: 6px 10px;
   font-size: 12px;
 }
 
+/* Outline / Table of Contents Tree */
+.outline-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outline-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.12s ease;
+}
+
+.outline-row:hover {
+  background: var(--surface-subtle);
+}
+
+.outline-row.active {
+  background: var(--toolbar-active);
+}
+
+.outline-row.active .outline-title {
+  color: var(--vscode-textLink-foreground, #075eea);
+  font-weight: 600;
+}
+
+.outline-caret {
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+}
+
+.outline-caret-spacer {
+  display: inline-block;
+  width: 20px;
+  flex: 0 0 auto;
+}
+
+.outline-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: space-between;
+  padding: 5px 6px 5px 2px;
+  border: 0;
+  background: transparent !important;
+  font-size: 12px;
+  text-align: left;
+}
+
+.outline-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-page {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Settings View */
 .provider-status {
   border-left: 3px solid var(--border);
-  padding: 7px 9px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 7px 10px;
   color: var(--muted);
-  background: var(--vscode-editor-background);
+  background: var(--surface-bg);
   font-size: 12px;
 }
 
@@ -433,12 +957,12 @@ label {
 
 .settings-view {
   display: grid;
-  gap: 24px;
+  align-content: start;
+  gap: 22px;
 }
 
 .settings-section > h2 {
   margin-bottom: 6px;
-  font-size: 16px;
 }
 
 .settings-help,
@@ -451,15 +975,15 @@ label {
 
 .capability-list {
   display: grid;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .capability-card {
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 12px;
-  background: var(--vscode-editor-background);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 11px 12px;
+  background: var(--surface-bg);
 }
 
 .capability-card-heading {
@@ -470,8 +994,9 @@ label {
 }
 
 .capability-card h3 {
-  margin: 0 0 4px;
-  font-size: 14px;
+  margin: 0 0 3px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .capability-card p {
@@ -480,7 +1005,7 @@ label {
 
 .capability-readiness {
   flex: 0 0 auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
   border-radius: 999px;
   padding: 2px 7px;
   color: var(--muted);
@@ -489,28 +1014,33 @@ label {
 }
 
 .capability-readiness.ready {
-  border-color: var(--vscode-testing-iconPassed, #2ea043);
+  color: var(--vscode-testing-iconPassed, #2ea043);
+  border-color: rgba(46, 160, 67, 0.4);
 }
 
 .capability-readiness.needsSetup,
 .capability-readiness.unavailable {
-  border-color: var(--vscode-inputValidation-warningBorder, #cca700);
+  color: var(--vscode-inputValidation-warningBorder, #b58900);
+  border-color: rgba(204, 167, 0, 0.45);
 }
 
 .capability-readiness.error {
-  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+  color: var(--danger);
+  border-color: rgba(190, 17, 0, 0.45);
 }
 
 .capability-readiness-message {
-  margin: 8px 0;
+  margin: 6px 0 0;
 }
 
 .toggle-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   color: var(--vscode-foreground);
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .toggle-row input {
@@ -520,23 +1050,36 @@ label {
 
 .capability-order {
   display: flex;
-  gap: 7px;
+  gap: 6px;
   margin-top: 10px;
 }
 
 .capability-order button {
-  padding: 4px 7px;
+  padding: 3px 8px;
   font-size: 11px;
 }
 
 .setting-field {
   display: grid;
-  gap: 5px;
-  margin-top: 12px;
+  gap: 4px;
+  margin-top: 10px;
 }
 
 .setting-field > span {
   color: var(--vscode-foreground);
+  font-size: 12px;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.preset-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
 }
 
 .settings-section > .provider-status,
@@ -544,6 +1087,7 @@ label {
   margin-top: 10px;
 }
 
+/* Overview Panel */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -551,116 +1095,272 @@ label {
 }
 
 .metric-card {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  background: var(--vscode-editor-background);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 11px;
+  background: var(--surface-bg);
 }
 
 .metric-card span {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   color: var(--muted);
   font-size: 11px;
 }
 
 .metric-card strong {
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tips-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 11px;
+  list-style: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-bg);
+}
+
+.tips-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.tips-list kbd {
+  flex: 0 0 auto;
+  min-width: 68px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  text-align: center;
 }
 
 .selection-preview,
 .translation-preview {
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 10px;
   color: var(--vscode-foreground);
-  background: var(--vscode-editor-background);
+  background: var(--surface-bg);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
 .compact-empty {
-  padding: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
 }
 
+/* Annotation Summary & Tag Chips */
 .annotation-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 5px;
 }
 
-.annotation-summary span,
-.annotation-tags span {
-  border: 1px solid var(--border);
+.annotation-summary > span {
+  border: 1px solid var(--border-subtle);
   border-radius: 999px;
-  padding: 2px 7px;
+  padding: 2px 8px;
   color: var(--muted);
   font-size: 11px;
 }
 
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.tag-chip:hover:not(.static) {
+  color: var(--vscode-foreground);
+  border-color: var(--border);
+  background: var(--toolbar-hover);
+}
+
+.tag-chip.active {
+  color: var(--vscode-textLink-foreground, #075eea);
+  border-color: var(--vscode-focusBorder, #075eea);
+  background: var(--toolbar-active);
+}
+
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Annotation & Wordbook Cards */
 .list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .item {
   content-visibility: auto;
-  contain-intrinsic-size: auto 150px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  background: var(--vscode-editor-background);
+  contain-intrinsic-size: auto 130px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 11px;
+  background: var(--surface-bg);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.annotation-item {
+  border-left-width: 3px;
+  cursor: pointer;
+}
+
+.annotation-item:hover {
+  border-color: var(--border);
+}
+
+.item.active-item {
+  border-color: var(--vscode-focusBorder, #075eea);
+  box-shadow: 0 0 0 1px rgba(7, 94, 234, 0.2);
+}
+
+.annotation-item-head,
+.word-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.annotation-meta,
+.word-heading-group {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-jump-badge {
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.page-jump-badge:hover {
+  color: var(--vscode-textLink-foreground, #075eea);
+  background: var(--toolbar-active);
+}
+
+.style-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.annotation-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.14s ease;
+}
+
+.item:hover .annotation-card-actions,
+.item.active-item .annotation-card-actions,
+.annotation-card-actions:focus-within {
+  opacity: 1;
+}
+
+.annotation-card-actions.always-subtle {
+  opacity: 0.8;
+}
+
+.annotation-card-actions .icon-button {
+  width: 24px;
+  height: 24px;
+}
+
+.annotation-quote {
+  margin: 7px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.48;
 }
 
 .item p {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.4;
-}
-
-.item.active-item {
-  border-color: var(--vscode-focusBorder, #007fd4);
+  line-height: 1.45;
 }
 
 .note {
+  margin-top: 7px !important;
   color: var(--vscode-foreground) !important;
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
 }
 
 .annotation-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
   margin-top: 8px;
 }
 
-.annotation-actions {
-  margin-top: 9px;
-}
-
-.annotation-actions button {
-  padding: 4px 7px;
-  font-size: 12px;
-}
-
 .empty {
-  border: 1px solid var(--border);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 12px;
   color: var(--muted);
-  background: var(--vscode-editor-background);
+  background: var(--surface-bg);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .fatal-error {
   padding: 24px;
-  color: var(--vscode-errorForeground, #b00020);
-  background: var(--vscode-editor-background);
+  color: var(--danger);
+  background: var(--surface-bg);
 }
 
 .startup-state {
   padding: 24px;
   color: var(--vscode-foreground);
-  background: var(--vscode-editor-background);
+  background: var(--surface-bg);
 }
 
 .reader-mounted #startupStatus {
@@ -672,72 +1372,67 @@ label {
 }
 
 .startup-error {
-  color: var(--vscode-errorForeground, #b00020);
+  color: var(--danger);
 }
 
 .fatal-error pre,
 .startup-state pre {
   overflow: auto;
   border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 12px;
   color: var(--vscode-foreground);
   background: var(--vscode-input-background);
   white-space: pre-wrap;
 }
 
-@media (max-width: 900px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-
-  .reader,
-  .side-panel {
-    height: auto;
-    min-height: 50vh;
-  }
-}
-
+/* Wordbook details */
 .word-details {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px;
-  background: var(--vscode-editor-background);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--surface-bg);
 }
 
 .word-details h3 {
-  margin: 0 0 4px;
-  font-size: 15px;
+  margin: 0 0 2px;
+  font-size: 14px;
 }
 
 .phonetic {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .compact-phonetic {
-  margin-top: 4px;
-  margin-bottom: 0;
+  display: inline;
+  margin: 0;
+}
+
+.word-translation-summary {
+  color: var(--vscode-foreground) !important;
+  font-size: 12.5px !important;
 }
 
 .word-details ul {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 0;
   list-style: none;
 }
 
 .word-details li,
 .word-definition-list li {
   margin-bottom: 4px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12.5px;
+  line-height: 1.42;
 }
 
 .word-definition-list {
   display: grid;
-  gap: 4px;
-  margin: 8px 0 0;
+  gap: 3px;
+  margin: 7px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -750,93 +1445,140 @@ label {
   font-size: 11px;
 }
 
+.word-sentence {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.word-sentence-mark {
+  padding: 0 2px;
+  border-radius: 2px;
+  color: var(--vscode-foreground);
+  background: rgba(255, 214, 84, 0.45);
+  font-weight: 600;
+}
+
+.word-note-editor {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .pos {
   display: inline-block;
-  min-width: 36px;
-  color: var(--vscode-symbolIcon-variableForeground, var(--accent));
+  min-width: 32px;
+  color: var(--vscode-symbolIcon-variableForeground, #075eea);
   font-size: 11px;
   font-weight: 600;
 }
 
+/* Floating Selection Toolbar & Inline Annotation Editor */
 .selection-toolbar {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 8px;
   /* Fit only the enabled commands; widen once a note or translation opens. */
   width: max-content;
-  max-width: min(320px, calc(100vw - 48px));
-  border-radius: 8px;
+  max-width: min(350px, calc(100vw - 36px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 6px 8px;
-  background: var(--vscode-editor-background);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.24);
+  background: var(--surface-bg);
+  box-shadow: var(--floating-shadow);
 }
 
 .selection-toolbar.expanded {
-  width: min(320px, calc(100vw - 48px));
+  width: min(350px, calc(100vw - 36px));
 }
 
 .selection-toolbar-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
-.selection-toolbar .swatch {
-  width: 18px;
-  height: 18px;
-  border: 2px solid transparent;
+.swatch-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+}
+
+.toolbar-mini-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--border-subtle);
+}
+
+.swatch {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid rgba(0, 0, 0, 0.14);
   border-radius: 50%;
   padding: 0;
   min-width: 0;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.selection-toolbar .swatch:hover {
-  border-color: var(--vscode-focusBorder, #007fd4);
+.swatch:hover {
+  transform: scale(1.14);
+  background: inherit;
 }
 
-.selection-toolbar .swatch.active {
-  border-color: var(--vscode-foreground);
+.swatch.active {
+  box-shadow: 0 0 0 2px var(--surface-bg), 0 0 0 3.5px var(--vscode-foreground);
 }
 
-.selection-toolbar button:not(.swatch) {
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  line-height: 1.4;
+.toolbar-pill-button {
+  height: 25px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
 }
 
 .selection-toolbar .active-command {
-  outline: 2px solid var(--vscode-focusBorder, #007fd4);
-  outline-offset: 1px;
+  color: var(--vscode-textLink-foreground, #075eea);
+  background: var(--toolbar-active);
 }
 
 .annotation-inline-editor {
   display: grid;
   width: min(360px, calc(100vw - 32px));
-  max-height: min(520px, calc(100vh - 48px));
+  max-height: min(540px, calc(100vh - 48px));
   gap: 8px;
+  padding: 12px;
   overflow: auto;
 }
 
 .annotation-inline-actions {
   width: auto;
   flex-direction: row;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
 }
 
 .annotation-inline-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .annotation-inline-editor label {
   display: grid;
   gap: 4px;
+  margin: 0;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -847,14 +1589,14 @@ label {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 8px;
   color: var(--vscode-input-foreground);
   background: var(--vscode-input-background);
   font: inherit;
   font-size: 12px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .annotation-inline-editor textarea {
@@ -869,25 +1611,27 @@ label {
 
 .selection-note-editor textarea {
   width: 100%;
+  min-height: 68px;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 8px;
   color: var(--vscode-input-foreground);
   background: var(--vscode-input-background);
   font: inherit;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
   white-space: normal;
-}
-
-.selection-note-editor textarea {
-  min-height: 72px;
   resize: vertical;
 }
 
+.selection-tags-input {
+  padding: 5px 8px;
+  font-size: 11.5px;
+}
+
 .selection-translation-result .word-details {
-  max-height: 260px;
+  max-height: 250px;
   overflow: auto;
 }
 
@@ -902,13 +1646,13 @@ label {
   max-height: 220px;
   margin: 0;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
   color: var(--vscode-foreground);
   background: var(--vscode-input-background);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
@@ -918,17 +1662,17 @@ label {
   gap: 6px;
 }
 
-.selection-note-actions button:disabled {
-  cursor: default;
-  opacity: 0.55;
+.selection-note-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .highlight-tooltip {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
-  background: var(--vscode-editor-background);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  background: var(--surface-bg);
+  box-shadow: var(--floating-shadow);
   max-width: 320px;
 }
 
@@ -945,4 +1689,26 @@ label {
 
 .highlight-tooltip .annotation-tags {
   margin-top: 0;
+}
+
+/* Slide-over drawer on narrow split-pane viewports so PDF reading flow is preserved */
+@media (max-width: 780px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side-panel {
+    position: fixed;
+    top: 40px;
+    right: 0;
+    bottom: 0;
+    width: min(var(--side-panel-width, 340px), calc(100vw - 24px));
+    height: auto;
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.2);
+  }
+
+  .toolbar-label-button span {
+    display: none;
+  }
 }

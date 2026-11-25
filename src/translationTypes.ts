@@ -15,12 +15,15 @@ export interface TranslationResult {
 export interface TranslationSettings {
   provider: TranslationProvider;
   deepSeekModel: DeepSeekModel;
+  openAiBaseUrl: string;
+  openAiModel: string;
   libreTranslateEndpoint: string;
   argosPythonPath: string;
   fallbackToLibreTranslate: boolean;
   source: string;
   target: string;
   hasDeepSeekApiKey: boolean;
+  hasOpenAiApiKey: boolean;
   dictionaryReady: boolean;
   argosPythonFound: boolean;
 }

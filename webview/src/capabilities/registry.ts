@@ -1,15 +1,16 @@
 import React from 'react';
-import { READER_CAPABILITIES, type CapabilityDescriptor, type CapabilityId } from '../../../src/capabilities/contracts';
+import { type CapabilityDescriptor, type CapabilityId } from '../../../src/capabilities/contracts';
 import type { CapabilityEventEnvelope } from '../../../src/capabilities/protocol';
+import type { Translator } from '../../../src/i18n';
 import { AnnotationsPanel, type AnnotationsPanelProps } from './annotations/AnnotationsPanel';
 import { TranslationPanel } from './translation/TranslationPanel';
-import { WordbookPanel } from './wordbook/WordbookPanel';
-import type { WordDetails, WordRecord } from '../types';
+import { WordbookPanel, type WordbookPanelProps } from './wordbook/WordbookPanel';
+import type { WordDetails } from '../types';
 import type { WorkspacePanelContribution } from './ReaderSideSurface';
 
 export interface CapabilityPanelModels {
   annotations: AnnotationsPanelProps;
-  wordbook: { words: WordRecord[]; onDelete(id: string): void };
+  wordbook: WordbookPanelProps;
   translation: { selectedText: string; output: string; wordDetails?: WordDetails };
 }
 
@@ -40,7 +41,8 @@ export function visibleCapabilityPanels(descriptors: CapabilityDescriptor[]) {
 
 export function buildCapabilityPanelContributions(
   descriptors: CapabilityDescriptor[],
-  models: CapabilityPanelModels
+  models: CapabilityPanelModels,
+  t?: Translator
 ): WorkspacePanelContribution[] {
   const visible = new Map(visibleCapabilityPanels(descriptors).map(descriptor => [descriptor.id, descriptor]));
   const panels: WorkspacePanelContribution[] = [];
@@ -49,7 +51,7 @@ export function buildCapabilityPanelContributions(
     if (descriptor) {
       panels.push({
         id: descriptor.id,
-        title: descriptor.title,
+        title: localizedCapabilityTitle(descriptor, t),
         content: definition.render(models)
       });
     }
@@ -58,6 +60,14 @@ export function buildCapabilityPanelContributions(
     (visible.get(left.id as CapabilityId)?.order ?? 0) -
     (visible.get(right.id as CapabilityId)?.order ?? 0)
   ));
+}
+
+function localizedCapabilityTitle(descriptor: CapabilityDescriptor, t?: Translator) {
+  if (!t) return descriptor.title;
+  if (descriptor.id === 'annotations') return t('capAnnotationsTitle');
+  if (descriptor.id === 'wordbook') return t('capWordbookTitle');
+  if (descriptor.id === 'translation') return t('capTranslationTitle');
+  return descriptor.title;
 }
 
 export function capabilityEnabled(descriptors: CapabilityDescriptor[], id: CapabilityId) {
